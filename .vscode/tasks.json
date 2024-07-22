@@ -1,0 +1,53 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        
+        {
+            "type": "shell",
+            "label": "1. Start Docker Container",
+            "command": "sudo docker run -td --name ps2env 67cc3106a86a"
+        },
+        {
+            "type": "shell",
+            "label": "2. Stop And Clear Docker Container",
+            "command": "sudo docker stop ps2env && sudo docker container remove ps2env"
+        },
+        {
+            "type": "shell",
+            "label": "3. Copy project to container, make, and get binary",
+            "command": "sudo docker cp ${workspaceFolder}/project/ ps2env:/ && sudo docker exec -t ps2env bash -c 'make clean && make'  && sudo docker cp ps2env:/project/bin ${workspaceFolder}/project/ && sudo chown -R adnan project"
+        },
+        {
+            "type": "shell",
+            "label": "4. Open a terminal session in PS2ENV container",
+            "command": "sudo docker exec -it ps2env bash"
+        }
+        
+    ],
+    "inputs": [
+        {
+            "id": "wav2adpcmSource",
+            "description": "Source file path (ex. ):",
+            "default": "demo/res/sound.wav",
+            "type": "promptString"
+        },
+        {
+            "id": "wav2adpcmTarget",
+            "description": "Target file path (ex. ):",
+            "default": "demo/res/sound.adpcm",
+            "type": "promptString"
+        },
+        {
+            "id": "ps2Ip",
+            "description": "PS2link ip address:",
+            "default": "192.168.1.200",
+            "type": "promptString"
+        },
+        {
+            "id": "local2Ip",
+            "description": "Local ip address:",
+            "default": "192.168.1.245",
+            "type": "promptString"
+        }
+    ]
+}
