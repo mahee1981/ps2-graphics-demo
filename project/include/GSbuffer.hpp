@@ -9,9 +9,9 @@ namespace Buffers
     public:
         explicit GSbuffer();
         explicit GSbuffer(unsigned int width, unsigned int height, unsigned int mask);
-        const unsigned int GetWidth();
-        const unsigned int GetHeight();
-        const unsigned int GetAddress();
+        const unsigned int GetWidth() const;
+        const unsigned int GetHeight() const;
+        const unsigned int GetAddress() const;
         virtual ~GSbuffer();
 
     protected:

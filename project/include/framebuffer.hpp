@@ -5,7 +5,7 @@
 
 #include <GSbuffer.hpp>
 
-#include <bufferEnums.hpp>
+#include <GSBufferConfig.hpp>
 
 namespace Buffers
 {
@@ -22,7 +22,7 @@ namespace Buffers
 
         void ToSDKFramebuffer(framebuffer_t *);
 
-        u64 GetFrameBufferSettings();
+        u64 GetFrameBufferSettings() const;
         virtual ~Framebuffer();
 
     private:

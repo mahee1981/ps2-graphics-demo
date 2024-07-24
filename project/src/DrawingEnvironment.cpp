@@ -11,7 +11,7 @@ DrawingEnvironment::DrawingEnvironment(std::shared_ptr<Framebuffer> framebuffer,
 {
 }
 
-void DrawingEnvironment::SetupDrawingEnvironment(unsigned int context)
+void DrawingEnvironment::SetupDrawingEnvironment(unsigned int context) const
 {
     packet2_t *packet = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
 
@@ -120,12 +120,12 @@ void DrawingEnvironment::SetupDrawingEnvironment(unsigned int context)
     packet2_free(packet);
 }
 
-u64 DrawingEnvironment::GetXYOffsetSettings()
+u64 DrawingEnvironment::GetXYOffsetSettings() const
 {
-    return ((u64(Utils::FloatToFixedPoint(yOffset) & 0xFFFF) << 32)  | u64(Utils::FloatToFixedPoint(xOffset) & 0xFFFF));
+    return ((u64(Utils::FloatToFixedPoint<u16>(yOffset) & 0xFFFF) << 32)  | u64(Utils::FloatToFixedPoint<u16>(xOffset) & 0xFFFF));
 }
 
-u64 DrawingEnvironment::GetScissoringAreaSettings()
+u64 DrawingEnvironment::GetScissoringAreaSettings() const
 {
     return ( (u64((framebuffer->GetHeight() - 1) & 0x7FF) << 48)   
              | (u64(0 & 0x7FF) << 32) 
@@ -133,19 +133,19 @@ u64 DrawingEnvironment::GetScissoringAreaSettings()
              | u64(0 & 0x7FF) );
 }
 
-u64 DrawingEnvironment::GetAlphaAndDepthTestSettings()
+u64 DrawingEnvironment::GetAlphaAndDepthTestSettings() const
 {
     return (static_cast<u64>(zbuffer->GetDepthTestMethod()) & 0x03) << 17 
             | u64(0x01) << 16 
             | alphaTest->GetAlphaTestSettings();
 }
-
-u64 DrawingEnvironment::GetFogColorSettings(u8 r, u8 g, u8 b)
+ 
+u64 DrawingEnvironment::GetFogColorSettings(u8 r, u8 g, u8 b) const
 {
     return  u64(b) << 16 | u64(g) << 8 | u64(r);
 }
 // TODO: make this customizable
-u64 DrawingEnvironment::GetDefaultAlphaBlendingSettings()
+u64 DrawingEnvironment::GetDefaultAlphaBlendingSettings() const
 {
     return u64(0x80 & 0xFF) << 32 
            | (static_cast<u64>(AlphaBlendingColorConfig::COLOR_DESTINATION) & 0x03) << 6 
@@ -154,7 +154,7 @@ u64 DrawingEnvironment::GetDefaultAlphaBlendingSettings()
            | (static_cast<u64>(AlphaBlendingColorConfig::COLOR_SOURCE) & 0x03);
 }
 
-u64 DrawingEnvironment::GetTextureWrappingSettings(TextureWrappingOptions wrapOptions, unsigned int minU, unsigned int maxU, unsigned int minV, unsigned int maxV)
+u64 DrawingEnvironment::GetTextureWrappingSettings(TextureWrappingOptions wrapOptions, unsigned int minU, unsigned int maxU, unsigned int minV, unsigned int maxV) const
 {
    return ((static_cast<u64>(maxV) & 0x3FF) << 34)
             | ((static_cast<u64>(minV) & 0x3FF) << 24)

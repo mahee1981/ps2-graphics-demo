@@ -1,17 +1,17 @@
 #pragma once
 
-#include <bufferEnums.hpp>
+#include <AlphaTestConfig.hpp>
 #include <tamtypes.h>
 
 class AlphaTest{
 
 public:
-    AlphaTest(bool isEnabled, Buffers::AlphaTestMethod, u8 refValue, Buffers::AlphaTestOnFail);
-    u64 GetAlphaTestSettings();
+    AlphaTest(bool isEnabled, AlphaTestMethod, u8 refValue, AlphaTestOnFail);
+    u64 GetAlphaTestSettings() const;
 
 private:
     bool isEnabled;
-    Buffers::AlphaTestMethod testMethod;
+    AlphaTestMethod testMethod;
     u8 referenceAlphaValue;
-    Buffers::AlphaTestOnFail onFail;
+    AlphaTestOnFail onFail;
 };

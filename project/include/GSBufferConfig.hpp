@@ -2,9 +2,7 @@
 #pragma once
 
 namespace Buffers{
-    /*
-    Used to specify how color data is stored inside a framebuffer, zbuffer or texture buffer
-    */
+
     enum class GSPixelStorageMethod : unsigned int
     {
         PSM_32 = 0x00,
@@ -55,45 +53,7 @@ namespace Buffers{
         GREATER_EQUAL = 2,
         GREATER = 3
     };
+   
 
-    enum class AlphaTestMethod : unsigned char
-    {
-        NEVER = 0,
-        ALWAYS = 1,
-        LESS = 2,
-        LESS_OR_EQUAL = 3,
-        EQUAL = 4,
-        GREATER_OR_EQUAL = 5,
-        GREATER = 6,
-        NOT_EQUAL = 7
-    };
-    enum class AlphaTestOnFail : unsigned char
-    {
-        KEEP = 0,
-        FB_UPDATE_ONLY = 1,
-        ZB_UPDATE_ONLY = 2,
-        RGB_UPDATE_ONLY = 3
-    };
-
-    enum class AlphaBlendingColorConfig : unsigned char
-    {
-        COLOR_SOURCE = 0,
-        COLOR_DESTINATION = 1,
-        COLOR_ZERO = 2
-    };
-
-    enum class AlphaBlendingAlphaConfig : unsigned char
-    {
-        ALPHA_SOURCE = 0,
-        ALPHA_DESTINATION = 1,
-        ALPHA_FIXED = 2
-    };
-    enum class TextureWrappingOptions : unsigned char
-    {
-        REPEAT = 0,
-        CLAMP = 1,
-        REGION_CLAMP = 2,
-        REGION_REPEAT = 3,
-    };
     
 }

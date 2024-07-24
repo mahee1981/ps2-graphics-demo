@@ -1,7 +1,7 @@
 #pragma once
 
 #include <GSbuffer.hpp>
-#include <bufferEnums.hpp>
+#include <GSBufferConfig.hpp>
 #include <draw_buffers.h>
 
 namespace Buffers
@@ -12,8 +12,8 @@ namespace Buffers
         explicit ZBuffer();
         explicit ZBuffer(unsigned int width, unsigned int height, unsigned int mask, bool enable, ZbufferTestMethod method, GSZbufferStorageMethodEnum zbufferStorageMethod);
         void ToSDKZbuffer(zbuffer_t *);
-        u64 GetZbufferSettings();
-        Buffers::ZbufferTestMethod GetDepthTestMethod();
+        u64 GetZbufferSettings() const;
+        Buffers::ZbufferTestMethod GetDepthTestMethod() const;
 
     private:
         bool enable;

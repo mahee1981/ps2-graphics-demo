@@ -3,8 +3,11 @@
 
 
 namespace Utils {
-    static inline u16 FloatToFixedPoint(float x){
+
+    template<typename T>
+    static inline T FloatToFixedPoint(float x){
         constexpr unsigned int numberOfDecimalBits = 4;
-        return u16(x * (1 << numberOfDecimalBits));
+        return T(x * (1 << numberOfDecimalBits));
     }
+    
 }

@@ -10,6 +10,8 @@
 #include <dma.h>
 #include <AlphaTest.hpp>
 #include <debug.h>
+#include <TextureConfig.hpp>
+#include <BlendingConfig.hpp>
 
 
 using namespace Buffers;
@@ -24,16 +26,16 @@ private:
     float yOffset;
     unsigned int context;
 
-    u64 GetXYOffsetSettings();
-    u64 GetScissoringAreaSettings();
-    u64 GetAlphaAndDepthTestSettings();
-    u64 GetFogColorSettings(u8 r, u8 g, u8 b);
-    u64 GetDefaultAlphaBlendingSettings();
-    u64 GetTextureWrappingSettings(TextureWrappingOptions wrapOptions, unsigned int minU = 0, unsigned int maxU = 0, unsigned int minV = 0, unsigned int maxV = 0);
+    u64 GetXYOffsetSettings() const;
+    u64 GetScissoringAreaSettings() const;
+    u64 GetAlphaAndDepthTestSettings() const;
+    u64 GetFogColorSettings(u8 r, u8 g, u8 b) const; 
+    u64 GetDefaultAlphaBlendingSettings() const;
+    u64 GetTextureWrappingSettings(TextureWrappingOptions wrapOptions, unsigned int minU = 0, unsigned int maxU = 0, unsigned int minV = 0, unsigned int maxV = 0) const;
 
 public:
     DrawingEnvironment(std::shared_ptr<Framebuffer>, std::shared_ptr<ZBuffer> zbuffer, std::shared_ptr<AlphaTest> alphaTest);
-    void SetupDrawingEnvironment(unsigned int context);
+    void SetupDrawingEnvironment(unsigned int context) const;
     
 
 };

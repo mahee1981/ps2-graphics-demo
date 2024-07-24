@@ -16,17 +16,17 @@ namespace Buffers
     {
         graph_vram_free(address);
     }
-    const unsigned int GSbuffer::GetHeight()
+    const unsigned int GSbuffer::GetHeight() const
     {
         return height;
     }
 
-    const unsigned int GSbuffer::GetWidth()
+    const unsigned int GSbuffer::GetWidth() const
     {
         return width;
     }
 
-    const unsigned int GSbuffer::GetAddress()
+    const unsigned int GSbuffer::GetAddress() const
     {
         return address;
     }

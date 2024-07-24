@@ -7,14 +7,11 @@
 #include <memory>
 #include <vector>
 #include <stdio.h>
-#include <unistd.h>
 #include <vector>
 #include <packet2.h>
 #include <packet.h>
-#include <unistd.h>
 #include <debug.h>
 #include <draw.h>
-#include <draw2d.h>
 
 
 constexpr int width = 640;
@@ -42,7 +39,7 @@ void InitalizeGS(std::shared_ptr<Buffers::Framebuffer> &framebuffer, std::shared
 {
     framebuffer = std::make_shared<Buffers::Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_32);
     zbuffer = std::make_shared<Buffers::ZBuffer>(width, height, 0, true, Buffers::ZbufferTestMethod::GREATER_EQUAL, Buffers::GSZbufferStorageMethodEnum::ZBUF_32);
-    alphaTest = std::make_shared<AlphaTest>(true, Buffers::AlphaTestMethod::NOT_EQUAL, 0x00, Buffers::AlphaTestOnFail::FB_UPDATE_ONLY);
+    alphaTest = std::make_shared<AlphaTest>(true, AlphaTestMethod::NOT_EQUAL, 0x00, AlphaTestOnFail::FB_UPDATE_ONLY);
 
     graph_set_mode(GRAPH_MODE_INTERLACED, GRAPH_MODE_NTSC, GRAPH_MODE_FIELD, GRAPH_ENABLE);
     graph_set_screen(0, 0, width, height); // TODO: learn more about this in docs
@@ -80,12 +77,12 @@ packet2_t *RenderTriangle()
 
 
         //coordinates
-        qword.dw[0] = (u64(Utils::FloatToFixedPoint(triangleData[i+1] + yOff))) << 32  | (u64(Utils::FloatToFixedPoint(triangleData[i] + xOff) ));
+        qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>(triangleData[i+1] + yOff))) << 32  | (u64(Utils::FloatToFixedPoint<u16>(triangleData[i] + xOff) ));
         qword.dw[1] = u64(triangleData[i+2]) & 0xFFFFFFFF;
 
         if(i == triangleData.size() - 6)
         {
-            qword.dw[1] |= (u64(1 & 0x01) << 48);
+            qword.dw[1] |= (u64(1 & 0x01) << 48); //drawing kick :)
         }
         packet2_add_u128(packet, qword.qw);
 

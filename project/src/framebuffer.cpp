@@ -41,7 +41,7 @@ namespace Buffers
         fb->mask = this->mask;
 
     }
-    u64 Framebuffer::GetFrameBufferSettings(){
+    u64 Framebuffer::GetFrameBufferSettings() const{
         return (u64(mask) << 32 |  (static_cast<u64>(pixelStorageMethod) & 0x3F) << 24 | u64((width>>6) & 0x3F) << 16 | u64( (address >> 11) & 0x1FF ));
     }
 }
