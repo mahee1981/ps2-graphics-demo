@@ -21,7 +21,7 @@ void DrawingEnvironment::SetupDrawingEnvironment(unsigned int context)
     of the quadword contains the register to set, and the lower part contians
     the data that will be set to that address
     */
-    int numOfRegistersToSet = 15;
+    int numOfRegistersToSet = 16;
 
     // GIF TAG HEADER
     qword_t qword;
@@ -42,6 +42,11 @@ void DrawingEnvironment::SetupDrawingEnvironment(unsigned int context)
     //set global primitve attributes and disable manual override
     qword.dw[0] = u64(false & 0x01);
     qword.dw[1] = u64(GS_REG_PRMODECONT);
+    packet2_add_u128(packet, qword.qw);
+
+    //Enable gouraud shading and alpha blending
+    qword.dw[0] = u64(1) << 6 |  u64(0x01) << 3;
+    qword.dw[1] = u64(GS_REG_PRMODE);
     packet2_add_u128(packet, qword.qw);
 
     qword.dw[0] = this->GetXYOffsetSettings();

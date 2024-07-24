@@ -4,22 +4,27 @@
         
         {
             "type": "shell",
-            "label": "1. Start Docker Container",
+            "label": "1. Create Docker Container (Detached mode)",
             "command": "sudo docker run -td --name ps2env 67cc3106a86a"
         },
         {
             "type": "shell",
-            "label": "2. Stop And Clear Docker Container",
+            "label": "2. Start ps2env Docker Container",
+            "command": "sudo docker start ps2env"
+        },
+        {
+            "type": "shell",
+            "label": "3. Stop And Remove Docker Container",
             "command": "sudo docker stop ps2env && sudo docker container remove ps2env"
         },
         {
             "type": "shell",
-            "label": "3. Copy project to container, make, and get binary",
+            "label": "4. Copy project to container, make, and get binary",
             "command": "sudo docker cp ${workspaceFolder}/project/ ps2env:/ && sudo docker exec -t ps2env bash -c 'make clean && make'  && sudo docker cp ps2env:/project/bin ${workspaceFolder}/project/ && sudo chown -R adnan project"
         },
         {
             "type": "shell",
-            "label": "4. Open a terminal session in PS2ENV container",
+            "label": "5. Open a terminal session in PS2ENV container",
             "command": "sudo docker exec -it ps2env bash"
         }
         

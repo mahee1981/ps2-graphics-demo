@@ -3,8 +3,8 @@
 
 
 namespace Utils {
-    static inline s16 FloatToFixedPoint(float x){
+    static inline u16 FloatToFixedPoint(float x){
         constexpr unsigned int numberOfDecimalBits = 4;
-        return s16(x * (1 << numberOfDecimalBits));
+        return u16(x * (1 << numberOfDecimalBits));
     }
 }
