@@ -1,7 +1,7 @@
 #include <DrawingEnvironment.hpp>
 
 
-DrawingEnvironment::DrawingEnvironment(std::shared_ptr<Framebuffer> framebuffer, std::shared_ptr<ZBuffer> zbuffer, std::shared_ptr<AlphaTest> alphaTest) 
+DrawingEnvironment::DrawingEnvironment(std::shared_ptr<Framebuffer> framebuffer, std::shared_ptr<ZBuffer> zbuffer, AlphaTest alphaTest) 
     : framebuffer(framebuffer), 
       zbuffer(zbuffer),
       alphaTest(alphaTest), 
@@ -120,6 +120,22 @@ void DrawingEnvironment::SetupDrawingEnvironment(unsigned int context) const
     packet2_free(packet);
 }
 
+void DrawingEnvironment::ClearScreen(packet2_t *packet) const
+{
+    dma_wait_fast();
+
+    packet2_update(packet, draw_clear( packet->next,0,
+                                       xOffset,yOffset,framebuffer->GetWidth(),framebuffer->GetHeight(),
+                                       clearScreenColor.GetComponentValueAsUByte(Colors::ColorComponent::Red),
+                                       clearScreenColor.GetComponentValueAsUByte(Colors::ColorComponent::Green),
+                                       clearScreenColor.GetComponentValueAsUByte(Colors::ColorComponent::Blue)  ));
+}
+
+void DrawingEnvironment::SetClearScreenColor(unsigned char r, unsigned char g, unsigned char b)
+{
+    this->clearScreenColor.SetColor(r,g,b,0x80);
+}
+
 u64 DrawingEnvironment::GetXYOffsetSettings() const
 {
     return ((u64(Utils::FloatToFixedPoint<u16>(yOffset) & 0xFFFF) << 32)  | u64(Utils::FloatToFixedPoint<u16>(xOffset) & 0xFFFF));
@@ -137,7 +153,7 @@ u64 DrawingEnvironment::GetAlphaAndDepthTestSettings() const
 {
     return (static_cast<u64>(zbuffer->GetDepthTestMethod()) & 0x03) << 17 
             | u64(0x01) << 16 
-            | alphaTest->GetAlphaTestSettings();
+            | alphaTest.GetAlphaTestSettings();
 }
  
 u64 DrawingEnvironment::GetFogColorSettings(u8 r, u8 g, u8 b) const

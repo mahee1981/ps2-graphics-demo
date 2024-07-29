@@ -1,10 +1,12 @@
 #pragma once
 
 #include <graph_vram.h>
+#include <IDisposable.hpp>
+#include <stdio.h>
 
 namespace Buffers
 {
-    class GSbuffer
+    class GSbuffer : public IDisposable
     {
     public:
         explicit GSbuffer();
@@ -13,6 +15,7 @@ namespace Buffers
         const unsigned int GetHeight() const;
         const unsigned int GetAddress() const;
         virtual ~GSbuffer();
+        void Dispose() override;
 
     protected:
         const int width;
