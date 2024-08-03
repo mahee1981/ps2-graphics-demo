@@ -122,13 +122,30 @@ void DrawingEnvironment::SetupDrawingEnvironment(unsigned int context) const
 
 void DrawingEnvironment::ClearScreen(packet2_t *packet) const
 {
-    dma_wait_fast();
+    qword_t qword;
+
+    qword.dw[0] = (u64)GIF_SET_TAG(1, false, false, 0, GIF_FLG_PACKED, 1);
+    qword.dw[1] = (u64)GIF_REG_AD;
+    packet2_add_u128(packet, qword.qw);
+
+    qword.dw[0] = this->GetDisabledAlphaAndDepthTestSettings();
+    qword.dw[1] = u64(GS_REG_TEST);
+    packet2_add_u128(packet, qword.qw);
 
     packet2_update(packet, draw_clear( packet->next,0,
                                        xOffset,yOffset,framebuffer->GetWidth(),framebuffer->GetHeight(),
                                        clearScreenColor.GetComponentValueAsUByte(Colors::ColorComponent::Red),
                                        clearScreenColor.GetComponentValueAsUByte(Colors::ColorComponent::Green),
                                        clearScreenColor.GetComponentValueAsUByte(Colors::ColorComponent::Blue)  ));
+
+    
+    qword.dw[0] = (u64)GIF_SET_TAG(1, false, false, 0, GIF_FLG_PACKED, 1);
+    qword.dw[1] = (u64)GIF_REG_AD;
+    packet2_add_u128(packet, qword.qw);
+
+    qword.dw[0] = this->GetAlphaAndDepthTestSettings();
+    qword.dw[1] = u64(GS_REG_TEST);
+    packet2_add_u128(packet, qword.qw);
 }
 
 void DrawingEnvironment::SetClearScreenColor(unsigned char r, unsigned char g, unsigned char b)
@@ -152,6 +169,13 @@ u64 DrawingEnvironment::GetScissoringAreaSettings() const
 u64 DrawingEnvironment::GetAlphaAndDepthTestSettings() const
 {
     return (static_cast<u64>(zbuffer->GetDepthTestMethod()) & 0x03) << 17 
+            | u64(0x01) << 16 
+            | alphaTest.GetAlphaTestSettings();
+}
+
+u64 DrawingEnvironment::GetDisabledAlphaAndDepthTestSettings() const
+{
+    return (static_cast<u64>(ZbufferTestMethod::ALLPASS) & 0x03) << 17 
             | u64(0x01) << 16 
             | alphaTest.GetAlphaTestSettings();
 }

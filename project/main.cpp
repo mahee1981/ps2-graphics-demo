@@ -65,9 +65,9 @@ void RenderTriangle(packet2_t *dmaBuffer, float angle)
 {
     std::vector<float> triangleData{
         // x     y     z     r     g     b
-        0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 100.f, 0.0f, 0.0f, 1.0f, 0.0f,
-        100.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+        0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 100.f, 1.0f, 0.0f, 1.0f, 0.0f,
+        100.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f
 
     };
 
@@ -88,7 +88,7 @@ void RenderTriangle(packet2_t *dmaBuffer, float angle)
         qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((100.0f * sin(angle) + triangleData[i + 1] + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(100.0f * sin(angle) + triangleData[i] + xOff)));
         qword.dw[1] = u64(triangleData[i + 2]) & 0xFFFFFFFF;
 
-        if (i == triangleData.size() - 6)
+        if (i == triangleData.size() - 6)   
         {
             qword.dw[1] |= (u64(1 & 0x01) << 48); // drawing kick :)
         }
@@ -99,6 +99,7 @@ void RenderTriangle(packet2_t *dmaBuffer, float angle)
 
 void SendGIFPacketWaitForDraw(packet2_t *dmaBuffer)
 {
+    dma_wait_fast();
 
     dma_channel_send_normal(DMA_CHANNEL_GIF, dmaBuffer->base, packet2_get_qw_count(dmaBuffer), 0, 0);
 
