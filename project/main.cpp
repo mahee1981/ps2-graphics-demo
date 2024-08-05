@@ -16,6 +16,8 @@
 #include <draw.h>
 #include <cmath>
 
+#include <VU0Math/vec4.hpp>
+
 constexpr int width = 640;
 constexpr int height = 448;
 
@@ -65,12 +67,11 @@ std::shared_ptr<DrawingEnvironment> InitalizeGS()
 //make sure the data is aligned by 128 bits
 void VU0_ADD(float *vertex, float *value){
 
-
     asm __volatile__(
         "lqc2 $vf1, 0x00(%0)      \n"
         "lqc2 $vf2, 0x00(%1)      \n"
         "1:                       \n"
-        "vadd  $vf1, $vf1, $vf2\n"
+        "vadd  $vf1, $vf1, $vf2   \n"
         "sqc2   $vf1, 0x00(%0)    \n"
         : : "r" (vertex), "r" (value)
         : "memory"
@@ -83,7 +84,7 @@ void RenderTriangle(packet2_t *dmaBuffer, float angle)
     constexpr int vertexDataOffset = 0;
     constexpr int colorDataOffset = 4 * sizeof(float);
 
-
+    //Data is to be stored in an obj file that has coordinates, color and texutures as Vec4, so that we get a qword alignment"
     std::vector<float> triangleData{
         // x     y     z    w     r     g     b        a
         0.0f, 100.f, 0.0f,  1.0,  0.0f, 1.0f, 0.0f, 1.0f,
@@ -101,6 +102,8 @@ void RenderTriangle(packet2_t *dmaBuffer, float angle)
 
     float *begin = triangleData.data();
 
+    ps2math::Vec4 test_data(test.data());
+
     for (std::size_t i = 0; i < triangleData.size(); i += 8)
     {
         // color
@@ -108,12 +111,12 @@ void RenderTriangle(packet2_t *dmaBuffer, float angle)
         qword.dw[1] = (u64(triangleData[i + 7] * 0x80) & 0xFF) << 32 | (u64(triangleData[i + 6] * 255.0f) & 0xFF);
         packet2_add_u128(dmaBuffer, qword.qw);
 
-
-        VU0_ADD(begin+i, test.data());
+        ps2math::Vec4 vertex(begin + i);
+        vertex += test_data;
 
         // coordinates
-        qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((triangleData[i + 1] + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(triangleData[i] + xOff)));
-        qword.dw[1] = u64(triangleData[i + 2]) & 0xFFFFFFFF;
+        qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((vertex.y + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x + xOff)));
+        qword.dw[1] = u64(vertex.z) & 0xFFFFFFFF;
 
         if (i == triangleData.size() - 8)
         {
@@ -166,6 +169,13 @@ int main(int argc, char *argv[])
     auto now = std::chrono::steady_clock::now();
     lastUpdate = now;
     float angle = 0.0f;
+
+    ps2math::Vec4 rhs({1.0f, 1.0f, 1.0f, 1.0f});
+    ps2math::Vec4 lhs({1.0f, 1.0f, 1.0f, 3.0f});
+
+    auto res = rhs + lhs;
+    res -= ps2math::Vec4(0.5f, 0.5f, 0.5f, 0.5f);
+    printf("Result: %f, %f, %f, %f\n", res.x, res.y, res.z, res.w);
 
     while (1)
     {
