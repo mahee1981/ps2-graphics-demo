@@ -33,7 +33,7 @@ private:
     u64 GetFogColorSettings(u8 r, u8 g, u8 b) const; 
     u64 GetDefaultAlphaBlendingSettings() const;
     u64 GetTextureWrappingSettings(TextureWrappingOptions wrapOptions, unsigned int minU = 0, unsigned int maxU = 0, unsigned int minV = 0, unsigned int maxV = 0) const;
-
+    u64 GetDisabledAlphaAndDepthTestSettings() const;
 public:
     DrawingEnvironment(std::shared_ptr<Framebuffer>, std::shared_ptr<ZBuffer> zbuffer, AlphaTest alphaTest);
     void SetupDrawingEnvironment(unsigned int context) const;

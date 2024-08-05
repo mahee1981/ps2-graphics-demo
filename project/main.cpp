@@ -126,6 +126,7 @@ void RenderTriangle(packet2_t *dmaBuffer, float angle)
 
 void SendGIFPacketWaitForDraw(packet2_t *dmaBuffer)
 {
+    dma_wait_fast();
 
     dma_channel_send_normal(DMA_CHANNEL_GIF, dmaBuffer->base, packet2_get_qw_count(dmaBuffer), 0, 0);
 

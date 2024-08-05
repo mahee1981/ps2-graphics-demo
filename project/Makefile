@@ -1,6 +1,6 @@
 EE_BIN = ./bin/main.elf # create one executable
 EE_OBJS = ./src/GSbuffer.o src/framebuffer.o src/zbuffer.o src/DrawingEnvironment.o src/AlphaTest.o src/Color.o main.o # this is how you link individual cpp files
-EE_LIBS = -ldraw -lgraph -ldma -lpacket -lpacket2 -ldebug # link precompiled libs he he
+EE_LIBS = -ldraw -lgraph -ldma -lpacket2 -ldebug # link precompiled libs he he
 EE_INCS = -I ./include
 
 all: $(EE_BIN)
