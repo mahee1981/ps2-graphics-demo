@@ -61,34 +61,61 @@ std::shared_ptr<DrawingEnvironment> InitalizeGS()
     return std::make_shared<DrawingEnvironment>(framebuffer, zbuffer, alphaTest);
 }
 
+
+//make sure the data is aligned by 128 bits
+void VU0_ADD(float *vertex, float *value){
+
+
+    asm __volatile__(
+        "lqc2 $vf1, 0x00(%0)      \n"
+        "lqc2 $vf2, 0x00(%1)      \n"
+        "1:                       \n"
+        "vadd  $vf1, $vf1, $vf2\n"
+        "sqc2   $vf1, 0x00(%0)    \n"
+        : : "r" (vertex), "r" (value)
+        : "memory"
+    );
+
+}
+
 void RenderTriangle(packet2_t *dmaBuffer, float angle)
 {
+    constexpr int vertexDataOffset = 0;
+    constexpr int colorDataOffset = 4 * sizeof(float);
+
+
     std::vector<float> triangleData{
-        // x     y     z     r     g     b
-        0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 100.f, 0.0f, 0.0f, 1.0f, 0.0f,
-        100.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
+        // x     y     z    w     r     g     b        a
+        0.0f, 100.f, 0.0f,  1.0,  0.0f, 1.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 0.0f,   1.0,  1.0f, 0.0f, 0.0f, 1.0f,
+        100.0f, 0.0f, 0.0f, 1.0,  0.0f, 0.0f, 1.0f, 1.0f
 
     };
 
+    std::vector<float> test {angle, 0.0f, 0.0f, 0.0f};
     qword_t qword;
     // 0xB = draw triangle and use Gouraud to get the color interpolation
     qword.dw[0] = (u64)GIF_SET_TAG(1, false, true, 0xB, GIF_FLG_PACKED, 6);
     qword.dw[1] = u64(GIF_REG_XYZ2) << 20 | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_XYZ2) << 12 | u64(GIF_REG_RGBAQ) << 8 | u64(GIF_REG_XYZ2) << 4 | u64(GIF_REG_RGBAQ);
     packet2_add_u128(dmaBuffer, qword.qw);
 
-    for (std::size_t i = 0; i < triangleData.size(); i += 6)
+    float *begin = triangleData.data();
+
+    for (std::size_t i = 0; i < triangleData.size(); i += 8)
     {
         // color
-        qword.dw[0] = (u64(triangleData[i + 4] * 255.0f) & 0xFF) << 32 | (u64(triangleData[i + 3] * 255.0f) & 0xFF);
-        qword.dw[1] = (u64(0x40 & 0xFF) << 32 | (u64(triangleData[i + 5] * 255.0f) & 0xFF));
+        qword.dw[0] = (u64(triangleData[i + 5] * 255.0f) & 0xFF) << 32 | (u64(triangleData[i + 4] * 255.0f) & 0xFF);
+        qword.dw[1] = (u64(triangleData[i + 7] * 0x80) & 0xFF) << 32 | (u64(triangleData[i + 6] * 255.0f) & 0xFF);
         packet2_add_u128(dmaBuffer, qword.qw);
 
+
+        VU0_ADD(begin+i, test.data());
+
         // coordinates
-        qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((100.0f * sin(angle) + triangleData[i + 1] + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(100.0f * sin(angle) + triangleData[i] + xOff)));
+        qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((triangleData[i + 1] + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(triangleData[i] + xOff)));
         qword.dw[1] = u64(triangleData[i + 2]) & 0xFFFFFFFF;
 
-        if (i == triangleData.size() - 6)
+        if (i == triangleData.size() - 8)
         {
             qword.dw[1] |= (u64(1 & 0x01) << 48); // drawing kick :)
         }
@@ -149,7 +176,7 @@ int main(int argc, char *argv[])
         deltaTime = (now - lastUpdate);
         lastUpdate = now;
 
-        angle += (1.0f * std::chrono::duration_cast<std::chrono::milliseconds>(deltaTime).count()) / 1000.0f;
+        angle += (10.0f * std::chrono::duration_cast<std::chrono::milliseconds>(deltaTime).count()) / 1000.0f;
 
         if (angle > 360.0f)
         {
