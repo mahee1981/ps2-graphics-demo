@@ -60,7 +60,8 @@
         "ratio": "cpp",
         "semaphore": "cpp",
         "stop_token": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "format": "cpp"
     },
     "makefile.makefilePath": "/home/adnan/Documents/Development/ps2-graphics-demo/project/Makefile",
     "makefile.configurations": [
@@ -69,5 +70,5 @@
             "makeArgs": []
         }
     ],
-    "makefile.configureOnOpen": true
+    "makefile.configureOnOpen": true,
 }

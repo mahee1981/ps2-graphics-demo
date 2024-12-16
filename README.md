@@ -99,6 +99,7 @@ This method involves manually setting up the `ps2dev` environment on your Linux 
 ### **Steps**:
 
 1. **Set Up the Environment**:
+
    Ensure your user account has permissions to build the `ps2dev` environment:
    ```bash
    export PS2DEV=/usr/local/ps2dev

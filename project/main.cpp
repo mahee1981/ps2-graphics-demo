@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
     scr_printf("Successfully initialized the PS2 Graphics Synthesizer!\n");
     scr_printf("Also rendered a triangle!\n");
 
-    std::chrono::duration<float> deltaTime;
+    std::chrono::duration<float, std::milli> deltaTime;
     std::chrono::steady_clock::time_point lastUpdate;
     auto now = std::chrono::steady_clock::now();
     lastUpdate = now;
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
         deltaTime = (now - lastUpdate);
         lastUpdate = now;
 
-        angle += (10.0f * std::chrono::duration_cast<std::chrono::milliseconds>(deltaTime).count()) / 1000.0f;
+        angle += (10.0f * deltaTime.count()) / 1000.0f;
 
         if (angle > 360.0f)
         {
