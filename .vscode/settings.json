@@ -61,5 +61,13 @@
         "semaphore": "cpp",
         "stop_token": "cpp",
         "thread": "cpp"
-    }
+    },
+    "makefile.makefilePath": "/home/adnan/Documents/Development/ps2-graphics-demo/project/Makefile",
+    "makefile.configurations": [
+        {
+            "name": "Default",
+            "makeArgs": []
+        }
+    ],
+    "makefile.configureOnOpen": true
 }

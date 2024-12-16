@@ -1,31 +1,34 @@
 {
+    "env": {
+        "ps2sdk_version": "14.2.0"
+    },
+    
     "configurations": [
         {
             "name": "Docker PS2SDK",
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/project/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ps2sdk/common/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ps2sdk/ee/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ps2sdk/iop/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ps2sdk/ports/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ee/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ee/lib/gcc/mips64r5900el-ps2-elf/11.3.0/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ee/lib/gcc/mips64r5900el-ps2-elf/11.3.0/include-fixed/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ee/lib/gcc/mips64r5900el-ps2-elf/11.3.0/install-tools/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ee/lib/gcc/mips64r5900el-ps2-elf/11.3.0/plugin/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ee/mips64r5900el-ps2-elf/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ee/mips64r5900el-ps2-elf/sys-include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/gsKit/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/iop/lib/gcc/mipsel-ps2-elf/11.3.0/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/iop/lib/gcc/mipsel-ps2-elf/11.3.0/install-tools/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/iop/lib/gcc/mipsel-ps2-elf/11.3.0/plugin/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/iop/lib/gcc/mipsel-ps2-elf/11.3.0/include-fixed/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/iop/lib/gcc/mipsel-ps2-irx/11.3.0/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/iop/lib/gcc/mipsel-ps2-irx/11.3.0/install-tools/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/iop/lib/gcc/mipsel-ps2-irx/11.3.0/plugin/include/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/iop/lib/gcc/mipsel-ps2-irx/11.3.0/include-fixed/**",
-                "/home/adnan/Documents/PS2DEVCommon/ps2dev-intellisense/ee/mips64r5900el-ps2-elf/include/c++/11.3.0/mips64r5900el-ps2-elf"
+                "${env:PS2DEV}/ps2sdk/common/include/**",
+                "${env:PS2DEV}/ps2sdk/ee/include/**",
+                "${env:PS2DEV}/ps2sdk/iop/include/**",
+                "${env:PS2DEV}/ps2sdk/ports/include/**",
+                "${env:PS2DEV}/ee/include/**",
+                "${env:PS2DEV}/ee/lib/gcc/mips64r5900el-ps2-elf/${ps2sdk_version}/include/**",
+                "${env:PS2DEV}/ee/lib/gcc/mips64r5900el-ps2-elf/${ps2sdk_version}/include-fixed/**",
+                "${env:PS2DEV}/ee/lib/gcc/mips64r5900el-ps2-elf/${ps2sdk_version}/install-tools/include/**",
+                "${env:PS2DEV}/ee/lib/gcc/mips64r5900el-ps2-elf/${ps2sdk_version}/plugin/include/**",
+                "${env:PS2DEV}/ee/mips64r5900el-ps2-elf/include/**",
+                "${env:PS2DEV}/gsKit/include/**",
+                "${env:PS2DEV}/iop/lib/gcc/mipsel-none-elf/${ps2sdk_version}/include/**",
+                "${env:PS2DEV}/iop/lib/gcc/mipsel-none-elf/${ps2sdk_version}/install-tools/include/**",
+                "${env:PS2DEV}/iop/lib/gcc/mipsel-none-elf/${ps2sdk_version}/plugin/include/**",
+                "${env:PS2DEV}/iop/lib/gcc/mipsel-none-elf/${ps2sdk_version}/include-fixed/**",
+                "${env:PS2DEV}/iop/lib/gcc/mipsel-ps2-irx/${ps2sdk_version}/include/**",
+                "${env:PS2DEV}/iop/lib/gcc/mipsel-ps2-irx/${ps2sdk_version}/install-tools/include/**",
+                "${env:PS2DEV}/iop/lib/gcc/mipsel-ps2-irx/${ps2sdk_version}/plugin/include/**",
+                "${env:PS2DEV}/iop/lib/gcc/mipsel-ps2-irx/${ps2sdk_version}/include-fixed/**",
+                "${env:PS2DEV}/ee/mips64r5900el-ps2-elf/include/c++/${ps2sdk_version}/mips64r5900el-ps2-elf"
             ],
             "defines": [
                 "_EE",
