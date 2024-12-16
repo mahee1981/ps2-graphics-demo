@@ -1,5 +1,5 @@
 EE_BIN = bin/main.elf 
-EE_OBJS = bin/GSbuffer.o bin/framebuffer.o bin/zbuffer.o bin/DrawingEnvironment.o bin/AlphaTest.o bin/Color.o bin/VU0Math/vec4.o bin/main.o 
+EE_OBJS = bin/GSbuffer.o bin/framebuffer.o bin/zbuffer.o bin/DrawingEnvironment.o bin/AlphaTest.o bin/Color.o bin/VU0Math/vec4.o bin/VU0Math/mat4.o bin/main.o 
 EE_LIBS = -ldraw -lgraph -ldma -lpacket2 -ldebug 
 EE_INCS = -Iinclude
 

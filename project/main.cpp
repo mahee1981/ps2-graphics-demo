@@ -17,6 +17,7 @@
 #include <cmath>
 
 #include <VU0Math/vec4.hpp>
+#include <VU0Math/mat4.hpp>
 
 constexpr int width = 640;
 constexpr int height = 448;
@@ -112,7 +113,10 @@ void RenderTriangle(packet2_t *dmaBuffer, float angle)
         packet2_add_u128(dmaBuffer, qword.qw);
 
         ps2math::Vec4 vertex(begin + i);
-        vertex += test_data;
+
+        ps2math::Mat4 my;
+        vertex = my.RotateZ(ToRadians(angle)) * vertex;
+        // vertex += test_data;
 
         // coordinates
         qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((vertex.y + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x + xOff)));

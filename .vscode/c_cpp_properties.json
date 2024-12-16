@@ -1,6 +1,7 @@
 {
     "env": {
-        "ps2sdk_version": "14.2.0"
+        "ps2sdk_version": "14.2.0",
+        "PS2DEV" : "/usr/local/ps2dev"
     },
     
     "configurations": [
