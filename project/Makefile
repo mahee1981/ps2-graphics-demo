@@ -3,9 +3,8 @@ EE_OBJS = ./src/GSbuffer.o src/framebuffer.o src/zbuffer.o src/DrawingEnvironmen
 EE_LIBS = -ldraw -lgraph -ldma -lpacket2 -ldebug # link precompiled libs he he
 EE_INCS = -I ./include
 
-all: $(EE_BIN)
+all: clean $(EE_BIN)
 	
-
 clean:
 	rm -f $(EE_BIN) $(EE_OBJS)
 
