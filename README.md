@@ -117,6 +117,7 @@ This method involves manually setting up the `ps2dev` environment on your Linux 
 
 
 2. **Install Required Packages**:
+   
    On Debian/Ubuntu, run:
    ```bash
    sudo apt update
