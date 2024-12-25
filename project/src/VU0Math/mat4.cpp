@@ -1,17 +1,18 @@
 #include <VU0Math/mat4.hpp>
 
-ps2math::Mat4::Mat4(){
+ps2math::Mat4::Mat4()
+{
     std::fill(std::begin(data), std::end(data), 0);
-    data[0] = 1.0f; // m11
-    data[5] = 1.0f; // m22
+    data[0] = 1.0f;  // m11
+    data[5] = 1.0f;  // m22
     data[10] = 1.0f; // m33
     data[15] = 1.0f; // m44
 }
 
 ps2math::Mat4::Mat4(const float m11, const float m12, const float m13, const float m14,
-                    const float m21, const float m22, const float m23, const float m24,
-                    const float m31, const float m32, const float m33, const float m34,
-                    const float m41, const float m42, const float m43, const float m44)
+    const float m21, const float m22, const float m23, const float m24,
+    const float m31, const float m32, const float m33, const float m34,
+    const float m41, const float m42, const float m43, const float m44)
 {
     data[0] = m11;
     data[1] = m12;
@@ -34,38 +35,8 @@ ps2math::Mat4::Mat4(const float m11, const float m12, const float m13, const flo
     data[15] = m44;
 }
 
-ps2math::Mat4::~Mat4(){
-
-}
-
-ps2math::Mat4 &ps2math::Mat4::RotateX(float angle)
+ps2math::Mat4::~Mat4()
 {
-    this->data[5] = cosf(angle);
-    this->data[10] = cosf(angle);
-    this->data[6] = -sinf(angle);
-    this->data[9] = sinf(angle);
-
-    return *this;
-}
-
-ps2math::Mat4 &ps2math::Mat4::RotateY(float angle)
-{
-    this->data[0] = cosf(angle);
-    this->data[2] = sinf(angle);
-    this->data[8] = -sinf(angle);
-    this->data[10] = cosf(angle);
-
-    return *this;
-}
-
-ps2math::Mat4 &ps2math::Mat4::RotateZ(float angle)
-{
-    this->data[0] = cosf(angle);
-    this->data[1] = -sinf(angle);
-    this->data[4] = sinf(angle);
-    this->data[5] = cosf(angle);
-
-    return *this;
 }
 
 ps2math::Mat4 ps2math::Mat4::identity()
@@ -73,23 +44,108 @@ ps2math::Mat4 ps2math::Mat4::identity()
     return Mat4();
 }
 
-ps2math::Vec4 ps2math::operator*(const Mat4 &lhs, const Vec4 &rhs)
+ps2math::Mat4 ps2math::Mat4::rotateX(const ps2math::Mat4& model, float angle)
+{
+    Mat4 work = Mat4();
+
+    work.data[5] = cosf(angle);
+    work.data[10] = cosf(angle);
+    work.data[6] = -sinf(angle);
+    work.data[9] = sinf(angle);
+
+    return model * work;
+}
+
+ps2math::Mat4 ps2math::Mat4::rotateY(const ps2math::Mat4& model, float angle)
+{
+    Mat4 work = Mat4();
+
+    work.data[0] = cosf(angle);
+    work.data[2] = sinf(angle);
+    work.data[8] = -sinf(angle);
+    work.data[10] = cosf(angle);
+
+    return model * work;
+}
+
+ps2math::Mat4 ps2math::Mat4::rotateZ(const ps2math::Mat4& model, float angle)
+{
+    Mat4 work = Mat4();
+
+    work.data[0] = cosf(angle);
+    work.data[1] = -sinf(angle);
+    work.data[4] = sinf(angle);
+    work.data[5] = cosf(angle);
+
+    return model * work;
+}
+
+ps2math::Vec4 ps2math::operator*(const Mat4& lhs, const Vec4& rhs)
 {
     Vec4 work;
-  asm volatile(
-      "lqc2		$vf1, 0x00(%2)	\n"
-      "lqc2		$vf2, 0x10(%2)	\n"
-      "lqc2		$vf3, 0x20(%2)	\n"
-      "lqc2		$vf4, 0x30(%2)	\n"
-      "lqc2		$vf5, 0x00(%1)	\n"
-      "vmulaw	$ACC, $vf4, $vf0\n"  //multiply last row with 1 of (0,0,0,1) and store it in ACC, giving the last row of the matrix
-      "vmaddax	$ACC, $vf1, $vf5\n"  //
-      "vmadday	$ACC, $vf2, $vf5\n"
-      "vmaddz	$vf6, $vf3, $vf5\n"
-      "sqc2		$vf6, 0x00(%0)	\n"
-      :
-      : "r"(&work), "r"(&rhs), "r"(lhs.GetDataPtr()));
+    asm volatile(
+        "lqc2		$vf1, 0x00(%2)	\n"
+        "lqc2		$vf2, 0x10(%2)	\n"
+        "lqc2		$vf3, 0x20(%2)	\n"
+        "lqc2		$vf4, 0x30(%2)	\n"
+        "lqc2		$vf5, 0x00(%1)	\n"
+        "vmulaw	    $ACC, $vf4, $vf0\n" // multiply last row with 1 of (0,0,0,1) and store it in ACC, giving the last row of the matrix
+        "vmaddax	$ACC, $vf1, $vf5\n" //
+        "vmadday	$ACC, $vf2, $vf5\n"
+        "vmaddz	    $vf6, $vf3, $vf5\n"
+        "sqc2		$vf6, 0x00(%0)	\n"
+        :
+        : "r"(&work), "r"(&rhs), "r"(lhs.GetDataPtr())
+        : "memory");
 
-  return work;
+    return work;
+}
 
+ps2math::Mat4 ps2math::operator*(const Mat4& lhs, const Mat4& rhs)
+{
+    Mat4 work = Mat4();
+    asm volatile(
+        "lqc2	  $vf1, 0x00(%0) \n"
+        "lqc2	  $vf2, 0x10(%0) \n"
+        "lqc2	  $vf3, 0x20(%0) \n"
+        "lqc2	  $vf4, 0x30(%0) \n"
+        "lqc2	  $vf5, 0x00(%1) \n"
+        "lqc2	  $vf6, 0x10(%1) \n"
+        "lqc2	  $vf7, 0x20(%1) \n"
+        "lqc2	  $vf8, 0x30(%1) \n"
+        "vmulax.xyzw	$ACC, $vf5, $vf1\n"
+        "vmadday.xyzw	$ACC, $vf6, $vf1\n"
+        "vmaddaz.xyzw	$ACC, $vf7, $vf1\n"
+        "vmaddw.xyzw	$vf1, $vf8, $vf1\n"
+        "vmulax.xyzw	$ACC, $vf5, $vf2\n"
+        "vmadday.xyzw	$ACC, $vf6, $vf2\n"
+        "vmaddaz.xyzw	$ACC, $vf7, $vf2\n"
+        "vmaddw.xyzw	$vf2, $vf8, $vf2\n"
+        "vmulax.xyzw	$ACC, $vf5, $vf3\n"
+        "vmadday.xyzw	$ACC, $vf6, $vf3\n"
+        "vmaddaz.xyzw	$ACC, $vf7, $vf3\n"
+        "vmaddw.xyzw	$vf3, $vf8, $vf3\n"
+        "vmulax.xyzw	$ACC, $vf5, $vf4\n"
+        "vmadday.xyzw	$ACC, $vf6, $vf4\n"
+        "vmaddaz.xyzw	$ACC, $vf7, $vf4\n"
+        "vmaddw.xyzw	$vf4, $vf8, $vf4\n"
+        "sqc2	  $vf1, 0x00(%2) \n"
+        "sqc2	  $vf2, 0x10(%2) \n"
+        "sqc2	  $vf3, 0x20(%2) \n"
+        "sqc2	  $vf4, 0x30(%2) \n"
+        :
+        : "r"(lhs.GetDataPtr()), "r"(rhs.GetDataPtr()), "r"(work.GetDataPtr())
+        : "memory");
+    return work;
+}
+
+void ps2math::Mat4::PrintMatrix()
+{
+    for (int i = 0; i < 4; i++) {
+        printf("Row %d: ", i + 1);
+        for (int j = 0; j < 4; j++) {
+            printf("%f ", data[4 * i + j]);
+        }
+        printf("\n");
+    }
 }

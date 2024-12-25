@@ -4,20 +4,20 @@
 
 #include <dma.h>
 
-#include <memory>
-#include <vector>
 #include <chrono>
-
-#include <stdio.h>
 #include <vector>
-#include <packet2.h>
-#include <packet.h>
+#include <memory>
+
+#include <cmath>
 #include <debug.h>
 #include <draw.h>
-#include <cmath>
+#include <packet.h>
+#include <packet2.h>
+#include <stdio.h>
+#include <vector>
 
-#include <VU0Math/vec4.hpp>
 #include <VU0Math/mat4.hpp>
+#include <VU0Math/vec4.hpp>
 
 constexpr int width = 640;
 constexpr int height = 448;
@@ -38,11 +38,10 @@ void InitializeDMAC()
     dma_channel_fast_waits(DMA_CHANNEL_GIF);
 }
 
-void DumpPackets(packet2_t *packet)
+void DumpPackets(packet2_t* packet)
 {
-    qword_t *qword = packet->base;
-    while (qword != packet->next)
-    {
+    qword_t* qword = packet->base;
+    while (qword != packet->next) {
         scr_printf("%lld %lld\n", qword->dw[0], qword->dw[1]);
         qword++;
     }
@@ -64,9 +63,9 @@ std::shared_ptr<DrawingEnvironment> InitalizeGS()
     return std::make_shared<DrawingEnvironment>(framebuffer, zbuffer, alphaTest);
 }
 
-
-//make sure the data is aligned by 128 bits
-void VU0_ADD(float *vertex, float *value){
+// make sure the data is aligned by 128 bits
+void VU0_ADD(float* vertex, float* value)
+{
 
     asm __volatile__(
         "lqc2 $vf1, 0x00(%0)      \n"
@@ -74,39 +73,36 @@ void VU0_ADD(float *vertex, float *value){
         "1:                       \n"
         "vadd  $vf1, $vf1, $vf2   \n"
         "sqc2   $vf1, 0x00(%0)    \n"
-        : : "r" (vertex), "r" (value)
-        : "memory"
-    );
-
+        : : "r"(vertex), "r"(value)
+        : "memory");
 }
 
-void RenderTriangle(packet2_t *dmaBuffer, float angle)
+void RenderTriangle(packet2_t* dmaBuffer, float angle)
 {
     constexpr int vertexDataOffset = 0;
     constexpr int colorDataOffset = 4 * sizeof(float);
 
-    //Data is to be stored in an obj file that has coordinates, color and texutures as Vec4, so that we get a qword alignment"
-    std::vector<float> triangleData{
+    // Data is to be stored in an obj file that has coordinates, color and texutures as Vec4, so that we get a qword alignment"
+    std::vector<float> triangleData {
         // x     y     z    w     r     g     b        a
-        0.0f, 100.f, 0.0f,  1.0,  0.0f, 1.0f, 0.0f, 1.0f,
-        0.0f, 0.0f, 0.0f,   1.0,  1.0f, 0.0f, 0.0f, 1.0f,
-        100.0f, 0.0f, 0.0f, 1.0,  0.0f, 0.0f, 1.0f, 1.0f
+        0.0f, 100.f, 0.0f, 1.0, 0.0f, 1.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 0.0f, 1.0, 1.0f, 0.0f, 0.0f, 1.0f,
+        100.0f, 0.0f, 0.0f, 1.0, 0.0f, 0.0f, 1.0f, 1.0f
 
     };
 
-    std::vector<float> test {angle, 0.0f, 0.0f, 0.0f};
+    std::vector<float> test { angle, 0.0f, 0.0f, 0.0f };
     qword_t qword;
     // 0xB = draw triangle and use Gouraud to get the color interpolation
     qword.dw[0] = (u64)GIF_SET_TAG(1, false, true, 0xB, GIF_FLG_PACKED, 6);
     qword.dw[1] = u64(GIF_REG_XYZ2) << 20 | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_XYZ2) << 12 | u64(GIF_REG_RGBAQ) << 8 | u64(GIF_REG_XYZ2) << 4 | u64(GIF_REG_RGBAQ);
     packet2_add_u128(dmaBuffer, qword.qw);
 
-    float *begin = triangleData.data();
+    float* begin = triangleData.data();
 
     ps2math::Vec4 test_data(test.data());
 
-    for (std::size_t i = 0; i < triangleData.size(); i += 8)
-    {
+    for (std::size_t i = 0; i < triangleData.size(); i += 8) {
         // color
         qword.dw[0] = (u64(triangleData[i + 5] * 255.0f) & 0xFF) << 32 | (u64(triangleData[i + 4] * 255.0f) & 0xFF);
         qword.dw[1] = (u64(triangleData[i + 7] * 0x80) & 0xFF) << 32 | (u64(triangleData[i + 6] * 255.0f) & 0xFF);
@@ -114,16 +110,15 @@ void RenderTriangle(packet2_t *dmaBuffer, float angle)
 
         ps2math::Vec4 vertex(begin + i);
 
-        ps2math::Mat4 my;
-        vertex = my.RotateZ(ToRadians(angle)) * vertex;
-        // vertex += test_data;
-
+        ps2math::Mat4 modelMatrix;
+        modelMatrix = ps2math::Mat4::rotateX(modelMatrix, ToRadians(angle));
+        modelMatrix = ps2math::Mat4::rotateY(modelMatrix, ToRadians(angle));
         // coordinates
+        vertex = modelMatrix * vertex;
         qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((vertex.y + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x + xOff)));
         qword.dw[1] = u64(vertex.z) & 0xFFFFFFFF;
 
-        if (i == triangleData.size() - 8)
-        {
+        if (i == triangleData.size() - 8) {
             qword.dw[1] |= (u64(1 & 0x01) << 48); // drawing kick :)
         }
         packet2_add_u128(dmaBuffer, qword.qw);
@@ -131,7 +126,7 @@ void RenderTriangle(packet2_t *dmaBuffer, float angle)
     packet2_update(dmaBuffer, draw_finish(dmaBuffer->next));
 }
 
-void SendGIFPacketWaitForDraw(packet2_t *dmaBuffer)
+void SendGIFPacketWaitForDraw(packet2_t* dmaBuffer)
 {
     dma_wait_fast();
 
@@ -142,10 +137,10 @@ void SendGIFPacketWaitForDraw(packet2_t *dmaBuffer)
     graph_wait_vsync();
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 
-    packet2_t *myDMABuffer = packet2_create(50, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+    packet2_t* myDMABuffer = packet2_create(50, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
 
     InitializeDMAC();
 
@@ -174,15 +169,14 @@ int main(int argc, char *argv[])
     lastUpdate = now;
     float angle = 0.0f;
 
-    ps2math::Vec4 rhs({1.0f, 1.0f, 1.0f, 1.0f});
-    ps2math::Vec4 lhs({1.0f, 1.0f, 1.0f, 3.0f});
+    ps2math::Vec4 rhs({ 1.0f, 1.0f, 1.0f, 1.0f });
+    ps2math::Vec4 lhs({ 1.0f, 1.0f, 1.0f, 3.0f });
 
     auto res = rhs + lhs;
     res -= ps2math::Vec4(0.5f, 0.5f, 0.5f, 0.5f);
     printf("Result: %f, %f, %f, %f\n", res.x, res.y, res.z, res.w);
 
-    while (1)
-    {
+    while (1) {
 
         // reset the buffer
         packet2_reset(myDMABuffer, true);
@@ -193,8 +187,7 @@ int main(int argc, char *argv[])
 
         angle += (10.0f * deltaTime.count()) / 1000.0f;
 
-        if (angle > 360.0f)
-        {
+        if (angle > 360.0f) {
             angle = 0.0f;
         }
 
