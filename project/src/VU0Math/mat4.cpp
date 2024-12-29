@@ -80,6 +80,29 @@ ps2math::Mat4 ps2math::Mat4::rotateZ(const ps2math::Mat4& model, float angle)
     return model * work;
 }
 
+ps2math::Mat4 ps2math::Mat4::translate(const Mat4& model, const Vec4 &translationVector)
+{
+    Mat4 work = Mat4();
+
+    work.data[12] = translationVector.x;
+    work.data[13] = translationVector.y;
+    work.data[14] = translationVector.z;
+    work.data[15] = 1;  
+
+    return model * work;
+
+}
+ps2math::Mat4 ps2math::Mat4::scale(const Mat4 &model, const Vec4 &scaleVector)
+{
+    Mat4 work = Mat4();
+
+    work.data[0] = scaleVector.x;
+    work.data[5] = scaleVector.y;
+    work.data[10] = scaleVector.z;
+
+    return model * work;
+}
+
 ps2math::Vec4 ps2math::operator*(const Mat4& lhs, const Vec4& rhs)
 {
     Vec4 work;
@@ -89,10 +112,10 @@ ps2math::Vec4 ps2math::operator*(const Mat4& lhs, const Vec4& rhs)
         "lqc2		$vf3, 0x20(%2)	\n"
         "lqc2		$vf4, 0x30(%2)	\n"
         "lqc2		$vf5, 0x00(%1)	\n"
-        "vmulaw	    $ACC, $vf4, $vf0\n" // multiply last row with 1 of (0,0,0,1) and store it in ACC, giving the last row of the matrix
-        "vmaddax	$ACC, $vf1, $vf5\n" //
+        "vmulax 	$ACC, $vf1, $vf5\n" 
         "vmadday	$ACC, $vf2, $vf5\n"
-        "vmaddz	    $vf6, $vf3, $vf5\n"
+        "vmaddaz	$ACC, $vf3, $vf5\n"
+        "vmaddw	    $vf6, $vf4, $vf5\n" 
         "sqc2		$vf6, 0x00(%0)	\n"
         :
         : "r"(&work), "r"(&rhs), "r"(lhs.GetDataPtr())

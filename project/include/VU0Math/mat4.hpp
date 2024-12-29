@@ -21,6 +21,9 @@ public:
     static Mat4 rotateX(const Mat4& model, float angle);
     static Mat4 rotateY(const Mat4& model, float angle);
     static Mat4 rotateZ(const Mat4& model, float angle);
+    static Mat4 translate(const Mat4& model, const Vec4 &translationVector);
+    static Mat4 scale(const Mat4 &model, const Vec4 &scaleVector);
+
 
     friend Mat4 operator*(const Mat4& lhs, const Mat4& rhs);
     friend Vec4 operator*(const Mat4& lhs, const Vec4& rhs);

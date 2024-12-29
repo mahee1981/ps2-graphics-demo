@@ -12,7 +12,7 @@ output-dirs:
 clean:
 	rm -f $(EE_BIN) $(EE_OBJS)
 
-emulate: $(EE_BIN)
+emulate: 
 	pcsx2 $(EE_BIN)
 
 run: $(EE_BIN)

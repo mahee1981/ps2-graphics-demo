@@ -77,7 +77,7 @@ void VU0_ADD(float* vertex, float* value)
         : "memory");
 }
 
-void RenderTriangle(packet2_t* dmaBuffer, float angle)
+void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
 {
     constexpr int vertexDataOffset = 0;
     constexpr int colorDataOffset = 4 * sizeof(float);
@@ -111,8 +111,10 @@ void RenderTriangle(packet2_t* dmaBuffer, float angle)
         ps2math::Vec4 vertex(begin + i);
 
         ps2math::Mat4 modelMatrix;
+        //modelMatrix = ps2math::Mat4::rotateX(modelMatrix, ToRadians(angle));
         modelMatrix = ps2math::Mat4::rotateX(modelMatrix, ToRadians(angle));
-        modelMatrix = ps2math::Mat4::rotateY(modelMatrix, ToRadians(angle));
+        modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(angle, angle, angle, 1));
+        modelMatrix.PrintMatrix();
         // coordinates
         vertex = modelMatrix * vertex;
         qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((vertex.y + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x + xOff)));
@@ -192,7 +194,7 @@ int main(int argc, char* argv[])
         }
 
         drawEnv->ClearScreen(myDMABuffer);
-        RenderTriangle(myDMABuffer, angle);
+        PrepareTriangleDisplayList(myDMABuffer, angle);
 
         SendGIFPacketWaitForDraw(myDMABuffer);
     }
