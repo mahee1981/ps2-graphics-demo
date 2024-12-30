@@ -5,7 +5,7 @@
 
 namespace ps2math {
 
-
+    // Row-major EE vector implementation
     class Vec4
     {
 

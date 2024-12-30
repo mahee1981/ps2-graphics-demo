@@ -8,6 +8,7 @@
 
 namespace ps2math {
 
+//row-major EE matrix implementation
 class Mat4 {
 public:
     Mat4();
@@ -15,7 +16,12 @@ public:
         const float m21, const float m22, const float m23, const float m24,
         const float m31, const float m32, const float m33, const float m34,
         const float m41, const float m42, const float m43, const float m44);
+
+    explicit Mat4(const std::array<float,16> &values); 
+
     ~Mat4();
+
+    Mat4& operator=(const Mat4& rhs);
 
     static Mat4 identity();
     static Mat4 rotateX(const Mat4& model, float angle);
@@ -24,9 +30,9 @@ public:
     static Mat4 translate(const Mat4& model, const Vec4 &translationVector);
     static Mat4 scale(const Mat4 &model, const Vec4 &scaleVector);
 
-
     friend Mat4 operator*(const Mat4& lhs, const Mat4& rhs);
-    friend Vec4 operator*(const Mat4& lhs, const Vec4& rhs);
+    friend Vec4 operator*(const Vec4& lhs, const Mat4& rhs);
+
     void PrintMatrix();
 private:
     float data[16] alignas(16 * sizeof(float));
@@ -35,5 +41,5 @@ private:
 };
 
 Mat4 operator*(const Mat4& lhs, const Mat4& rhs);
-Vec4 operator*(const Mat4& lhs, const Vec4& rhs);
+Vec4 operator*(const Vec4& lhs, const Mat4& rhs);
 }

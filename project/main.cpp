@@ -1,12 +1,12 @@
+#include <DrawingEnvironment.hpp>
 #include <framebuffer.hpp>
 #include <zbuffer.hpp>
-#include <DrawingEnvironment.hpp>
 
 #include <dma.h>
 
 #include <chrono>
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include <cmath>
 #include <debug.h>
@@ -46,7 +46,7 @@ void DumpPackets(packet2_t* packet)
         qword++;
     }
 }
-
+//TODO: refactor this and maybe move away from smart pointers
 std::shared_ptr<DrawingEnvironment> InitalizeGS()
 {
 
@@ -63,24 +63,11 @@ std::shared_ptr<DrawingEnvironment> InitalizeGS()
     return std::make_shared<DrawingEnvironment>(framebuffer, zbuffer, alphaTest);
 }
 
-// make sure the data is aligned by 128 bits
-void VU0_ADD(float* vertex, float* value)
-{
-
-    asm __volatile__(
-        "lqc2 $vf1, 0x00(%0)      \n"
-        "lqc2 $vf2, 0x00(%1)      \n"
-        "1:                       \n"
-        "vadd  $vf1, $vf1, $vf2   \n"
-        "sqc2   $vf1, 0x00(%0)    \n"
-        : : "r"(vertex), "r"(value)
-        : "memory");
-}
 
 void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
 {
-    constexpr int vertexDataOffset = 0;
-    constexpr int colorDataOffset = 4 * sizeof(float);
+    //constexpr int vertexDataOffset = 0;
+    //constexpr int colorDataOffset = 4 * sizeof(float);
 
     // Data is to be stored in an obj file that has coordinates, color and texutures as Vec4, so that we get a qword alignment"
     std::vector<float> triangleData {
@@ -91,7 +78,6 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
 
     };
 
-    std::vector<float> test { angle, 0.0f, 0.0f, 0.0f };
     qword_t qword;
     // 0xB = draw triangle and use Gouraud to get the color interpolation
     qword.dw[0] = (u64)GIF_SET_TAG(1, false, true, 0xB, GIF_FLG_PACKED, 6);
@@ -100,8 +86,6 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
 
     float* begin = triangleData.data();
 
-    ps2math::Vec4 test_data(test.data());
-
     for (std::size_t i = 0; i < triangleData.size(); i += 8) {
         // color
         qword.dw[0] = (u64(triangleData[i + 5] * 255.0f) & 0xFF) << 32 | (u64(triangleData[i + 4] * 255.0f) & 0xFF);
@@ -109,14 +93,12 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
         packet2_add_u128(dmaBuffer, qword.qw);
 
         ps2math::Vec4 vertex(begin + i);
-
         ps2math::Mat4 modelMatrix;
-        //modelMatrix = ps2math::Mat4::rotateX(modelMatrix, ToRadians(angle));
+        // modelMatrix = ps2math::Mat4::rotateX(modelMatrix, ToRadians(angle));
         modelMatrix = ps2math::Mat4::rotateX(modelMatrix, ToRadians(angle));
         modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(angle, angle, angle, 1));
-        modelMatrix.PrintMatrix();
         // coordinates
-        vertex = modelMatrix * vertex;
+        vertex = vertex * modelMatrix;
         qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((vertex.y + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x + xOff)));
         qword.dw[1] = u64(vertex.z) & 0xFFFFFFFF;
 
@@ -170,13 +152,6 @@ int main(int argc, char* argv[])
     auto now = std::chrono::steady_clock::now();
     lastUpdate = now;
     float angle = 0.0f;
-
-    ps2math::Vec4 rhs({ 1.0f, 1.0f, 1.0f, 1.0f });
-    ps2math::Vec4 lhs({ 1.0f, 1.0f, 1.0f, 3.0f });
-
-    auto res = rhs + lhs;
-    res -= ps2math::Vec4(0.5f, 0.5f, 0.5f, 0.5f);
-    printf("Result: %f, %f, %f, %f\n", res.x, res.y, res.z, res.w);
 
     while (1) {
 

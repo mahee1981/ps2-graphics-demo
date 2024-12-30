@@ -35,6 +35,32 @@ ps2math::Mat4::Mat4(const float m11, const float m12, const float m13, const flo
     data[15] = m44;
 }
 
+ps2math::Mat4::Mat4(const std::array<float, 16> &values)
+{
+    std::copy(std::begin(values), std::end(values), std::begin(data));
+}
+
+ps2math::Mat4& ps2math::Mat4::operator=(const Mat4& rhs)
+{
+    if(this == &rhs)
+        return *this;
+
+    asm volatile(
+        "lqc2		$vf1, 0x00(%1)	\n"
+        "lqc2		$vf2, 0x10(%1)	\n"
+        "lqc2		$vf3, 0x20(%1)	\n"
+        "lqc2		$vf4, 0x30(%1)	\n"
+        "sqc2		$vf1, 0x00(%0)	\n"
+        "sqc2		$vf2, 0x10(%0)	\n"
+        "sqc2		$vf3, 0x20(%0)	\n"
+        "sqc2		$vf4, 0x30(%0)	\n"
+        :
+        : "r"(this->GetDataPtr()), "r"(rhs.GetDataPtr())
+        : "memory");
+
+    return *this;
+}
+
 ps2math::Mat4::~Mat4()
 {
 }
@@ -102,8 +128,8 @@ ps2math::Mat4 ps2math::Mat4::scale(const Mat4 &model, const Vec4 &scaleVector)
 
     return model * work;
 }
-
-ps2math::Vec4 ps2math::operator*(const Mat4& lhs, const Vec4& rhs)
+//row-major order -> vectors are rows = Vec * Mat
+ps2math::Vec4 ps2math::operator*(const Vec4& lhs, const Mat4& rhs)
 {
     Vec4 work;
     asm volatile(
@@ -118,7 +144,7 @@ ps2math::Vec4 ps2math::operator*(const Mat4& lhs, const Vec4& rhs)
         "vmaddw	    $vf6, $vf4, $vf5\n" 
         "sqc2		$vf6, 0x00(%0)	\n"
         :
-        : "r"(&work), "r"(&rhs), "r"(lhs.GetDataPtr())
+        : "r"(&work), "r"(&lhs), "r"(rhs.GetDataPtr())
         : "memory");
 
     return work;
