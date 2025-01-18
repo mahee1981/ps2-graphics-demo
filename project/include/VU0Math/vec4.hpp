@@ -20,7 +20,7 @@ namespace ps2math {
         Vec4(const float* vertex);
 
         union {
-            std::array<float, 4> components;
+            std::array<float, 4> components alignas(sizeof(float) * 4);
             struct {float x,y,z,w;};        
             struct {float r,g,b,a;};
         };

@@ -70,40 +70,61 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
     //constexpr int colorDataOffset = 4 * sizeof(float);
 
     // Data is to be stored in an obj file that has coordinates, color and texutures as Vec4, so that we get a qword alignment"
-    std::vector<float> triangleData {
+    std::vector<float> vertexData {
         // x     y     z    w     r     g     b        a
-        0.0f, 100.f, 0.0f, 1.0, 0.0f, 1.0f, 0.0f, 1.0f,
         0.0f, 0.0f, 0.0f, 1.0, 1.0f, 0.0f, 0.0f, 1.0f,
-        100.0f, 0.0f, 0.0f, 1.0, 0.0f, 0.0f, 1.0f, 1.0f
-
+        0.0f, 100.f, 0.0f, 1.0, 0.0f, 1.0f, 0.0f, 1.0f,
+        100.0f, 0.0f, 0.0f, 1.0, 0.0f, 0.0f, 1.0f, 1.0f,
+        100.0f, 100.0f, 0.0f, 1.0, 1.0f, 1.0f, 0.0f, 1.0f
     };
 
+    std::vector<unsigned int> indices {
+        0, 1, 2,
+        1, 2, 3    
+    };
+    //TODO: rename these as openGL standard
+    constexpr std::size_t vertexDataOffset = 0;
+    constexpr std::size_t colorOffset = 4;
+
+    constexpr std::size_t redColorOffset = colorOffset + 0;
+    constexpr std::size_t blueColorOffset = colorOffset + 1;
+    constexpr std::size_t greenColorOffset = colorOffset + 2;
+    constexpr std::size_t alphaColorOffset = colorOffset + 3;
+
+    constexpr std::size_t step = 8;
+
     qword_t qword;
+    const unsigned int numberOfTimesGifTagExecutes = (indices.size() + 1) / 3;
     // 0xB = draw triangle and use Gouraud to get the color interpolation
-    qword.dw[0] = (u64)GIF_SET_TAG(1, false, true, 0xB, GIF_FLG_PACKED, 6);
-    qword.dw[1] = u64(GIF_REG_XYZ2) << 20 | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_XYZ2) << 12 | u64(GIF_REG_RGBAQ) << 8 | u64(GIF_REG_XYZ2) << 4 | u64(GIF_REG_RGBAQ);
+    qword.dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0xB, GIF_FLG_PACKED, 6);
+    constexpr u64 triangleGIFTag = u64(GIF_REG_XYZ2) << 20 | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_XYZ2) << 12 | u64(GIF_REG_RGBAQ) << 8 | u64(GIF_REG_XYZ2) << 4 | u64(GIF_REG_RGBAQ);
+
+    qword.dw[1] = triangleGIFTag;
     packet2_add_u128(dmaBuffer, qword.qw);
+    
+    ps2math::Vec4 scaleFactor = ps2math::Vec4(0.5f, 0.5, 0.5f, 1.0f);
+    
+    for(std::size_t i = 0; i < indices.size(); i++) {
 
-    float* begin = triangleData.data();
-
-    for (std::size_t i = 0; i < triangleData.size(); i += 8) {
-        // color
-        qword.dw[0] = (u64(triangleData[i + 5] * 255.0f) & 0xFF) << 32 | (u64(triangleData[i + 4] * 255.0f) & 0xFF);
-        qword.dw[1] = (u64(triangleData[i + 7] * 0x80) & 0xFF) << 32 | (u64(triangleData[i + 6] * 255.0f) & 0xFF);
+        //color
+        qword.dw[0] = (u64(vertexData[step * indices[i] + blueColorOffset] * 255.0f) & 0xFF) << 32 | (u64(vertexData[step * indices[i] + redColorOffset] * 255.0f) & 0xFF);
+        qword.dw[1] = (u64(vertexData[step * indices[i] + alphaColorOffset] * 0x80) & 0xFF) << 32 | (u64(vertexData[step * indices[i] + greenColorOffset] * 255.0f) & 0xFF);
         packet2_add_u128(dmaBuffer, qword.qw);
 
-        ps2math::Vec4 vertex(begin + i);
+        //this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
+        ps2math::Vec4 vertex(vertexData.data() + step * indices[i]);
+        //model transformations
         ps2math::Mat4 modelMatrix;
-        // modelMatrix = ps2math::Mat4::rotateX(modelMatrix, ToRadians(angle));
-        modelMatrix = ps2math::Mat4::rotateX(modelMatrix, ToRadians(angle));
+        modelMatrix = ps2math::Mat4::scale(modelMatrix, scaleFactor);
+        modelMatrix = ps2math::Mat4::rotateZ(modelMatrix, ToRadians(angle));
         modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(angle, angle, angle, 1));
         // coordinates
         vertex = vertex * modelMatrix;
         qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((vertex.y + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x + xOff)));
         qword.dw[1] = u64(vertex.z) & 0xFFFFFFFF;
 
-        if (i == triangleData.size() - 8) {
-            qword.dw[1] |= (u64(1 & 0x01) << 48); // drawing kick :)
+        if ((i + 1) % 3 == 0) {
+            qword.dw[1] |= (u64(1 & 0x01) << 48); //on every third vertex send a drawing kick :)
         }
         packet2_add_u128(dmaBuffer, qword.qw);
     }
