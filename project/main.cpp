@@ -68,21 +68,34 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
 {
     //constexpr int vertexDataOffset = 0;
     //constexpr int colorDataOffset = 4 * sizeof(float);
-
+    
     // Data is to be stored in an obj file that has coordinates, color and texutures as Vec4, so that we get a qword alignment"
     std::vector<float> vertexData {
-        // x     y     z    w     r     g     b        a
-        0.0f, 0.0f, 0.0f, 1.0, 1.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, 100.f, 0.0f, 1.0, 0.0f, 1.0f, 0.0f, 1.0f,
-        100.0f, 0.0f, 0.0f, 1.0, 0.0f, 0.0f, 1.0f, 1.0f,
-        100.0f, 100.0f, 0.0f, 1.0, 1.0f, 1.0f, 0.0f, 1.0f
+        // x        y       z    w     r     g     b    a
+          0.0f,   0.0f,   0.0f, 1.0, 1.0f, 0.0f, 0.0f, 1.0f,
+          0.0f,  100.f,   0.0f, 1.0, 1.0f, 0.0f, 0.0f, 1.0f,
+        100.0f,   0.0f,   0.0f, 1.0, 1.0f, 0.0f, 0.0f, 1.0f,
+        100.0f, 100.0f,   0.0f, 1.0, 1.0f, 0.0f, 0.0f, 1.0f,
+          0.0f,   0.0f, 100.0f, 1.0, 0.0f, 1.0f, 0.0f, 1.0f,
+          0.0f,  100.f, 100.0f, 1.0, 0.0f, 1.0f, 0.0f, 1.0f,
+        100.0f,   0.0f, 100.0f, 1.0, 0.0f, 0.0f, 1.0f, 1.0f,
+        100.0f, 100.0f, 100.0f, 1.0, 0.0f, 0.0f, 1.0f, 1.0f
     };
 
     std::vector<unsigned int> indices {
-        0, 1, 2,
-        1, 2, 3    
+        0, 1, 2, //front side
+        1, 2, 3,
+        4, 5, 6, //back side
+        5, 6, 7,
+        0, 4, 5, //left side
+        0, 1, 5,
+        3, 6, 7, //right side
+        2, 3, 6,
+        0, 2, 4, //bottom
+        2, 4, 6,
+        1, 3, 5, // top
+        3, 5, 7
     };
-    //TODO: rename these as openGL standard
     constexpr std::size_t vertexDataOffset = 0;
     constexpr std::size_t colorOffset = 4;
 
@@ -103,7 +116,7 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
     packet2_add_u128(dmaBuffer, qword.qw);
     
     ps2math::Vec4 scaleFactor = ps2math::Vec4(0.5f, 0.5, 0.5f, 1.0f);
-    
+    ps2math::Mat4 perspectiveMatrix = ps2math::Mat4::perspective(ToRadians(60.0f), (float)width / (float)height, 0.1f, 100.0f);    
     for(std::size_t i = 0; i < indices.size(); i++) {
 
         //color
@@ -115,11 +128,11 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
         ps2math::Vec4 vertex(vertexData.data() + step * indices[i]);
         //model transformations
         ps2math::Mat4 modelMatrix;
-        modelMatrix = ps2math::Mat4::scale(modelMatrix, scaleFactor);
-        modelMatrix = ps2math::Mat4::rotateZ(modelMatrix, ToRadians(angle));
-        modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(angle, angle, angle, 1));
+        //modelMatrix = ps2math::Mat4::scale(modelMatrix, scaleFactor);
+        modelMatrix = ps2math::Mat4::rotateY(modelMatrix, ToRadians(angle));
+        //modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(angle, angle, angle, 1));
         // coordinates
-        vertex = vertex * modelMatrix;
+        vertex = vertex * (modelMatrix * perspectiveMatrix);
         qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((vertex.y + yOff)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x + xOff)));
         qword.dw[1] = u64(vertex.z) & 0xFFFFFFFF;
 

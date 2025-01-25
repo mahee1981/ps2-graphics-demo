@@ -9,6 +9,14 @@ ps2math::Mat4::Mat4()
     data[15] = 1.0f; // m44
 }
 
+ps2math::Mat4 ps2math::Mat4::zero()
+{
+    Mat4 work;
+    std::fill(std::begin(work.data), std::end(work.data), 0);
+    return work;
+}
+
+
 ps2math::Mat4::Mat4(const float m11, const float m12, const float m13, const float m14,
     const float m21, const float m22, const float m23, const float m24,
     const float m31, const float m32, const float m33, const float m34,
@@ -188,6 +196,22 @@ ps2math::Mat4 ps2math::operator*(const Mat4& lhs, const Mat4& rhs)
     return work;
 }
 
+ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectRatio, float nearPlaneDistance, float farPlaneDistance)
+{
+    Mat4 perspective = zero();
+
+    float scale = 1.0f / std::tanf(fieldOfViewRadians * 0.5);
+    
+    perspective.data[0] = scale * aspectRatio;
+    perspective.data[5] = scale;
+    perspective.data[10] = farPlaneDistance/ (farPlaneDistance - nearPlaneDistance);
+    perspective.data[11] = 1.0f;
+    perspective.data[14] = (-farPlaneDistance * nearPlaneDistance) / (farPlaneDistance - nearPlaneDistance);
+    perspective.data[15] = 0;
+
+    return perspective;
+    
+}
 void ps2math::Mat4::PrintMatrix()
 {
     for (int i = 0; i < 4; i++) {

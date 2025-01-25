@@ -24,11 +24,15 @@ public:
     Mat4& operator=(const Mat4& rhs);
 
     static Mat4 identity();
+    static Mat4 zero();
+    
     static Mat4 rotateX(const Mat4& model, float angle);
     static Mat4 rotateY(const Mat4& model, float angle);
     static Mat4 rotateZ(const Mat4& model, float angle);
     static Mat4 translate(const Mat4& model, const Vec4 &translationVector);
     static Mat4 scale(const Mat4 &model, const Vec4 &scaleVector);
+
+    static Mat4 perspective(float fieldOfView, float aspectRatio, float nearPlaneDistance, float farPlaneDistance); 
 
     friend Mat4 operator*(const Mat4& lhs, const Mat4& rhs);
     friend Vec4 operator*(const Vec4& lhs, const Mat4& rhs);
