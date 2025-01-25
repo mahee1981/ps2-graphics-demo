@@ -202,12 +202,11 @@ ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectR
 
     float scale = 1.0f / std::tanf(fieldOfViewRadians * 0.5);
     
-    perspective.data[0] = scale * aspectRatio;
+    perspective.data[0] = scale /aspectRatio;
     perspective.data[5] = scale;
-    perspective.data[10] = farPlaneDistance/ (farPlaneDistance - nearPlaneDistance);
+    perspective.data[10] = (- farPlaneDistance - nearPlaneDistance)/ ( nearPlaneDistance - farPlaneDistance);
     perspective.data[11] = 1.0f;
-    perspective.data[14] = (-farPlaneDistance * nearPlaneDistance) / (farPlaneDistance - nearPlaneDistance);
-    perspective.data[15] = 0;
+    perspective.data[14] = (2 * farPlaneDistance * nearPlaneDistance) / ( nearPlaneDistance - farPlaneDistance);
 
     return perspective;
     
