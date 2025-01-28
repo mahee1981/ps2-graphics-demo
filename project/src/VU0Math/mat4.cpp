@@ -196,7 +196,7 @@ ps2math::Mat4 ps2math::operator*(const Mat4& lhs, const Mat4& rhs)
     return work;
 }
 
-ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectRatio, float nearPlaneDistance, float farPlaneDistance)
+ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectRatio, float near, float far)
 {
     Mat4 perspective = zero();
 
@@ -204,13 +204,14 @@ ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectR
     
     perspective.data[0] = scale /aspectRatio;
     perspective.data[5] = scale;
-    perspective.data[10] = (- farPlaneDistance - nearPlaneDistance)/ ( nearPlaneDistance - farPlaneDistance);
+    perspective.data[10] = (-near-far)/ (near-far);
     perspective.data[11] = 1.0f;
-    perspective.data[14] = (2 * farPlaneDistance * nearPlaneDistance) / ( nearPlaneDistance - farPlaneDistance);
+    perspective.data[14] = (2 * far * near) / (near-far);
 
     return perspective;
     
 }
+
 void ps2math::Mat4::PrintMatrix()
 {
     for (int i = 0; i < 4; i++) {
