@@ -10,6 +10,9 @@ Milestones:
  - TODO: Texture loading
  - TODO: Model loading
 
+Latest results:
+
+<img src="./results/3DCube.gif"/>
 
 # Project Setup
 
