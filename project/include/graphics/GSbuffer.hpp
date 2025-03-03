@@ -3,6 +3,8 @@
 #include <graph_vram.h>
 #include <IDisposable.hpp>
 #include <stdio.h>
+#include <unistd.h>
+
 
 namespace Buffers
 {
@@ -16,12 +18,12 @@ namespace Buffers
         const unsigned int GetAddress() const;
         virtual ~GSbuffer();
         void Dispose() override;
+        virtual int AllocateVRAMForBuffer() = 0;
 
     protected:
         const int width;
         const int height;
         const int mask;
         unsigned int address;
-        virtual unsigned int AllocateVRAMForBuffer() = 0;
     };
 }

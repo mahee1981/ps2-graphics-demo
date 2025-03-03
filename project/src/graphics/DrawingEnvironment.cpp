@@ -1,17 +1,62 @@
-#include <DrawingEnvironment.hpp>
+#include <graphics/DrawingEnvironment.hpp>
 
 
-DrawingEnvironment::DrawingEnvironment(std::shared_ptr<Framebuffer> framebuffer, std::shared_ptr<ZBuffer> zbuffer, AlphaTest alphaTest) 
-    : framebuffer(framebuffer), 
-      zbuffer(zbuffer),
-      alphaTest(alphaTest), 
-      xOffset(2048.0f - float(framebuffer->GetWidth() >> 1)),     
-      yOffset(2048.0f - float(framebuffer->GetHeight() >> 1)), 
-      context(0)
+DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, GraphicsConfig config) : 
+    width(width),
+    height(height),
+    config(config),
+    xOffset(2048.0f - float(width >> 1)),     
+    yOffset(2048.0f - float(height >> 1)),
+    context(0),
+    framebuffer(nullptr),
+    zbuffer(nullptr),
+    alphaTest(true, AlphaTestMethod::NOT_EQUAL, 0x00, AlphaTestOnFail::FB_UPDATE_ONLY) //TODO: Update via config, for now hardcoded
 {
+    ConfigureBuffers();
 }
 
-void DrawingEnvironment::SetupDrawingEnvironment(unsigned int context) const
+void DrawingEnvironment::InitializeEnvironment()
+{
+    AllocateBuffers();
+    
+    ConfigureOutput();
+
+    if(config == GraphicsConfig::SINGLE_BUFFER)
+    {
+        framebuffer->SetFramebufferAsActiveFilteredMode();
+    }
+
+    graph_enable_output();
+
+    if(config == GraphicsConfig::SINGLE_BUFFER)
+    {
+        SetupGSRegisters(0);
+    }
+}
+
+void DrawingEnvironment::ConfigureBuffers()
+{
+    if(config == GraphicsConfig::SINGLE_BUFFER)
+    {
+        framebuffer = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_32);
+        zbuffer = std::make_unique<ZBuffer>(width, height, 0, true, Buffers::ZbufferTestMethod::GREATER_EQUAL, Buffers::GSZbufferStorageMethodEnum::ZBUF_32);
+    }
+}
+
+void DrawingEnvironment::AllocateBuffers()
+{
+  framebuffer->AllocateVRAMForBuffer();
+  zbuffer->AllocateVRAMForBuffer();
+}
+
+void DrawingEnvironment::ConfigureOutput()
+{
+  graph_set_mode(GRAPH_MODE_INTERLACED, GRAPH_MODE_NTSC, GRAPH_MODE_FIELD, GRAPH_ENABLE);
+  graph_set_screen(0, 0, width, height); // TODO: learn more about this in docs
+  graph_set_bgcolor(0, 0, 0);
+}
+
+void DrawingEnvironment::SetupGSRegisters(unsigned int context) const
 {
     packet2_t *packet = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
 

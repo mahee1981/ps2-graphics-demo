@@ -1,16 +1,16 @@
-#include <DrawingEnvironment.hpp>
-#include <dma.h>
-#include <framebuffer.hpp>
-#include <unistd.h>
-#include <zbuffer.hpp>
+#include <graphics/DrawingEnvironment.hpp>
+#include <graphics/framebuffer.hpp>
+#include <graphics/zbuffer.hpp>
+
+#include <input/padman.hpp>
 
 #include <chrono>
 #include <memory>
 #include <vector>
 
 #include <cmath>
-#include <debug.h>
 #include <draw.h>
+#include <dma.h>
 #include <packet.h>
 #include <packet2.h>
 #include <stdio.h>
@@ -18,6 +18,8 @@
 
 #include <VU0Math/mat4.hpp>
 #include <VU0Math/vec4.hpp>
+
+using namespace Input;
 
 constexpr int width = 640;
 constexpr int height = 448;
@@ -46,22 +48,6 @@ void DumpPackets(packet2_t* packet)
     qword++;
   }
 }
-// TODO: refactor this and maybe move away from smart pointers
-std::shared_ptr<DrawingEnvironment> InitalizeGS()
-{
-
-  std::shared_ptr<Buffers::Framebuffer> framebuffer = std::make_shared<Buffers::Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_32);
-  std::shared_ptr<Buffers::ZBuffer> zbuffer = std::make_shared<Buffers::ZBuffer>(width, height, 0, true, Buffers::ZbufferTestMethod::GREATER_EQUAL, Buffers::GSZbufferStorageMethodEnum::ZBUF_32);
-  AlphaTest alphaTest = AlphaTest(true, AlphaTestMethod::NOT_EQUAL, 0x00, AlphaTestOnFail::FB_UPDATE_ONLY);
-
-  graph_set_mode(GRAPH_MODE_INTERLACED, GRAPH_MODE_NTSC, GRAPH_MODE_FIELD, GRAPH_ENABLE);
-  graph_set_screen(0, 0, width, height); // TODO: learn more about this in docs
-  graph_set_bgcolor(0, 0, 0);
-  framebuffer->SetFramebufferAsActiveFilteredMode();
-  graph_enable_output();
-
-  return std::make_shared<DrawingEnvironment>(framebuffer, zbuffer, alphaTest);
-}
 
 void ClipVertices(ps2math::Vec4& vertex)
 {
@@ -87,7 +73,8 @@ void ClipVertices(ps2math::Vec4& vertex)
       : "$10", "memory");
 }
 
-void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
+  float xPos = 0.0f;
+void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHorizontal)
 {
 
   // Data is to be stored in an obj file that has coordinates, color and texutures as Vec4, so that we get a qword alignment"
@@ -154,7 +141,6 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
 
   ps2math::Vec4 scaleFactor = ps2math::Vec4(0.5f, 0.5f, 0.5f, 1.0f);
   ps2math::Mat4 perspectiveMatrix = ps2math::Mat4::perspective(ToRadians(60.0f), (float)width / (float)height, 1.0f, 2000.0f);
-
   for (std::size_t i = 0; i < indices.size(); i++) {
     // color
     qword.dw[0] = (u64(vertexData[step * indices[i] + blueColorOffset] * 255.0f) & 0xFF) << 32 | (u64(vertexData[step * indices[i] + redColorOffset] * 255.0f) & 0xFF);
@@ -168,7 +154,9 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle)
     modelMatrix = ps2math::Mat4::scale(modelMatrix, scaleFactor);
     modelMatrix = ps2math::Mat4::rotateY(modelMatrix, ToRadians(angle));
     modelMatrix = ps2math::Mat4::rotateX(modelMatrix, ToRadians(angle));
-    modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(0.0f, 0.0f, 50.0f, 1.0f));
+    xPos += moveHorizontal;
+    modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(xPos, 0.0f, 50.0f, 1.0f));
+
     // coordinates
     vertex = vertex * modelMatrix * perspectiveMatrix;
     
@@ -211,31 +199,28 @@ int main(int argc, char* argv[])
 
   printf("Starting to init\n");
 
-  std::shared_ptr<DrawingEnvironment> drawEnv = InitalizeGS();
+  auto drawEnv = DrawingEnvironment(width, height, GraphicsConfig::SINGLE_BUFFER);
 
-  drawEnv->SetupDrawingEnvironment(0);
+  drawEnv.InitializeEnvironment();
 
   printf("Done init\n");
 
-  drawEnv->SetClearScreenColor(0, 0, 0);
+  drawEnv.SetClearScreenColor(0, 0, 0);
 
-  drawEnv->ClearScreen(myDMABuffer);
+  drawEnv.ClearScreen(myDMABuffer);
 
   packet2_update(myDMABuffer, draw_finish(myDMABuffer->next));
 
   SendGIFPacketWaitForDraw(myDMABuffer);
-
-  scr_printf("Successfully initialized the PS2 Graphics Synthesizer!\n");
-  scr_printf("Also rendered a triangle!\n");
 
   std::chrono::duration<float, std::milli> deltaTime;
   std::chrono::steady_clock::time_point lastUpdate;
   auto now = std::chrono::steady_clock::now();
   lastUpdate = now;
   float angle = 0.0f;
-
+  PadManager man_niko; 
   while (1) {
-
+    man_niko.UpdatePad();
     // reset the buffer
     packet2_reset(myDMABuffer, true);
 
@@ -244,13 +229,23 @@ int main(int argc, char* argv[])
     lastUpdate = now;
 
     angle += (10.0f * deltaTime.count()) / 100.0f;
+    float moveHorizontal = 0.0f;
+    if(man_niko.getPressed().DpadRight == 1)
+    {
+      moveHorizontal = 0.0001 * deltaTime.count();
+    }
+    else if(man_niko.getPressed().DpadLeft == 1)
+    {
+      moveHorizontal = -0.001 * deltaTime.count();
+    }
+
 
     if (angle > 360.0f) {
       angle = 0.0f;
     }
 
-    drawEnv->ClearScreen(myDMABuffer);
-    PrepareTriangleDisplayList(myDMABuffer, angle);
+    drawEnv.ClearScreen(myDMABuffer);
+    PrepareTriangleDisplayList(myDMABuffer, angle, moveHorizontal);
 
     SendGIFPacketWaitForDraw(myDMABuffer);
   }

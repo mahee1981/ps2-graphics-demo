@@ -1,7 +1,7 @@
 #pragma once
 
-#include <GSbuffer.hpp>
-#include <GSBufferConfig.hpp>
+#include <graphics/GSbuffer.hpp>
+#include <graphics/GSBufferConfig.hpp>
 #include <draw_buffers.h>
 
 namespace Buffers
@@ -14,12 +14,12 @@ namespace Buffers
         void ToSDKZbuffer(zbuffer_t *);
         u64 GetZbufferSettings() const;
         Buffers::ZbufferTestMethod GetDepthTestMethod() const;
+        int AllocateVRAMForBuffer() override;
 
     private:
         bool enable;
         ZbufferTestMethod method;
         GSZbufferStorageMethodEnum zbufferStorageMethod;
-        unsigned int AllocateVRAMForBuffer() override;
     };
 
 }

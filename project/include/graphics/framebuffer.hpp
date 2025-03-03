@@ -3,9 +3,9 @@
 #include <draw_buffers.h>
 #include <graph.h>
 
-#include <GSbuffer.hpp>
+#include <graphics/GSbuffer.hpp>
 
-#include <GSBufferConfig.hpp>
+#include <graphics/GSBufferConfig.hpp>
 
 namespace Buffers
 {
@@ -23,11 +23,11 @@ namespace Buffers
         void ToSDKFramebuffer(framebuffer_t *);
 
         u64 GetFrameBufferSettings() const;
+        int AllocateVRAMForBuffer() override;
         virtual ~Framebuffer();
 
     private:
         const GSPixelStorageMethod pixelStorageMethod;
-        unsigned int AllocateVRAMForBuffer() override;
     };
 
 }

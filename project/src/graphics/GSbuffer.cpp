@@ -1,5 +1,5 @@
 
-#include <GSbuffer.hpp>
+#include <graphics/GSbuffer.hpp>
 
 namespace Buffers
 {
@@ -34,9 +34,11 @@ namespace Buffers
     {
         if(!disposed)
         {
-            graph_vram_free(address);
-            disposed = true;
             printf("Freed Memory!\n");
+            // sleep(2);
+            if(address)
+                graph_vram_free(address);
+            disposed = true;
         }
     }
 }

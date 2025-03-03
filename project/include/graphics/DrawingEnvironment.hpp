@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
-#include <framebuffer.hpp>
-#include <zbuffer.hpp>
+#include <graphics/framebuffer.hpp>
+#include <graphics/zbuffer.hpp>
 #include <packet2.h>
 #include <gif_tags.h>
 #include <gs_gp.h>
@@ -13,19 +13,23 @@
 #include <TextureConfig.hpp>
 #include <BlendingConfig.hpp>
 #include <Color.hpp>
+#include <graphics/GraphicsConfig.hpp>
+
 
 using namespace Buffers;
 
 class DrawingEnvironment{
 
 private:
-    std::shared_ptr<Framebuffer> framebuffer;
-    std::shared_ptr<ZBuffer> zbuffer;
-    AlphaTest alphaTest;
-    Colors::Color clearScreenColor;
+    unsigned int width, height;
+    GraphicsConfig config;
     float xOffset;
     float yOffset;
     unsigned int context;
+    std::unique_ptr<Framebuffer> framebuffer;
+    std::unique_ptr<ZBuffer> zbuffer;
+    AlphaTest alphaTest;
+    Colors::Color clearScreenColor;
 
     u64 GetXYOffsetSettings() const;
     u64 GetScissoringAreaSettings() const;
@@ -34,10 +38,18 @@ private:
     u64 GetDefaultAlphaBlendingSettings() const;
     u64 GetTextureWrappingSettings(TextureWrappingOptions wrapOptions, unsigned int minU = 0, unsigned int maxU = 0, unsigned int minV = 0, unsigned int maxV = 0) const;
     u64 GetDisabledAlphaAndDepthTestSettings() const;
+
+    void ConfigureOutput();
+    void ConfigureBuffers();
+    void AllocateBuffers();
+    void SetupGSRegisters(unsigned int context) const;
+
 public:
-    DrawingEnvironment(std::shared_ptr<Framebuffer>, std::shared_ptr<ZBuffer> zbuffer, AlphaTest alphaTest);
-    void SetupDrawingEnvironment(unsigned int context) const;
+    DrawingEnvironment(unsigned int width, unsigned int height, GraphicsConfig config);
     void ClearScreen(packet2_t *packet) const;
     void SetClearScreenColor(unsigned char r, unsigned char g, unsigned char b);
-
+    void InitializeEnvironment();
+    DrawingEnvironment& operator=(const DrawingEnvironment &other) = delete;
+    DrawingEnvironment(const DrawingEnvironment &other) = delete;
+    
 };
