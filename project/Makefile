@@ -8,7 +8,8 @@ EE_OBJS = bin/AlphaTest.o bin/Color.o bin/main.o $(VU0_MATH_OBJS) $(GRAPHICS_OBJ
 EE_LIBS = -ldraw -lgraph -ldma -lpacket -lpacket2 -ldebug -lpad 
 EE_INCS = -Iinclude -Iexternal
 
-all: output-dirs $(EE_BIN) 
+all: output-dirs $(EE_BIN)
+	cp resources/brick_wall_128.png bin/
 
 output-dirs: 
 	mkdir -p bin
