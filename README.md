@@ -7,7 +7,7 @@ Milestones:
  - Rendered a Gouraud shaded triangle
  - IN PROGRESS: Math on EE core and VU0
  - IN PROGRESS: Model, View and Projection matrices
- - TODO: Texture loading
+ - IN PROGRESS: Texture loading
  - TODO: Model loading
 
 Latest results:
