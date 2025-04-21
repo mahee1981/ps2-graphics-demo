@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PADMAN_HPP
+#define PADMAN_HPP
 
 #include <kernel.h>
 #include <libpad.h>
@@ -49,3 +50,4 @@ public:
 };
 
 }
+#endif

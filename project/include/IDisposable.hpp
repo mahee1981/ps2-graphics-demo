@@ -1,4 +1,6 @@
-#pragma once
+#ifndef IDISPOSABLE_HPP
+#define IDISPOSABLE_HPP
+
 
 class IDisposable
 {
@@ -8,3 +10,5 @@ class IDisposable
     virtual void Dispose() = 0;
     IDisposable() : disposed(false) {}
 };
+
+#endif

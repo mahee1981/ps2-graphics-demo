@@ -1,4 +1,4 @@
-#include <graphics/DrawingEnvironment.hpp>
+#include "graphics/DrawingEnvironment.hpp"
 
 
 DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, GraphicsConfig config) : 

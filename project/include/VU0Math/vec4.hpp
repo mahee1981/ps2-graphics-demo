@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VEC4_HPP
+#define VEC4_HPP
 
 #include <array>
 #include <stdexcept>
@@ -35,3 +36,5 @@ namespace ps2math {
     Vec4 operator+(const Vec4& lhs, const Vec4& rhs);
     Vec4 operator-(const Vec4& lhs, const Vec4& rhs);
 }
+
+#endif

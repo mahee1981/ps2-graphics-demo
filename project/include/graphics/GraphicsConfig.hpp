@@ -1,5 +1,13 @@
-#pragma once
+#ifndef GRAPHICS_CONFIG_HPP
+#define GRAPHICS_CONFIG_HPP
 
-enum class GraphicsConfig {
-    SINGLE_BUFFER
-};
+namespace Buffers
+{
+
+    enum GraphicsConfig
+    {
+        SINGLE_BUFFER
+    };
+
+}
+#endif

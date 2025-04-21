@@ -1,5 +1,4 @@
-
-#include <graphics/GSbuffer.hpp>
+#include "graphics/GSbuffer.hpp"
 
 namespace Buffers
 {

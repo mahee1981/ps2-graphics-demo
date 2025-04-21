@@ -1,8 +1,9 @@
-#pragma once
+#ifndef ZBUFFER_HP
+#define ZBUFFER_HP
 
-#include <graphics/GSbuffer.hpp>
-#include <graphics/GSBufferConfig.hpp>
 #include <draw_buffers.h>
+#include "graphics/GSbuffer.hpp"
+#include "graphics/GSBufferConfig.hpp"
 
 namespace Buffers
 {
@@ -23,3 +24,4 @@ namespace Buffers
     };
 
 }
+#endif

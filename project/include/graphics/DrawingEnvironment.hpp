@@ -1,19 +1,23 @@
-#pragma once
-#include <memory>
-#include <graphics/framebuffer.hpp>
-#include <graphics/zbuffer.hpp>
+#ifndef DRAWING_ENVIRONMENT_HPP
+#define DRAWING_ENVIRONMENT_HPP
+
 #include <packet2.h>
 #include <gif_tags.h>
 #include <gs_gp.h>
 #include <utils.hpp>
 #include <draw.h>
 #include <dma.h>
-#include <AlphaTest.hpp>
 #include <debug.h>
-#include <TextureConfig.hpp>
-#include <BlendingConfig.hpp>
-#include <Color.hpp>
-#include <graphics/GraphicsConfig.hpp>
+
+#include <memory>
+
+#include "graphics/zbuffer.hpp"
+#include "graphics/framebuffer.hpp"
+#include "AlphaTest.hpp"
+#include "TextureConfig.hpp"
+#include "BlendingConfig.hpp"
+#include "Color.hpp"
+#include "graphics/GraphicsConfig.hpp"
 
 
 using namespace Buffers;
@@ -53,3 +57,5 @@ public:
     DrawingEnvironment(const DrawingEnvironment &other) = delete;
     
 };
+
+#endif

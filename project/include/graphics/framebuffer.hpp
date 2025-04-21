@@ -1,11 +1,11 @@
-#pragma once
+#ifndef FRAMEBUFFER_HPP
+#define FRAMEBUFFER_HPP
 
 #include <draw_buffers.h>
 #include <graph.h>
 
-#include <graphics/GSbuffer.hpp>
-
-#include <graphics/GSBufferConfig.hpp>
+#include "graphics/GSbuffer.hpp"
+#include "graphics/GSBufferConfig.hpp"
 
 namespace Buffers
 {
@@ -31,3 +31,4 @@ namespace Buffers
     };
 
 }
+#endif

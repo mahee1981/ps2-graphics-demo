@@ -1,7 +1,9 @@
-#pragma once
-#include <ColorComponent.hpp>
-#include <utils.hpp>
+#ifndef COLOR_HPP
+#define COLOR_HPP
+
 #include <algorithm>
+#include "utils.hpp"
+#include "ColorComponent.hpp"
 
 namespace Colors
 {
@@ -26,3 +28,4 @@ namespace Colors
         qword_t GetAsQword() const;
     };
 }
+#endif

@@ -1,7 +1,8 @@
-#pragma once
+#ifndef ALPHA_TEST_HPP
+#define ALPHA_TEST_HPP
 
-#include <AlphaTestConfig.hpp>
 #include <tamtypes.h>
+#include "AlphaTestConfig.hpp"
 
 class AlphaTest{
 
@@ -15,3 +16,5 @@ private:
     u8 referenceAlphaValue;
     AlphaTestOnFail onFail;
 };
+
+#endif

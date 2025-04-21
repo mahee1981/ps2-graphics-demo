@@ -1,12 +1,12 @@
 GRAPHICS_OBJS = bin/graphics/framebuffer.o  bin/graphics/zbuffer.o bin/graphics/GSbuffer.o  \
-				bin/graphics/DrawingEnvironment.o
+				bin/graphics/DrawingEnvironment.o bin/graphics/texture.o bin/graphics/GSTextureBuffer.o
 
 VU0_MATH_OBJS = bin/VU0Math/vec4.o bin/VU0Math/mat4.o 
 
 EE_BIN = bin/main.elf 
 EE_OBJS = bin/AlphaTest.o bin/Color.o bin/main.o $(VU0_MATH_OBJS) $(GRAPHICS_OBJS) bin/input/padman.o
-EE_LIBS = -ldraw -lgraph -ldma -lpacket2 -ldebug -lpad 
-EE_INCS = -Iinclude
+EE_LIBS = -ldraw -lgraph -ldma -lpacket -lpacket2 -ldebug -lpad 
+EE_INCS = -Iinclude -Iexternal
 
 all: output-dirs $(EE_BIN) 
 

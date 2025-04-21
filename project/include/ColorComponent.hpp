@@ -1,4 +1,5 @@
-#pragma once
+#ifndef COLORS_HPP
+#define COLORS_HPP
 
 namespace Colors
 {
@@ -10,3 +11,4 @@ namespace Colors
         Alpha
     };
 }
+#endif

@@ -1,4 +1,7 @@
-#pragma once
+#ifndef UTILS_HPP
+#define UTILS_HPP
+
+
 #include <tamtypes.h>
 
 
@@ -16,3 +19,4 @@ namespace Utils {
 }
     
 }
+#endif

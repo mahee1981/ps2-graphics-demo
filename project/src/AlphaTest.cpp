@@ -1,4 +1,4 @@
-#include <AlphaTest.hpp>
+#include "AlphaTest.hpp"
 
 AlphaTest::AlphaTest(bool isEnabled, AlphaTestMethod testMethod, u8 referenceAlphaValue,  AlphaTestOnFail onFail)
  : isEnabled(isEnabled), testMethod(testMethod), referenceAlphaValue(referenceAlphaValue), onFail(onFail)

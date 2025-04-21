@@ -1,4 +1,4 @@
-#include <VU0Math/vec4.hpp>
+#include "VU0Math/vec4.hpp"
 
 ps2math::Vec4::Vec4() : x(0.0f), y(0.0f), z(0.0f), w(1.0f) {}
 

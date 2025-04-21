@@ -1,9 +1,9 @@
-#pragma once
+#ifndef GSBUFFER_HPP
+#define GSBUFFER_HPP
 
 #include <graph_vram.h>
-#include <IDisposable.hpp>
 #include <stdio.h>
-#include <unistd.h>
+#include "IDisposable.hpp"
 
 
 namespace Buffers
@@ -27,3 +27,4 @@ namespace Buffers
         unsigned int address;
     };
 }
+#endif

@@ -1,10 +1,11 @@
-#pragma once
+#ifndef MAT4_HPP
+#define MAT4_HPP
 
-#include <VU0Math/vec4.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <stdexcept>
+#include "VU0Math/vec4.hpp"
 
 namespace ps2math {
 
@@ -47,3 +48,5 @@ private:
 Mat4 operator*(const Mat4& lhs, const Mat4& rhs);
 Vec4 operator*(const Vec4& lhs, const Mat4& rhs);
 }
+
+#endif

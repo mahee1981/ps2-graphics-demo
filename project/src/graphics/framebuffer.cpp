@@ -1,5 +1,4 @@
-#include <graphics/framebuffer.hpp>
-#include <stdio.h>
+#include "graphics/framebuffer.hpp"
 
 namespace Buffers {
 
