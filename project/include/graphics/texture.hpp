@@ -1,7 +1,6 @@
 #ifndef TEXTURE_HPP
 #define TEXTURE_HPP
 
-#include <stb_image.h>
 #include <graph.h> 
 #include <draw.h>
 #include <packet2.h>
@@ -13,15 +12,18 @@
 #include <memory>
 #include <optional>
 
+#include "graphics/TextureLoader.hpp"
 #include "graphics/GSBufferConfig.hpp"
 #include "graphics/GSTextureBuffer.hpp"
+#include "graphics/TextureLoader.hpp"
 
 
 namespace graphics {
     class Texture
     {
         public:
-            Texture(const char* pathToImg);
+            Texture(const char* pathToImg, std::shared_ptr<ITextureLoader> texureLoader);
+            Texture(std::string pathToImg, std::shared_ptr<ITextureLoader> texureLoader);
             ~Texture();
             void LoadTexture();
             int AllocateVram();
@@ -37,6 +39,7 @@ namespace graphics {
             std::shared_ptr<unsigned char> imageData;
             int width, height, nrChannels;
             std::unique_ptr<Buffers::GSTextureBuffer> gsTextureBuffer;
+            std::shared_ptr<ITextureLoader> textureLoader;
             
 
     };

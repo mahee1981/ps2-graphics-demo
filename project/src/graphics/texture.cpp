@@ -3,8 +3,13 @@
 namespace graphics
 {
 
-    Texture::Texture(const char *pathToImg)
-        : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr)
+    Texture::Texture(const char *pathToImg, std::shared_ptr<ITextureLoader> textureLoader)
+        : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr), textureLoader(textureLoader)
+    {
+    }
+
+    Texture::Texture(std::string pathToImg, std::shared_ptr<ITextureLoader> textureLoader)
+            : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr), textureLoader(textureLoader)
     {
     }
 
@@ -66,7 +71,7 @@ namespace graphics
 
         // Transfer stuff
         using Packet2Deleter = void (*)(packet2_t *);
-        std::unique_ptr<packet2_t, Packet2Deleter> chain_packet{packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1),
+        std::unique_ptr<packet2_t, Packet2Deleter> chain_packet{packet2_create(100, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1),
                                                                 [](packet2_t *packet)
                                                                 { packet2_free(packet); }};
 
@@ -95,7 +100,8 @@ namespace graphics
         qword.dw[1] = GS_REG_TRXDIR;
         packet2_add_u128(chain_packet.get(), qword.qw);
 
-
+        if(imageData.get())
+            printf("Good image data");
 
         void *src = (void*)imageData.get();
 
@@ -162,7 +168,7 @@ namespace graphics
                       ((u64(draw_log2(width)) & 0xf) << 26) |
                       ((u64(draw_log2(height)) & 0xf) << 30) |
                       ((u64(0) & 0x1) << 34) | // RGB or RGBA
-                      ((u64(1) & 0x3) << 35) | 0;
+                      ((u64(0) & 0x3) << 35) | 0; // 0 -> Modulate, 1 -> Decal
         qword.dw[1] = GS_REG_TEX0_1;
         packet2_add_u128(normal_packet.get(), qword.qw);
         
@@ -174,7 +180,7 @@ namespace graphics
     void Texture::SetTexSamplingMethodInGS()
     {
         using Packet2Deleter = void (*)(packet2_t *);
-        std::unique_ptr<packet2_t, Packet2Deleter> normal_packet{packet2_create(5, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0),
+        std::unique_ptr<packet2_t, Packet2Deleter> normal_packet{packet2_create(15, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0),
                                                                 [](packet2_t *packet)
                                                                 { packet2_free(packet); }};
         lod_t lod;
@@ -197,9 +203,7 @@ namespace graphics
 
     void Texture::LoadTexture()
     {
-        imageData = {stbi_load(imgPath.c_str(), &width, &height, &nrChannels, 0),
-                     [](unsigned char *data)
-                     { stbi_image_free(data); printf("Deleted image!\n"); }};
+        imageData = textureLoader->GetBytes(imgPath.c_str(), width, height, nrChannels);
     }
 
 }
