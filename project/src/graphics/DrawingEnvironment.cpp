@@ -167,6 +167,7 @@ void DrawingEnvironment::SetupGSRegisters(unsigned int context) const
 
 void DrawingEnvironment::ClearScreen(packet2_t *packet) const
 {
+    using namespace Colors;
     qword_t qword;
 
     qword.dw[0] = (u64)GIF_SET_TAG(1, false, false, 0, GIF_FLG_PACKED, 1);
@@ -179,9 +180,9 @@ void DrawingEnvironment::ClearScreen(packet2_t *packet) const
 
     packet2_update(packet, draw_clear( packet->next,0,
                                        xOffset,yOffset,framebuffer->GetWidth(),framebuffer->GetHeight(),
-                                       clearScreenColor.GetComponentValueAsUByte(Colors::ColorComponent::Red),
-                                       clearScreenColor.GetComponentValueAsUByte(Colors::ColorComponent::Green),
-                                       clearScreenColor.GetComponentValueAsUByte(Colors::ColorComponent::Blue)  ));
+                                       clearScreenColor.GetComponentValueAsUByte(ColorComponent::Red),
+                                       clearScreenColor.GetComponentValueAsUByte(ColorComponent::Green),
+                                       clearScreenColor.GetComponentValueAsUByte(ColorComponent::Blue)  ));
 
     
     qword.dw[0] = (u64)GIF_SET_TAG(1, false, false, 0, GIF_FLG_PACKED, 1);

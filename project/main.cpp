@@ -42,14 +42,6 @@ void InitializeDMAC()
   dma_channel_fast_waits(DMA_CHANNEL_GIF);
 }
 
-void DumpPackets(packet2_t* packet)
-{
-  qword_t* qword = packet->base;
-  while (qword != packet->next) {
-    scr_printf("%lld %lld\n", qword->dw[0], qword->dw[1]);
-    qword++;
-  }
-}
 
 void ClipVertices(ps2math::Vec4& vertex)
 {
@@ -120,7 +112,6 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHor
     20, 21, 22,
     21, 22, 23
   };
-  // constexpr std::size_t vertexDataOffset = 0;
   constexpr std::size_t colorOffset = 4;
 
   constexpr std::size_t redColorOffset = colorOffset + 0;
@@ -138,22 +129,16 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHor
 
   qword_t qword;
   const unsigned int numberOfTimesGifTagExecutes = (indices.size() + 1) / 3;
-  // 0xB = draw triangle and use Gouraud to get the color interpolation
+  // PRIM REG = 0x5B -> triangle with Gouraud shading, texturing, alpha blending
   qword.dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0x5B, GIF_FLG_PACKED, 9);
   constexpr u64 triangleGIFTag = u64(GIF_REG_XYZ2) << 32 | u64(GIF_REG_RGBAQ) << 28 | u64(GIF_REG_ST) << 24 | u64(GIF_REG_XYZ2) << 20 
                                 | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_ST) << 12 | u64(GIF_REG_XYZ2) << 8 | u64(GIF_REG_RGBAQ) << 4 | u64(GIF_REG_ST);
-
-  // const unsigned int numberOfTimesGifTagExecutes = indices.size();
-
-  // qword.dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0xB, GIF_FLG_REGLIST, 2);
-  // constexpr u64 triangleGIFTag = u64(GIF_REG_NOP) << 12 | u64(GIF_REG_XYZ2) << 8 | u64(GIF_REG_RGBAQ) << 4 | u64(GIF_REG_ST);
-  // constexpr u64 triangleGIFTag = u64(GIF_REG_XYZ2) << 4 | u64(GIF_REG_RGBAQ) | u64(GIF_REG_PRIM);
 
   qword.dw[1] = triangleGIFTag;
   packet2_add_u128(dmaBuffer, qword.qw);
 
   ps2math::Vec4 scaleFactor = ps2math::Vec4(0.5f, 0.5f, 0.5f, 1.0f);
-  ps2math::Mat4 perspectiveMatrix = ps2math::Mat4::perspective(ToRadians(45.0f), (float)width / (float)height, 1.0f, 2000.0f);
+  ps2math::Mat4 perspectiveMatrix = ps2math::Mat4::perspective(ToRadians(60.0f), (float)width / (float)height, 1.0f, 2000.0f);
 
   for (std::size_t i = 0; i < indices.size(); i++) {
 
@@ -165,14 +150,9 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHor
     qword.dw[1] = otherData;
     packet2_add_u128(dmaBuffer, qword.qw);
 
-    // u64 colorData = (u64(vertexData[step * indices[i] + alphaColorOffset] * 0x80) & 0xFF) << 24 |
-    //                 (u64(vertexData[step * indices[i] + greenColorOffset] * 255.0f) & 0xFF) << 16 |
-    //                 (u64(vertexData[step * indices[i] + blueColorOffset] * 255.0f) & 0xFF) << 8 |
-    //                 (u64(vertexData[step * indices[i] + redColorOffset] * 255.0f) & 0xFF);
-
     // color
     qword.dw[0] = (u64(vertexData[step * indices[i] + blueColorOffset] * 255.0f) & 0xFF) << 32 | (u64(vertexData[step * indices[i] + redColorOffset] * 255.0f) & 0xFF);
-    qword.dw[1] = (u64(vertexData[step * indices[i] + alphaColorOffset] * 0x40) & 0xFF) << 32 | (u64(vertexData[step * indices[i] + greenColorOffset] * 255.0f) & 0xFF);
+    qword.dw[1] = (u64(vertexData[step * indices[i] + alphaColorOffset] * 0x80) & 0xFF) << 32 | (u64(vertexData[step * indices[i] + greenColorOffset] * 255.0f) & 0xFF);
     packet2_add_u128(dmaBuffer, qword.qw);
 
     // this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
@@ -195,19 +175,6 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHor
     float winY = float(height) * vertex.y / 2.0f + (yOff);
     float deviceZ = (vertex.z + 1.0f) / 2.0f * (1 << 31);
 
-    // u64 pointData = static_cast<u64>(static_cast<unsigned int>(deviceZ)) << 32  |
-    //                  (u64(Utils::FloatToFixedPoint<u16>(winY))) << 16 |
-    //                  (u64(Utils::FloatToFixedPoint<u16>(winX)));
-
-    // packet2_add_u64(dmaBuffer, textureData);
-    // packet2_add_u64(dmaBuffer, colorData);
-    // packet2_add_u64(dmaBuffer, pointData);
-    // packet2_add_u64(dmaBuffer, 0);
-
-    // if ((i + 1) % 3 == 0)
-    // {
-    //     break;
-    // }
 
     qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((winY)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(winX)));
     qword.dw[1] = static_cast<unsigned int>(deviceZ);
@@ -217,8 +184,7 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHor
     }
     packet2_add_u128(dmaBuffer, qword.qw);
   }
-  // if(angle == 0.0f)
-  //   packet2_print(dmaBuffer, packet2_get_qw_count(dmaBuffer));
+
   packet2_update(dmaBuffer, draw_finish(dmaBuffer->next));
 }
 
@@ -290,7 +256,6 @@ void render()
 
     if (controllerInput.getPressed().DpadRight == 1) {
       moveHorizontal += 0.01f * deltaTime.count();
-      // break;
     } else if (controllerInput.getPressed().DpadLeft == 1) {
       moveHorizontal += -0.01f * deltaTime.count();
     }
@@ -309,8 +274,6 @@ void render()
 
 int main(int argc, char* argv[])
 {
-  SifInitRpc(0);
-
   render();
 
   return 0;
