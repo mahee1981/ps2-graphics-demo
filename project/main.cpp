@@ -131,7 +131,10 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHor
   constexpr std::size_t uCoordinateOffset = 8;
   constexpr std::size_t step = 12;
 
-  constexpr texel_t zeroTexel = { .u = 0.0f, .v = 0.0f };
+  // This line is a reminder of how incredibly silly decisions
+  // can have you lose three months of development time on PS2
+  // game engines
+  constexpr texel_t zeroTexel = { .u = 1.0f, .v = 1.0f };
 
   qword_t qword;
   const unsigned int numberOfTimesGifTagExecutes = (indices.size() + 1) / 3;
