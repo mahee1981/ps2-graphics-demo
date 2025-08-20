@@ -22,10 +22,10 @@ namespace graphics {
     class Texture
     {
         public:
-            Texture(const char* pathToImg, std::shared_ptr<ITextureLoader> texureLoader);
-            Texture(std::string pathToImg, std::shared_ptr<ITextureLoader> texureLoader);
+            Texture(const char* pathToImg);
+            Texture(std::string pathToImg);
             ~Texture();
-            void LoadTexture();
+            void LoadTexture(std::shared_ptr<ITextureLoader> textureLoader);
             int AllocateVram();
             void TransferTextureToGS();
             inline int GetWidth() const { return width; } 

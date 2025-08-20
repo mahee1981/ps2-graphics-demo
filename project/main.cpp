@@ -226,8 +226,8 @@ void render()
   float moveHorizontal = 0.0f;
   
   auto textureLoader = std::make_shared<graphics::STBITextureLoader>();
-  graphics::Texture myTex("host:BRICK_WALL_128.PNG", textureLoader);
-  myTex.LoadTexture();
+  graphics::Texture myTex("host:BRICK_WALL_128.PNG");
+  myTex.LoadTexture(textureLoader);
   myTex.AllocateVram();
   myTex.TransferTextureToGS();
   myTex.SetTexSamplingMethodInGS();
