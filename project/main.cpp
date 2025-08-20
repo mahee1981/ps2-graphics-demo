@@ -7,16 +7,18 @@
 #include <packet2.h>
 #include <stdio.h>
 
-#include <vector>
 #include <chrono>
 #include <memory>
+#include <vector>
 
-#include "graphics/DrawingEnvironment.hpp"
-#include "graphics/framebuffer.hpp"
-#include "graphics/zbuffer.hpp"
 #include "VU0Math/mat4.hpp"
 #include "VU0Math/vec4.hpp"
-#include "graphics/texture.hpp"
+#include "graphics/DrawingEnvironment.hpp"
+#include "graphics/framebuffer.hpp"
+#include "graphics/Texture.hpp"
+#include "graphics/zbuffer.hpp"
+#include "graphics/STBITextureLoader.hpp"
+#include "graphics/LodeTextureLoader.hpp"
 #include "input/padman.hpp"
 
 using namespace Input;
@@ -40,17 +42,8 @@ void InitializeDMAC()
   dma_channel_fast_waits(DMA_CHANNEL_GIF);
 }
 
-void DumpPackets(packet2_t *packet)
-{
-  qword_t *qword = packet->base;
-  while (qword != packet->next)
-  {
-    scr_printf("%lld %lld\n", qword->dw[0], qword->dw[1]);
-    qword++;
-  }
-}
 
-void ClipVertices(ps2math::Vec4 &vertex)
+void ClipVertices(ps2math::Vec4& vertex)
 {
   asm volatile(
       "lqc2       $vf7, 0x00(%0)    \n"
@@ -74,52 +67,51 @@ void ClipVertices(ps2math::Vec4 &vertex)
       : "$10", "memory");
 }
 
-void PrepareTriangleDisplayList(packet2_t *dmaBuffer, float angle, float moveHorizontal)
+void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHorizontal)
 {
 
   // Data is to be stored in an obj file that has coordinates, color and texutures as Vec4, so that we get a qword alignment"
-  std::vector<float> vertexData{
-      10.00f, 10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-      10.00f, 10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-      10.00f, -10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-      10.00f, -10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
-      -10.00f, 10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-      -10.00f, 10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-      -10.00f, -10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-      -10.00f, -10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
-      -10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-      10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-      -10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-      10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
-      -10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-      10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-      -10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-      10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
-      -10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-      10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-      -10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-      10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
-      -10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-      10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-      -10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-      10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f
-
+  std::vector<float> vertexData {
+    10.00f, 10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
+    10.00f, 10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
+    10.00f, -10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
+    10.00f, -10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
+    -10.00f, 10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
+    -10.00f, 10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
+    -10.00f, -10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
+    -10.00f, -10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
+    -10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
+    10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
+    -10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
+    10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
+    -10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
+    10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
+    -10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
+    10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
+    -10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
+    10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
+    -10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
+    10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
+    -10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
+    10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
+    -10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
+    10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f
   };
 
-  std::vector<unsigned int> indices{
-      0, 1, 2,
-      1, 2, 3,
-      4, 6, 5,
-      5, 6, 7,
-      8, 9, 10,
-      9, 10, 11,
-      12, 13, 14,
-      13, 14, 15,
-      16, 17, 18,
-      17, 18, 19,
-      20, 21, 22,
-      21, 22, 23};
-  // constexpr std::size_t vertexDataOffset = 0;
+  std::vector<unsigned int> indices {
+    0, 1, 2,
+    1, 2, 3,
+    4, 6, 5,
+    5, 6, 7,
+    8, 9, 10,
+    9, 10, 11,
+    12, 13, 14,
+    13, 14, 15,
+    16, 17, 18,
+    17, 18, 19,
+    20, 21, 22,
+    21, 22, 23
+  };
   constexpr std::size_t colorOffset = 4;
 
   constexpr std::size_t redColorOffset = colorOffset + 0;
@@ -128,22 +120,19 @@ void PrepareTriangleDisplayList(packet2_t *dmaBuffer, float angle, float moveHor
   constexpr std::size_t alphaColorOffset = colorOffset + 3;
 
   constexpr std::size_t uCoordinateOffset = 8;
-  constexpr std::size_t vCoordinateOffset = 9;
   constexpr std::size_t step = 12;
+
+  // This line is a reminder of how incredibly silly decisions
+  // can have you lose three months of development time on PS2
+  // game engines
+  constexpr texel_t zeroTexel = { .u = 1.0f, .v = 1.0f };
 
   qword_t qword;
   const unsigned int numberOfTimesGifTagExecutes = (indices.size() + 1) / 3;
-  // 0xB = draw triangle and use Gouraud to get the color interpolation
-  qword.dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0x1B, GIF_FLG_PACKED, 9);
-  constexpr u64 triangleGIFTag = u64(GIF_REG_XYZ2) << 32 | u64(GIF_REG_RGBAQ) << 28 | u64(GIF_REG_ST) << 24 |
-                                 u64(GIF_REG_XYZ2) << 20 | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_ST) << 12 |
-                                 u64(GIF_REG_XYZ2) << 8 | u64(GIF_REG_RGBAQ) << 4 | u64(GIF_REG_ST);
-
-  // const unsigned int numberOfTimesGifTagExecutes = indices.size();
-
-  // qword.dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0xB, GIF_FLG_REGLIST, 2);
-  // constexpr u64 triangleGIFTag = u64(GIF_REG_NOP) << 12 | u64(GIF_REG_XYZ2) << 8 | u64(GIF_REG_RGBAQ) << 4 | u64(GIF_REG_ST);
-  // constexpr u64 triangleGIFTag = u64(GIF_REG_XYZ2) << 4 | u64(GIF_REG_RGBAQ) | u64(GIF_REG_PRIM);
+  // PRIM REG = 0x5B -> triangle with Gouraud shading, texturing, alpha blending
+  qword.dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0x5B, GIF_FLG_PACKED, 9);
+  constexpr u64 triangleGIFTag = u64(GIF_REG_XYZ2) << 32 | u64(GIF_REG_RGBAQ) << 28 | u64(GIF_REG_ST) << 24 | u64(GIF_REG_XYZ2) << 20 
+                                | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_ST) << 12 | u64(GIF_REG_XYZ2) << 8 | u64(GIF_REG_RGBAQ) << 4 | u64(GIF_REG_ST);
 
   qword.dw[1] = triangleGIFTag;
   packet2_add_u128(dmaBuffer, qword.qw);
@@ -151,24 +140,15 @@ void PrepareTriangleDisplayList(packet2_t *dmaBuffer, float angle, float moveHor
   ps2math::Vec4 scaleFactor = ps2math::Vec4(0.5f, 0.5f, 0.5f, 1.0f);
   ps2math::Mat4 perspectiveMatrix = ps2math::Mat4::perspective(ToRadians(60.0f), (float)width / (float)height, 1.0f, 2000.0f);
 
-  for (std::size_t i = 0; i < indices.size(); i++)
-  {
+  for (std::size_t i = 0; i < indices.size(); i++) {
 
-    u64 textureData = (*(reinterpret_cast<texel_t *>(vertexData.data() + step * indices[i] + uCoordinateOffset))).uv;
-    u64 otherData = (*(reinterpret_cast<texel_t *>(vertexData.data() + step * indices[i] + uCoordinateOffset + 2))).uv;
-
-    qword.dw[0] = textureData;
-    qword.dw[1] = otherData;
+    qword.dw[0] = (*(reinterpret_cast<texel_t*>(vertexData.data() + step * indices[i] + uCoordinateOffset))).uv;
+    qword.dw[1] = zeroTexel.uv;
     packet2_add_u128(dmaBuffer, qword.qw);
-
-    // u64 colorData = (u64(vertexData[step * indices[i] + alphaColorOffset] * 0x80) & 0xFF) << 24 |
-    //                 (u64(vertexData[step * indices[i] + greenColorOffset] * 255.0f) & 0xFF) << 16 |
-    //                 (u64(vertexData[step * indices[i] + blueColorOffset] * 255.0f) & 0xFF) << 8 |
-    //                 (u64(vertexData[step * indices[i] + redColorOffset] * 255.0f) & 0xFF);
 
     // color
     qword.dw[0] = (u64(vertexData[step * indices[i] + blueColorOffset] * 255.0f) & 0xFF) << 32 | (u64(vertexData[step * indices[i] + redColorOffset] * 255.0f) & 0xFF);
-    qword.dw[1] = (u64(0x10) & 0xFF) << 32 | (u64(vertexData[step * indices[i] + greenColorOffset] * 255.0f) & 0xFF);
+    qword.dw[1] = (u64(vertexData[step * indices[i] + alphaColorOffset] * 0x80) & 0xFF) << 32 | (u64(vertexData[step * indices[i] + greenColorOffset] * 255.0f) & 0xFF);
     packet2_add_u128(dmaBuffer, qword.qw);
 
     // this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
@@ -191,35 +171,19 @@ void PrepareTriangleDisplayList(packet2_t *dmaBuffer, float angle, float moveHor
     float winY = float(height) * vertex.y / 2.0f + (yOff);
     float deviceZ = (vertex.z + 1.0f) / 2.0f * (1 << 31);
 
-    // u64 pointData = static_cast<u64>(static_cast<unsigned int>(deviceZ)) << 32  |
-    //                  (u64(Utils::FloatToFixedPoint<u16>(winY))) << 16 |
-    //                  (u64(Utils::FloatToFixedPoint<u16>(winX)));
-
-    // packet2_add_u64(dmaBuffer, textureData);
-    // packet2_add_u64(dmaBuffer, colorData);
-    // packet2_add_u64(dmaBuffer, pointData);
-    // packet2_add_u64(dmaBuffer, 0);
-
-    // if ((i + 1) % 3 == 0)
-    // {
-    //     break;
-    // }
-
     qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((winY)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(winX)));
     qword.dw[1] = static_cast<unsigned int>(deviceZ);
 
-    if ((i + 1) % 3 == 0)
-    {
+    if ((i + 1) % 3 == 0) {
       qword.dw[1] |= (u64(1 & 0x01) << 48); // on every third vertex send a drawing kick :)
     }
     packet2_add_u128(dmaBuffer, qword.qw);
   }
-  // if(angle == 0.0f)
-  //   packet2_print(dmaBuffer, packet2_get_qw_count(dmaBuffer));
+
   packet2_update(dmaBuffer, draw_finish(dmaBuffer->next));
 }
 
-void SendGIFPacketWaitForDraw(packet2_t *dmaBuffer)
+void SendGIFPacketWaitForDraw(packet2_t* dmaBuffer)
 {
   dma_wait_fast();
 
@@ -232,7 +196,7 @@ void SendGIFPacketWaitForDraw(packet2_t *dmaBuffer)
 
 void render()
 {
-  packet2_t *myDMABuffer = packet2_create(100, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+  packet2_t* myDMABuffer = packet2_create(100, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
 
   InitializeDMAC();
 
@@ -260,17 +224,16 @@ void render()
   float angle = 0.0f;
   PadManager controllerInput;
   float moveHorizontal = 0.0f;
-
-  graphics::Texture myTex("host:brick_wall_128.png");
-
-  myTex.LoadTexture();
+  
+  auto textureLoader = std::make_shared<graphics::STBITextureLoader>();
+  graphics::Texture myTex("host:BRICK_WALL_128.PNG");
+  myTex.LoadTexture(textureLoader);
   myTex.AllocateVram();
   myTex.TransferTextureToGS();
   myTex.SetTexSamplingMethodInGS();
   myTex.SetTextureAsActive();
 
-  while (1)
-  {
+  while (1) {
 
     controllerInput.UpdatePad();
     // reset the buffer
@@ -282,18 +245,13 @@ void render()
 
     angle += (10.0f * deltaTime.count()) / 100.0f;
 
-    if (controllerInput.getPressed().DpadRight == 1)
-    {
+    if (controllerInput.getPressed().DpadRight == 1) {
       moveHorizontal += 0.01f * deltaTime.count();
-      // break;
-    }
-    else if (controllerInput.getPressed().DpadLeft == 1)
-    {
+    } else if (controllerInput.getPressed().DpadLeft == 1) {
       moveHorizontal += -0.01f * deltaTime.count();
     }
 
-    if (angle > 360.0f)
-    {
+    if (angle > 360.0f) {
       angle = 0.0f;
     }
 
@@ -305,7 +263,7 @@ void render()
   packet2_free(myDMABuffer);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   render();
 

@@ -2,12 +2,12 @@
 
 namespace Buffers
 {
-    GSbuffer::GSbuffer() : IDisposable(),  width(640), height(480), mask(0), address(0)
+    GSbuffer::GSbuffer() : IDisposable(), width(640), height(480), mask(0), address(0)
     {
-        
     }
 
-    GSbuffer::GSbuffer(unsigned int width, unsigned int height, unsigned int mask) : IDisposable(), width(width), height(height), mask(mask), address(0)
+    GSbuffer::GSbuffer(unsigned int width, unsigned int height, unsigned int mask)
+        : IDisposable(), width(width), height(height), mask(mask), address(0)
     {
     }
 
@@ -31,11 +31,11 @@ namespace Buffers
     }
     void GSbuffer::Dispose()
     {
-        if(!disposed)
+        if (!disposed)
         {
             printf("Freed Memory!\n");
             // sleep(2);
-            if(address)
+            if (address)
                 graph_vram_free(address);
             disposed = true;
         }
