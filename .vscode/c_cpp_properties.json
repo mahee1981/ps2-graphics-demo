@@ -10,6 +10,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/project/**",
+                "${workspaceFolder}/project/external/**",
                 "${env:PS2DEV}/ps2sdk/common/include/**",
                 "${env:PS2DEV}/ps2sdk/ee/include/**",
                 "${env:PS2DEV}/ps2sdk/iop/include/**",

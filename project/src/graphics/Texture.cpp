@@ -1,15 +1,27 @@
-#include "graphics/texture.hpp"
+#include "graphics/Texture.hpp"
 
 namespace graphics
 {
 
     Texture::Texture(const char *pathToImg, std::shared_ptr<ITextureLoader> textureLoader)
-        : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr), textureLoader(textureLoader)
+        : imgPath(pathToImg), 
+        imageData(nullptr),
+        width(0), 
+        height(0), 
+        nrChannels(0), 
+        gsTextureBuffer(nullptr), 
+        textureLoader(textureLoader)
     {
     }
 
     Texture::Texture(std::string pathToImg, std::shared_ptr<ITextureLoader> textureLoader)
-            : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr), textureLoader(textureLoader)
+            : imgPath(pathToImg),
+             imageData(nullptr),
+             width(0), 
+             height(0), 
+             nrChannels(0), 
+             gsTextureBuffer(nullptr), 
+             textureLoader(textureLoader)
     {
     }
 
@@ -100,9 +112,6 @@ namespace graphics
         qword.dw[1] = GS_REG_TRXDIR;
         packet2_add_u128(chain_packet.get(), qword.qw);
 
-        if(imageData.get())
-            printf("Good image data");
-
         void *src = (void*)imageData.get();
 
         // now transfer the actual image bytes in MaxTransferSize if any whole blocks exit
@@ -180,7 +189,7 @@ namespace graphics
     void Texture::SetTexSamplingMethodInGS()
     {
         using Packet2Deleter = void (*)(packet2_t *);
-        std::unique_ptr<packet2_t, Packet2Deleter> normal_packet{packet2_create(15, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0),
+        std::unique_ptr<packet2_t, Packet2Deleter> normal_packet{packet2_create(5, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0),
                                                                 [](packet2_t *packet)
                                                                 { packet2_free(packet); }};
         lod_t lod;
@@ -198,8 +207,6 @@ namespace graphics
         dma_wait_fast();
 
     }
-
-
 
     void Texture::LoadTexture()
     {

@@ -1,7 +1,7 @@
 GRAPHICS_OBJS = bin/graphics/framebuffer.o  bin/graphics/zbuffer.o bin/graphics/GSbuffer.o  \
 				bin/graphics/DrawingEnvironment.o bin/graphics/GSTextureBuffer.o
 
-TEXTURE_OBJS =	bin/graphics/STBITextureLoader.o bin/graphics/LodeTextureLoader.o bin/graphics/texture.o bin/lodepng.o 
+TEXTURE_OBJS =	bin/graphics/STBITextureLoader.o bin/graphics/LodeTextureLoader.o bin/graphics/Texture.o bin/external/lodepng.o 
 
 VU0_MATH_OBJS = bin/VU0Math/vec4.o bin/VU0Math/mat4.o 
 
@@ -23,6 +23,7 @@ output-dirs:
 	mkdir -p bin/graphics
 	mkdir -p bin/input
 	mkdir -p bin/VU0Math
+	mkdir -p bin/external
 	
 iso: $(EE_BIN)
 	mkisofs -l -o $(ISO_TGT) $(EE_BIN) SYSTEM.CNF $(RESOURCES) 

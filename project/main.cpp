@@ -15,7 +15,7 @@
 #include "VU0Math/vec4.hpp"
 #include "graphics/DrawingEnvironment.hpp"
 #include "graphics/framebuffer.hpp"
-#include "graphics/texture.hpp"
+#include "graphics/Texture.hpp"
 #include "graphics/zbuffer.hpp"
 #include "graphics/STBITextureLoader.hpp"
 #include "graphics/LodeTextureLoader.hpp"
@@ -142,12 +142,8 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHor
 
   for (std::size_t i = 0; i < indices.size(); i++) {
 
-    u64 textureData = (*(reinterpret_cast<texel_t*>(vertexData.data() + step * indices[i] + uCoordinateOffset))).uv;
-    u64 otherData = zeroTexel.uv;
-
-    qword.dw[0] = textureData;
-
-    qword.dw[1] = otherData;
+    qword.dw[0] = (*(reinterpret_cast<texel_t*>(vertexData.data() + step * indices[i] + uCoordinateOffset))).uv;
+    qword.dw[1] = zeroTexel.uv;
     packet2_add_u128(dmaBuffer, qword.qw);
 
     // color
@@ -174,7 +170,6 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHor
     float winX = float(width) * vertex.x / 2.0f + (xOff);
     float winY = float(height) * vertex.y / 2.0f + (yOff);
     float deviceZ = (vertex.z + 1.0f) / 2.0f * (1 << 31);
-
 
     qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((winY)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(winX)));
     qword.dw[1] = static_cast<unsigned int>(deviceZ);
@@ -232,15 +227,11 @@ void render()
   
   auto textureLoader = std::make_shared<graphics::STBITextureLoader>();
   graphics::Texture myTex("host:BRICK_WALL_128.PNG", textureLoader);
-  printf("Before Texture Loading\n"); 
   myTex.LoadTexture();
-  printf("Before Alloc \n"); 
   myTex.AllocateVram();
   myTex.TransferTextureToGS();
   myTex.SetTexSamplingMethodInGS();
   myTex.SetTextureAsActive();
-
-  printf("Width: %d Height: %d\n", myTex.GetWidth(), myTex.GetHeight());
 
   while (1) {
 
