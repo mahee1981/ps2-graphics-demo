@@ -8,11 +8,13 @@ Milestones:
  - IN PROGRESS: Math on EE core and VU0
  - IN PROGRESS: Model, View and Projection matrices
  - IN PROGRESS: Texture loading
+ - TODO: Lighting
  - TODO: Model loading
+ - TODO: VU1 Rendering Pipeline
 
 Latest results:
 
-<img src="./results/3DCube.gif"/>
+<img src="./results/texturedCubeWithInput.gif"/>
 
 # Project Setup
 
