@@ -1,40 +1,49 @@
-GRAPHICS_OBJS = bin/graphics/framebuffer.o  bin/graphics/zbuffer.o bin/graphics/GSbuffer.o  \
-				bin/graphics/DrawingEnvironment.o bin/graphics/GSTextureBuffer.o
+# Project settings
+SRC_DIR := src
+BIN_DIR := bin
+RESOURCES := resources
 
-TEXTURE_OBJS =	bin/graphics/STBITextureLoader.o bin/graphics/LodeTextureLoader.o bin/graphics/Texture.o bin/external/lodepng.o 
+# ELF output
+EE_BIN := $(BIN_DIR)/main.elf
 
-VU0_MATH_OBJS = bin/VU0Math/vec4.o bin/VU0Math/mat4.o 
+# Find all sources in src/
+SRCS := $(shell find $(SRC_DIR) -name "*.c" -o -name "*.cpp" -o -name "*.cc" -o -name "*.S" -o -name "*.s")
+EE_OBJS := $(patsubst $(SRC_DIR)/%,$(BIN_DIR)/%,$(SRCS:.c=.o))
+EE_OBJS := $(patsubst $(SRC_DIR)/%,$(BIN_DIR)/%,$(EE_OBJS:.cpp=.o))
+EE_OBJS := $(patsubst $(SRC_DIR)/%,$(BIN_DIR)/%,$(EE_OBJS:.cc=.o))
+EE_OBJS := $(patsubst $(SRC_DIR)/%,$(BIN_DIR)/%,$(EE_OBJS:.S=.o))
+EE_OBJS := $(patsubst $(SRC_DIR)/%,$(BIN_DIR)/%,$(EE_OBJS:.s=.o))
 
-EE_BIN = bin/main.elf 
-EE_OBJS = bin/AlphaTest.o bin/Color.o bin/main.o $(VU0_MATH_OBJS) $(GRAPHICS_OBJS) $(TEXTURE_OBJS) bin/input/padman.o
-EE_LIBS = -ldraw -lgraph -ldma -lpacket -lpacket2 -lpad 
+# Libraries & includes
+EE_LIBS = -ldraw -lgraph -ldma -lpacket -lpacket2 -lpadx -ldebug
 EE_INCS = -Iinclude -Iexternal
 
-ISO_TGT = bin/game.iso
+# ISO target
+ISO_TGT = $(BIN_DIR)/game.iso
 
-RESOURCES = resources
-
-
+# Default build
 all: output-dirs $(EE_BIN)
-	cp resources/brick_wall_128.png bin/
+	cp $(RESOURCES)/brick_wall_128.png $(BIN_DIR)/
+	cp $(RESOURCES)/sio2man.irx $(BIN_DIR)/
+	cp $(RESOURCES)/padman.irx $(BIN_DIR)/
 
-output-dirs: 
-	mkdir -p bin
-	mkdir -p bin/graphics
-	mkdir -p bin/input
-	mkdir -p bin/VU0Math
-	mkdir -p bin/external
-	
+# Ensure bin dir exists
+output-dirs:
+	@mkdir -p $(BIN_DIR)
+
+# ISO build
 iso: $(EE_BIN)
-	mkisofs -l -o $(ISO_TGT) $(EE_BIN) SYSTEM.CNF $(RESOURCES) 
+	mkisofs -l -o $(ISO_TGT) $(EE_BIN) SYSTEM.CNF $(RESOURCES)
 
+# Cleaning
 clean:
-	rm -rf $(EE_BIN) $(EE_OBJS)
+	rm -rf $(EE_BIN) $(EE_OBJS) $(ISO_TGT)
 
-emulate-elf:  $(EE_BIN)
+# Run targets
+emulate-elf: $(EE_BIN)
 	pcsx2.AppImage $(EE_BIN)
 
-emulate-iso: iso 
+emulate-iso: iso
 	pcsx2.AppImage $(ISO_TGT)
 
 run: $(EE_BIN)
@@ -43,5 +52,6 @@ run: $(EE_BIN)
 reset:
 	ps2client reset
 
+# Include PS2SDK rules + global cpp rules
 include $(PS2SDK)/samples/Makefile.pref
 include Makefile.eeglobal_cpp

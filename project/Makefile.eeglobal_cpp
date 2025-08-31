@@ -66,10 +66,6 @@ bin/%.o: src/%.cc
 bin/%.o: src/%.cpp
 	$(EE_CXX) $(EE_CXXFLAGS) $(EE_INCS) -c $< -o $@
 
-# use only for main
-bin/%.o: %.cpp
-	$(EE_CXX) $(EE_CXXFLAGS) $(EE_INCS) -c $< -o $@
-
 bin/%.o: src/%.S
 	$(EE_CC) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
 

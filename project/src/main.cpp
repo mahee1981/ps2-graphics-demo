@@ -222,11 +222,14 @@ void render()
   lastUpdate = now;
 
   float angle = 0.0f;
+  scr_printf("Initializing controller!\n");
   PadManager controllerInput;
+  scr_printf("Done initializing controller!\n");
+
   float moveHorizontal = 0.0f;
   
   auto textureLoader = std::make_shared<graphics::STBITextureLoader>();
-  graphics::Texture myTex("host:BRICK_WALL_128.PNG");
+  graphics::Texture myTex("cdrom0:\\BRICK_WALL_128.PNG;1");
   myTex.LoadTexture(textureLoader);
   myTex.AllocateVram();
   myTex.TransferTextureToGS();
@@ -234,7 +237,6 @@ void render()
   myTex.SetTextureAsActive();
 
   while (1) {
-
     controllerInput.UpdatePad();
     // reset the buffer
     packet2_reset(myDMABuffer, false);
