@@ -7,6 +7,9 @@
 #include <sifrpc.h>
 #include <stdio.h>
 #include <tamtypes.h>
+#include <debug.h>
+#include <loadfile.h>
+#include <iopcontrol.h>
 
 namespace Input {
 
@@ -21,11 +24,11 @@ struct PadJoy {
 
 class PadManager {
 private:
-    char padBuffer[256] alignas(sizeof(char) * 256);
+    char padBuffer[256] __attribute__((aligned(64)));
     char actAlign[6];
     int actuators;
 
-    int port, slot, ret;
+    int port, slot, ret, state;
     struct padButtonStatus buttons;
     u32 paddata;
     u32 old_pad = 0;
@@ -37,7 +40,7 @@ private:
     void reset();
     void handleClickedButtons();
     void handlePressedButtons();
-    void WaitPadReady(int port, int slot);
+    int WaitPadReady(int port, int slot);
 
 public:
     PadManager();
@@ -50,4 +53,5 @@ public:
 };
 
 }
+
 #endif
