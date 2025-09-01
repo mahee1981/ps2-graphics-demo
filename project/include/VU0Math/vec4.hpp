@@ -3,6 +3,7 @@
 
 #include <array>
 #include <stdexcept>
+#include <cmath>
 
 namespace ps2math {
 
@@ -28,13 +29,22 @@ namespace ps2math {
 
         friend Vec4 operator+(const Vec4& lhs, const Vec4& rhs);
         friend Vec4 operator-(const Vec4& lhs, const Vec4& rhs);
+        friend Vec4 CrossProduct(const Vec4& lhs, const Vec4 rhs);
+        
         Vec4& operator+=(const Vec4& rhs);
         Vec4& operator-=(const Vec4& rhs);
+        Vec4 Normalize() const;
+
+        friend Vec4 operator*(const Vec4& lhs, float a);
+        friend Vec4 operator*(float a, const Vec4& lhs);
 
     }; 
 
     Vec4 operator+(const Vec4& lhs, const Vec4& rhs);
     Vec4 operator-(const Vec4& lhs, const Vec4& rhs);
+    Vec4 CrossProduct(const Vec4& lhs, const Vec4& rhs);
+    Vec4 operator*(const Vec4& lhs, float a);
+    Vec4 operator*(float a, const Vec4& lhs);
 }
 
 #endif

@@ -47,6 +47,33 @@ ps2math::Mat4::Mat4(const std::array<float, 16> &values)
 {
     std::copy(std::begin(values), std::end(values), std::begin(data));
 }
+// TODO: SIMD optimization
+ps2math::Mat4 ps2math::Mat4::Transpose() const
+{
+    return Mat4(
+        data[0],  data[4],  data[8],  data[12],
+        data[1],  data[5],  data[9],  data[13],
+        data[2],  data[6],  data[10], data[14],
+        data[3],  data[7],  data[11], data[15]
+    );
+}
+
+// Possibly messed up the coordinate system orientation, but idk, it works
+// Look At returns a camrea-to-world matrix, which is the opposite of what we need, it needs to be transposed to get the view matrix
+ps2math::Mat4 ps2math::Mat4::LookAt(const ps2math::Vec4& eye, const ps2math::Vec4& center, const ps2math::Vec4& up)
+{
+    Vec4 f = (center - eye).Normalize();        // forward
+    Vec4 r = ps2math::CrossProduct(f, up).Normalize();   // right
+    Vec4 u = ps2math::CrossProduct(r, f);                // corrected up
+
+    return Mat4(
+        r.x,   r.y,   r.z,   - (r.x * eye.x + r.y * eye.y + r.z * eye.z),
+        u.x,   u.y,   u.z,   - (u.x * eye.x + u.y * eye.y + u.z * eye.z),
+        -f.x,  -f.y,  -f.z,    (f.x * eye.x + f.y * eye.y + f.z * eye.z),
+        0.0f,  0.0f,  0.0f,   1.0f
+    );
+}
+
 
 ps2math::Mat4& ps2math::Mat4::operator=(const Mat4& rhs)
 {

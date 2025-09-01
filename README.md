@@ -5,11 +5,14 @@ This repository has been set up to track code changes to my personal PS2 graphic
 Milestones:
  - Successfully initialized PS2 Graphics Synthesizer
  - Rendered a Gouraud shaded triangle
+ - Model, View and Projection matrices
+ - Basic Texture loading
  - IN PROGRESS: Math on EE core and VU0
- - IN PROGRESS: Model, View and Projection matrices
- - IN PROGRESS: Texture loading
  - TODO: Lighting
  - TODO: Model loading
+ - TODO: Advanced Clipping Algorithm
+ - TODO: Logging Framework
+ - TODO: VRAM Resource Management
  - TODO: VU1 Rendering Pipeline
 
 Latest results:

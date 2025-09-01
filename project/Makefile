@@ -30,9 +30,16 @@ all: output-dirs $(EE_BIN)
 # Ensure bin dir exists
 output-dirs:
 	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(BIN_DIR)/input
+	@mkdir -p $(BIN_DIR)/graphics
+	@mkdir -p $(BIN_DIR)/resources
+	@mkdir -p $(BIN_DIR)/VU0Math
+	@mkdir -p $(BIN_DIR)/renderer
+	@mkdir -p $(BIN_DIR)/external
+
 
 # ISO build
-iso: $(EE_BIN)
+iso: output-dirs $(EE_BIN)
 	mkisofs -l -o $(ISO_TGT) $(EE_BIN) SYSTEM.CNF $(RESOURCES)
 
 # Cleaning
@@ -40,7 +47,7 @@ clean:
 	rm -rf $(EE_BIN) $(EE_OBJS) $(ISO_TGT)
 
 # Run targets
-emulate-elf: $(EE_BIN)
+emulate-elf: output-dirs $(EE_BIN)
 	pcsx2.AppImage $(EE_BIN)
 
 emulate-iso: iso

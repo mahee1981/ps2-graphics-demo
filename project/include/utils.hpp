@@ -3,6 +3,7 @@
 
 
 #include <tamtypes.h>
+#include <math.h>
 
 
 namespace Utils {
@@ -16,7 +17,13 @@ namespace Utils {
     template <typename T>
         bool IsInBounds(const T& value, const T& low, const T& high) {
         return !(value < low) && !(high < value);
-}
+
+    }
+
+    const float pi = atan(1) * 4.0f;
+
+    float ToRadians(float angleDegrees);
+
     
 }
 #endif

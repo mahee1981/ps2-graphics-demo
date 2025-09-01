@@ -20,6 +20,8 @@
 #include "graphics/STBITextureLoader.hpp"
 #include "graphics/LodeTextureLoader.hpp"
 #include "input/padman.hpp"
+#include "renderer/Camera.hpp"
+#include "utils.hpp"
 
 using namespace Input;
 
@@ -28,13 +30,6 @@ constexpr int height = 448;
 
 constexpr float xOff = 2048.0f;
 constexpr float yOff = 2048.0f;
-
-const float pi = atan(1) * 4.0f;
-
-float ToRadians(float angleDegrees)
-{
-  return angleDegrees * pi / 180.f;
-}
 
 void InitializeDMAC()
 {
@@ -67,7 +62,7 @@ void ClipVertices(ps2math::Vec4& vertex)
       : "$10", "memory");
 }
 
-void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHorizontal)
+void PrepareTriangleDisplayList(packet2_t* dmaBuffer, const ps2math::Mat4 &viewMatrix, float angle, float moveHorizontal)
 {
 
   // Data is to be stored in an obj file that has coordinates, color and texutures as Vec4, so that we get a qword alignment"
@@ -138,7 +133,7 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHor
   packet2_add_u128(dmaBuffer, qword.qw);
 
   ps2math::Vec4 scaleFactor = ps2math::Vec4(0.5f, 0.5f, 0.5f, 1.0f);
-  ps2math::Mat4 perspectiveMatrix = ps2math::Mat4::perspective(ToRadians(60.0f), (float)width / (float)height, 1.0f, 2000.0f);
+  ps2math::Mat4 perspectiveMatrix = ps2math::Mat4::perspective(Utils::ToRadians(45.0f), (float)width / (float)height, 0.1f, 2000.0f);
 
   for (std::size_t i = 0; i < indices.size(); i++) {
 
@@ -156,12 +151,12 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, float angle, float moveHor
     // model transformations
     ps2math::Mat4 modelMatrix;
     modelMatrix = ps2math::Mat4::scale(modelMatrix, scaleFactor);
-    modelMatrix = ps2math::Mat4::rotateY(modelMatrix, ToRadians(angle));
-    modelMatrix = ps2math::Mat4::rotateX(modelMatrix, ToRadians(angle));
-    modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(moveHorizontal, 0.0f, 50.0f, 1.0f));
+    modelMatrix = ps2math::Mat4::rotateY(modelMatrix, Utils::ToRadians(angle));
+    modelMatrix = ps2math::Mat4::rotateX(modelMatrix, Utils::ToRadians(angle));
+    modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(0.0f, 0.0f, moveHorizontal + 50.0f, 1.0f));
 
     // coordinates
-    vertex = vertex * modelMatrix * perspectiveMatrix;
+    vertex = vertex * modelMatrix * viewMatrix * perspectiveMatrix;
 
     // clip vertices and perform perspective division
     ClipVertices(vertex);
@@ -194,6 +189,20 @@ void SendGIFPacketWaitForDraw(packet2_t* dmaBuffer)
   graph_wait_vsync();
 }
 
+Camera SetupCamera()
+{
+  ps2math::Vec4 startPositon{ 0.0f, 0.0f, 0.0f, 1.0f };
+  ps2math::Vec4 startUp{ 0.0f, 1.0f, 0.0f, 1.0f };
+  float startYaw = -90.0f;
+  float startPitch = 0.0f;
+  float movementSpeed = 0.05f;
+  float turnSpeed =  0.05f;
+
+  return Camera(startPositon, startUp, startYaw, startPitch, movementSpeed, turnSpeed);
+
+}
+
+
 void render()
 {
   packet2_t* myDMABuffer = packet2_create(100, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
@@ -222,9 +231,7 @@ void render()
   lastUpdate = now;
 
   float angle = 0.0f;
-  scr_printf("Initializing controller!\n");
   PadManager controllerInput;
-  scr_printf("Done initializing controller!\n");
 
   float moveHorizontal = 0.0f;
   
@@ -235,6 +242,9 @@ void render()
   myTex.TransferTextureToGS();
   myTex.SetTexSamplingMethodInGS();
   myTex.SetTextureAsActive();
+
+
+  auto myCamera = SetupCamera();
 
   while (1) {
     controllerInput.UpdatePad();
@@ -257,8 +267,12 @@ void render()
       angle = 0.0f;
     }
 
+    myCamera.MotionControl(controllerInput.getLeftJoyPad(), deltaTime.count());
+    myCamera.RotationControl(controllerInput.getRightJoyPad(),  deltaTime.count());
+    
     drawEnv.ClearScreen(myDMABuffer);
-    PrepareTriangleDisplayList(myDMABuffer, angle, moveHorizontal);
+
+    PrepareTriangleDisplayList(myDMABuffer, myCamera.CalculateViewMatrix(), angle, moveHorizontal);
 
     SendGIFPacketWaitForDraw(myDMABuffer);
   }

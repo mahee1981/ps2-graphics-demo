@@ -24,6 +24,8 @@ public:
 
     Mat4& operator=(const Mat4& rhs);
 
+    Mat4 Transpose() const;
+
     static Mat4 identity();
     static Mat4 zero();
     
@@ -33,10 +35,12 @@ public:
     static Mat4 translate(const Mat4& model, const Vec4 &translationVector);
     static Mat4 scale(const Mat4 &model, const Vec4 &scaleVector);
 
+    static Mat4 LookAt(const Vec4& eye, const Vec4& center, const Vec4& up);
     static Mat4 perspective(float fieldOfView, float aspectRatio, float nearPlaneDistance, float farPlaneDistance); 
 
     friend Mat4 operator*(const Mat4& lhs, const Mat4& rhs);
     friend Vec4 operator*(const Vec4& lhs, const Mat4& rhs);
+    
 
     void PrintMatrix();
 private:

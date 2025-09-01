@@ -62,7 +62,14 @@
         "stop_token": "cpp",
         "thread": "cpp",
         "format": "cpp",
-        "optional": "cpp"
+        "optional": "cpp",
+        "charconv": "cpp",
+        "cstring": "cpp",
+        "iomanip": "cpp",
+        "span": "cpp",
+        "sstream": "cpp",
+        "text_encoding": "cpp",
+        "variant": "cpp"
     },
     "makefile.makefilePath": "/home/adnan/Documents/Development/ps2-graphics-demo/project/Makefile",
     "makefile.configurations": [

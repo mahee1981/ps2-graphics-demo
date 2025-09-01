@@ -87,3 +87,30 @@ ps2math::Vec4 &ps2math::Vec4::operator-=(const Vec4 &rhs)
     return *this;
 
 }
+
+ps2math::Vec4 ps2math::Vec4::Normalize() const
+{
+    //TODO: optimize through SIMD
+    float length = std::sqrtf(this->x * this->x + this->y * this->y + this->z * this->z);
+
+    Vec4 work(this->x / length, this->y / length, this->z / length, this->w);
+
+    return work;
+}
+
+ps2math::Vec4 ps2math::CrossProduct(const Vec4 &lhs, const Vec4 &rhs)
+{
+    return Vec4(lhs.y * rhs.z - lhs.z * rhs.y,
+                lhs.z * rhs.x - lhs.x * rhs.z,
+                lhs.x * rhs.y - lhs.y * rhs.x,
+                1.0f);
+}
+ps2math::Vec4 ps2math::operator*(const Vec4 &lhs, float a)
+{
+    return Vec4(lhs.x * a, lhs.y * a, lhs.z * a, lhs.w);
+}
+
+ps2math::Vec4 ps2math::operator*(float a, const Vec4 &rhs)
+{
+    return rhs * a;
+}
