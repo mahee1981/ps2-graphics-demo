@@ -23,7 +23,7 @@ ISO_TGT = $(BIN_DIR)/game.iso
 
 # Default build
 all: output-dirs $(EE_BIN)
-	cp $(RESOURCES)/brick_wall_128.png $(BIN_DIR)/
+	cp $(RESOURCES)/test/brick_wall_128.png $(BIN_DIR)/
 	cp $(RESOURCES)/sio2man.irx $(BIN_DIR)/
 	cp $(RESOURCES)/padman.irx $(BIN_DIR)/
 
@@ -36,6 +36,8 @@ output-dirs:
 	@mkdir -p $(BIN_DIR)/VU0Math
 	@mkdir -p $(BIN_DIR)/renderer
 	@mkdir -p $(BIN_DIR)/external
+	@mkdir -p $(BIN_DIR)/light
+	@mkdir -p $(BIN_DIR)/mesh
 
 
 # ISO build

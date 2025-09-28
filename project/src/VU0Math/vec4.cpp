@@ -105,7 +105,7 @@ ps2math::Vec4 ps2math::CrossProduct(const Vec4 &lhs, const Vec4 &rhs)
                 lhs.x * rhs.y - lhs.y * rhs.x,
                 1.0f);
 }
-// TODO: continue building this
+
 float ps2math::DotProduct(const Vec4 &lhs, const Vec4 &rhs)
 {
     Vec4 work;
@@ -113,12 +113,11 @@ float ps2math::DotProduct(const Vec4 &lhs, const Vec4 &rhs)
         "lqc2 $vf1, 0x00(%0)    \n"
         "lqc2 $vf2, 0x00(%1)    \n"
         "1:                     \n"
-        "mul.xyzw $vf3,$vf1,$vf2\n"
-        "sqc2 $vf3, 0x00(%3)"
-
-        : : "r"(&lhs), "r"(&rhs), "r"(&work)
-        : "memory"
-    );
+        "vmul  $vf3, $vf1, $vf2\n"
+        "sqc2 $vf3, 0x00(%2)"
+        : 
+        : "r"(&lhs), "r"(&rhs), "r"(&work)
+        : "memory");
     return work.x + work.y + work.z;
 }
 

@@ -1,5 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 
+
 #include <cmath>
 #include <dma.h>
 #include <draw.h>
@@ -22,6 +23,7 @@
 #include "input/padman.hpp"
 #include "renderer/Camera.hpp"
 #include "utils.hpp"
+#include "mesh/model.hpp"
 
 using namespace Input;
 
@@ -62,35 +64,92 @@ void ClipVertices(ps2math::Vec4& vertex)
       : "$10", "memory");
 }
 
+void NewPrepareTriangleDisplayList(packet2_t* dmaBuffer, const ps2math::Mat4 &viewMatrix, float angle, float moveHorizontal, const Mesh& firstMesh)
+{
+  qword_t qword;
+  const unsigned int numberOfTimesGifTagExecutes = (firstMesh._vertexIndices.size() + 1) / 3;
+  // PRIM REG = 0x5B -> triangle with Gouraud shading, texturing, alpha blending
+  qword.dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0x5B, GIF_FLG_PACKED, 6);
+  constexpr u64 triangleGIFTag = u64(GIF_REG_XYZ2) << 20 | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_XYZ2) << 12 
+                                | u64(GIF_REG_RGBAQ) << 8  | u64(GIF_REG_XYZ2) << 4 | u64(GIF_REG_RGBAQ); 
+
+  qword.dw[1] = triangleGIFTag;
+  packet2_add_u128(dmaBuffer, qword.qw);
+
+  ps2math::Vec4 scaleFactor = ps2math::Vec4(0.5f, 0.5f, 0.5f, 1.0f);
+  ps2math::Mat4 perspectiveMatrix = ps2math::Mat4::perspective(Utils::ToRadians(45.0f), (float)width / (float)height, 0.1f, 2000.0f);
+
+  for (std::size_t i = 0; i < firstMesh._vertexIndices.size(); i++) {
+
+    // color
+    qword.dw[0] = (u64(255.0f) & 0xFF) << 32 | (u64(255.0f) & 0xFF);
+    qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(0.0f) & 0xFF);
+    packet2_add_u128(dmaBuffer, qword.qw);
+
+    // this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
+    // this is the one line of code that keeps my entire math from falling apart
+    ps2math::Vec4 vertex = firstMesh._vertexPositionCoord[firstMesh._vertexIndices[i]];
+    // model transformations
+    ps2math::Mat4 modelMatrix;
+    modelMatrix = ps2math::Mat4::scale(modelMatrix, scaleFactor);
+    modelMatrix = ps2math::Mat4::rotateZ(modelMatrix, Utils::ToRadians(180.f));
+    modelMatrix = ps2math::Mat4::rotateY(modelMatrix, Utils::ToRadians(angle));
+    // modelMatrix = ps2math::Mat4::rotateX(modelMatrix, Utils::ToRadians(angle));
+    modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(0.0f, 0.0f, moveHorizontal + 50.0f, 1.0f));
+
+    // coordinates
+    vertex = vertex * modelMatrix * viewMatrix * perspectiveMatrix;
+
+    // clip vertices and perform perspective division
+    ClipVertices(vertex);
+
+    // viewport transformation
+    float winX = float(width) * vertex.x / 2.0f + (xOff);
+    float winY = float(height) * vertex.y / 2.0f + (yOff);
+    float deviceZ = (vertex.z + 1.0f) / 2.0f * (1 << 31);
+
+    qword.dw[0] = (u64(Utils::FloatToFixedPoint<u16>((winY)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(winX)));
+    qword.dw[1] = static_cast<unsigned int>(deviceZ);
+
+    if ((i + 1) % 3 == 0) {
+      qword.dw[1] |= (u64(1 & 0x01) << 48); // on every third vertex send a drawing kick :)
+    }
+    packet2_add_u128(dmaBuffer, qword.qw);
+  }
+
+  packet2_update(dmaBuffer, draw_finish(dmaBuffer->next));
+}
+
+
 void PrepareTriangleDisplayList(packet2_t* dmaBuffer, const ps2math::Mat4 &viewMatrix, float angle, float moveHorizontal)
 {
 
   // Data is to be stored in an obj file that has coordinates, color and texutures as Vec4, so that we get a qword alignment"
   std::vector<float> vertexData {
-    10.00f, 10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-    10.00f, 10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-    10.00f, -10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-    10.00f, -10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
-    -10.00f, 10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-    -10.00f, 10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-    -10.00f, -10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-    -10.00f, -10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
-    -10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-    10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-    -10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-    10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
-    -10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-    10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-    -10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-    10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
-    -10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-    10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-    -10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-    10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f,
-    -10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f, 0.00f,
-    10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f, 0.00f,
-    -10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
-    10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 1.00f, 0.00f, 0.00f
+    10.00f, 10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 0.00f, 
+    10.00f, 10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 
+    10.00f, -10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 1.00f, 
+    10.00f, -10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f,
+    -10.00f, 10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 0.00f, 
+    -10.00f, 10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f,
+    -10.00f, -10.00f, 10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 0.00f, 1.00f,
+    -10.00f, -10.00f, -10.00f, 1.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f,
+    -10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f, 
+    10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 0.00f, 
+    -10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f,
+    10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 1.00f, 
+    -10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 0.00f,
+    10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 0.00f, 
+    -10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f,
+    10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 1.00f, 0.00f, 1.00f, 1.00f, 1.00f,
+    -10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f, 
+    10.00f, 10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 
+    -10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 1.00f,
+    10.00f, -10.00f, 10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 1.00f, 
+    -10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 0.00f,
+    10.00f, 10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 0.00f, 
+    -10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 0.00f, 1.00f,
+    10.00f, -10.00f, -10.00f, 1.00f, 0.00f, 0.00f, 1.00f, 1.00f, 1.00f, 1.00f
   };
 
   std::vector<unsigned int> indices {
@@ -115,7 +174,7 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, const ps2math::Mat4 &viewM
   constexpr std::size_t alphaColorOffset = colorOffset + 3;
 
   constexpr std::size_t uCoordinateOffset = 8;
-  constexpr std::size_t step = 12;
+  constexpr std::size_t step = 10;
 
   // This line is a reminder of how incredibly silly decisions
   // can have you lose three months of development time on PS2
@@ -147,6 +206,7 @@ void PrepareTriangleDisplayList(packet2_t* dmaBuffer, const ps2math::Mat4 &viewM
     packet2_add_u128(dmaBuffer, qword.qw);
 
     // this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
+    // this is the one line of code that keeps my entire math from falling apart
     ps2math::Vec4 vertex(vertexData.data() + step * indices[i]);
     // model transformations
     ps2math::Mat4 modelMatrix;
@@ -205,7 +265,7 @@ Camera SetupCamera()
 
 void render()
 {
-  packet2_t* myDMABuffer = packet2_create(100, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+  packet2_t* myDMABuffer = packet2_create(5000, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
 
   InitializeDMAC();
 
@@ -244,6 +304,13 @@ void render()
   myTex.SetTextureAsActive();
 
 
+  Model myModel;
+  myModel.LoadModel("cdrom0:\\CAT\\MESH_CAT.OBJ;1");
+  printf("Mesh List count: %d\n", myModel.GetMeshList().size());
+  Mesh firstMesh = myModel.GetMeshList()[0];
+  printf("Number of vertices %d\n", firstMesh._vertexPositionCoord.size());
+  printf("Number of indices %d\n", firstMesh._vertexIndices.size());
+
   auto myCamera = SetupCamera();
 
   while (1) {
@@ -272,7 +339,7 @@ void render()
     
     drawEnv.ClearScreen(myDMABuffer);
 
-    PrepareTriangleDisplayList(myDMABuffer, myCamera.CalculateViewMatrix(), angle, moveHorizontal);
+    NewPrepareTriangleDisplayList(myDMABuffer, myCamera.CalculateViewMatrix(), angle, moveHorizontal, firstMesh);
 
     SendGIFPacketWaitForDraw(myDMABuffer);
   }
