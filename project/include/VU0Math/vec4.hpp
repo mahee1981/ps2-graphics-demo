@@ -30,6 +30,7 @@ namespace ps2math {
         friend Vec4 operator+(const Vec4& lhs, const Vec4& rhs);
         friend Vec4 operator-(const Vec4& lhs, const Vec4& rhs);
         friend Vec4 CrossProduct(const Vec4& lhs, const Vec4 rhs);
+        friend float DotProduct(const Vec4& lhs, const Vec4 rhs);
         
         Vec4& operator+=(const Vec4& rhs);
         Vec4& operator-=(const Vec4& rhs);
@@ -43,6 +44,7 @@ namespace ps2math {
     Vec4 operator+(const Vec4& lhs, const Vec4& rhs);
     Vec4 operator-(const Vec4& lhs, const Vec4& rhs);
     Vec4 CrossProduct(const Vec4& lhs, const Vec4& rhs);
+    float DotProduct(const Vec4& lhs, const Vec4& rhs);
     Vec4 operator*(const Vec4& lhs, float a);
     Vec4 operator*(float a, const Vec4& lhs);
 }

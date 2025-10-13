@@ -21,7 +21,7 @@ void Camera::MotionControl(const Input::PadJoy &leftStick, float deltaTime)
 	float y = (float(leftStick.v) - 127.0f) / 127.0f; // forward/back
 
 	// Apply deadzone
-	constexpr float deadzone = 0.1f;
+	constexpr float deadzone = 0.3f;
 	float magnitude = sqrtf(x * x + y * y);
 
 	if (magnitude < deadzone)
@@ -46,7 +46,7 @@ void Camera::RotationControl(const Input::PadJoy &rightStick, float deltaTime)
     float vertInput = (float(rightStick.v) - 127.5f) / 127.5f;
 
     // Deadzone to avoid drift
-    constexpr float deadzone = 0.1f;
+    constexpr float deadzone = 0.3f;
     if (fabs(horzInput) < deadzone) horzInput = 0.0f;
     if (fabs(vertInput) < deadzone) vertInput = 0.0f;
 
