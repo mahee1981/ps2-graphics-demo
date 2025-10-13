@@ -1,3 +1,4 @@
+#include "utils.hpp"
 #include "renderer/Camera.hpp"
 
 
@@ -17,8 +18,8 @@ Camera::Camera(ps2math::Vec4 startPosition, ps2math::Vec4 startUp, float startYa
 void Camera::MotionControl(const Input::PadJoy &leftStick, float deltaTime)
 {
 	// Normalize stick [-1,1]
-	float x = (float(leftStick.h) - 127.0f) / 127.0f; // strafe
-	float y = (float(leftStick.v) - 127.0f) / 127.0f; // forward/back
+	float x = (float(leftStick.h) - 127.5f) / 127.5f; // strafe
+	float y = (float(leftStick.v) - 127.5f) / 127.5f; // forward/back
 
 	// Apply deadzone
 	constexpr float deadzone = 0.3f;

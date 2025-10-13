@@ -1,4 +1,5 @@
 #include "Color.hpp"
+#include <algorithm>
 
 namespace Colors{
 

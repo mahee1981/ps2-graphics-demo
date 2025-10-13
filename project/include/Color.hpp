@@ -1,8 +1,6 @@
 #ifndef COLOR_HPP
 #define COLOR_HPP
 
-#include <algorithm>
-#include "utils.hpp"
 #include "ColorComponent.hpp"
 
 namespace Colors
@@ -24,8 +22,6 @@ namespace Colors
 
         unsigned char GetComponentValueAsUByte(ColorComponent component) const;
         float GetComponentValueAsFloat(ColorComponent component) const;
-
-        qword_t GetAsQword() const;
     };
 }
 #endif

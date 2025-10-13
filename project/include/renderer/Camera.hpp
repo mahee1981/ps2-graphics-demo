@@ -4,7 +4,6 @@
 #include "VU0Math/vec4.hpp"
 #include "VU0Math/mat4.hpp"
 #include "input/padman.hpp"
-#include "utils.hpp"
 
 #include <cmath>
 

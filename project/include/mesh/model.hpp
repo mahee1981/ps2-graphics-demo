@@ -19,7 +19,7 @@ class Model{
     // std::unique_ptr<packet2_t, Packet2Deleter> _drawBuffer;
 
     public:
-    void LoadModel(const char* fileName);
+    void LoadModel(const char* fileName, const char* materialPath);
     void Render();
     inline const std::vector<Mesh> &GetMeshList() const { return meshList; }
 };

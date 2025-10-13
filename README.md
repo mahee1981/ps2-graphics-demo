@@ -7,9 +7,9 @@ Milestones:
  - Rendered a Gouraud shaded triangle
  - Model, View and Projection matrices
  - Basic Texture loading
+ - Basic Model loading
  - IN PROGRESS: Math on EE core and VU0
  - TODO: Lighting
- - TODO: Model loading
  - TODO: Advanced Clipping Algorithm
  - TODO: Logging Framework
  - TODO: VRAM Resource Management
@@ -17,7 +17,7 @@ Milestones:
 
 Latest results:
 
-<img src="./results/texturedCubeWithInput.gif"/>
+<img src="./results/modelLoading.gif"/>
 
 # Project Setup
 

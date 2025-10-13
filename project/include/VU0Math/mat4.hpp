@@ -44,7 +44,7 @@ public:
 
     void PrintMatrix();
 private:
-    float data[16] alignas(16 * sizeof(float));
+    alignas(16 * sizeof(float)) float data[16];
     inline const float* GetDataPtr() const { return &data[0]; }
     inline float* GetDataPtr() { return &data[0]; }
 };

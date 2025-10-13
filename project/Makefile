@@ -23,7 +23,8 @@ ISO_TGT = $(BIN_DIR)/game.iso
 
 # Default build
 all: output-dirs $(EE_BIN)
-	cp $(RESOURCES)/test/brick_wall_128.png $(BIN_DIR)/
+	cp $(RESOURCES)/brick_wall_128.png $(BIN_DIR)/
+	cp -r $(RESOURCES)/CAT/ $(BIN_DIR)/
 	cp $(RESOURCES)/sio2man.irx $(BIN_DIR)/
 	cp $(RESOURCES)/padman.irx $(BIN_DIR)/
 
@@ -38,6 +39,7 @@ output-dirs:
 	@mkdir -p $(BIN_DIR)/external
 	@mkdir -p $(BIN_DIR)/light
 	@mkdir -p $(BIN_DIR)/mesh
+	@mkdir -p $(BIN_DIR)/CAT
 
 
 # ISO build
@@ -50,7 +52,7 @@ clean:
 
 # Run targets
 emulate-elf: output-dirs $(EE_BIN)
-	pcsx2.AppImage $(EE_BIN)
+	pcsx2.AppImage $(CURDIR)/$(EE_BIN)
 
 emulate-iso: iso
 	pcsx2.AppImage $(ISO_TGT)
