@@ -5,7 +5,6 @@
 #include "VU0Math/mat4.hpp"
 #include "input/padman.hpp"
 
-#include <cmath>
 
 
 /*

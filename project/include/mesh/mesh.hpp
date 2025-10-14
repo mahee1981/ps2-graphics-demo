@@ -3,12 +3,10 @@
 
 #include <vector>
 #include "VU0Math/vec4.hpp"
-#include "graphics/Texture.hpp"
 #include <debug.h>
 #include <draw_types.h>
 #include "tiny_obj_loader.h"
 
-using namespace graphics;
 
 class Mesh{
 

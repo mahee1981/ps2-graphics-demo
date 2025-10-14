@@ -1,11 +1,8 @@
 #ifndef MAT4_HPP
 #define MAT4_HPP
 
-#include <algorithm>
-#include <array>
-#include <cmath>
-#include <stdexcept>
 #include "VU0Math/vec4.hpp"
+#include <array>
 
 namespace ps2math {
 

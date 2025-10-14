@@ -1,8 +1,6 @@
 #ifndef TEXTURE_LOADER_LODE
 #define TEXTURE_LOADER_LODE
 
-#include <cstring>
-#include <vector>
 #include <lodepng.h>
 #include "graphics/TextureLoader.hpp"
 

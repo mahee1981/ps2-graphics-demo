@@ -1,3 +1,4 @@
+#include "graphics/GSBufferConfig.hpp"
 #include "graphics/Texture.hpp"
 
 namespace graphics {

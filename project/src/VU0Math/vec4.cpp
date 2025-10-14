@@ -1,3 +1,5 @@
+#include <stdexcept>
+#include <cmath>
 #include "VU0Math/vec4.hpp"
 
 ps2math::Vec4::Vec4() : x(0.0f), y(0.0f), z(0.0f), w(1.0f) {}
@@ -6,6 +8,7 @@ ps2math::Vec4::Vec4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w)
 
 ps2math::Vec4::Vec4(const std::initializer_list<float> &values)
 {
+	// TODO: replace execption with a trace
     if(values.size() != 4)
         throw std::range_error("Initalizer list is not of length 4");
 

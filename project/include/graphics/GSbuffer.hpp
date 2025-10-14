@@ -2,7 +2,6 @@
 #define GSBUFFER_HPP
 
 #include <graph_vram.h>
-#include <stdio.h>
 #include "IDisposable.hpp"
 
 

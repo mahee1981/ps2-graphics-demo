@@ -2,12 +2,11 @@
 #define MODEL_HPP
 
 #include <packet2.h>
-#include <memory>
 #include <vector>
-#include <sstream>
-#include <fstream>
 #include "mesh.hpp"
+#include "graphics/Texture.hpp"
 
+using namespace graphics;
 
 class Model{
     

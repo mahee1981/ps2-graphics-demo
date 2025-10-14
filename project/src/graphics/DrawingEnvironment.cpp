@@ -1,3 +1,4 @@
+#include "BlendingConfig.hpp"
 #include "graphics/DrawingEnvironment.hpp"
 
 

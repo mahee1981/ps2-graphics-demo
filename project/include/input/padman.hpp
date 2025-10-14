@@ -5,7 +5,6 @@
 #include <libpad.h>
 #include <loadfile.h>
 #include <sifrpc.h>
-#include <stdio.h>
 #include <tamtypes.h>
 #include <debug.h>
 #include <loadfile.h>

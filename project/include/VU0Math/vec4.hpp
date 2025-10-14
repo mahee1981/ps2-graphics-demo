@@ -2,8 +2,6 @@
 #define VEC4_HPP
 
 #include <array>
-#include <stdexcept>
-#include <cmath>
 
 namespace ps2math {
 

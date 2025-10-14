@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "graphics/GSbuffer.hpp"
 
 namespace Buffers

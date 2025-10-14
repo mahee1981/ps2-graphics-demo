@@ -15,7 +15,6 @@
 #include "graphics/framebuffer.hpp"
 #include "AlphaTest.hpp"
 #include "TextureConfig.hpp"
-#include "BlendingConfig.hpp"
 #include "Color.hpp"
 #include "graphics/GraphicsConfig.hpp"
 

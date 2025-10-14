@@ -1,3 +1,5 @@
+#include <cstring>
+#include <vector>
 #include "graphics/LodeTextureLoader.hpp"
 
 namespace graphics {

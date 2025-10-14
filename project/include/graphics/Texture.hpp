@@ -10,10 +10,8 @@
 
 #include <string>
 #include <memory>
-#include <optional>
 
 #include "graphics/TextureLoader.hpp"
-#include "graphics/GSBufferConfig.hpp"
 #include "graphics/GSTextureBuffer.hpp"
 #include "graphics/TextureLoader.hpp"
 

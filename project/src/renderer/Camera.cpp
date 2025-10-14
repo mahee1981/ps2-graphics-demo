@@ -1,16 +1,16 @@
 #include "utils.hpp"
 #include "renderer/Camera.hpp"
-
+#include <cmath>
 
 
 Camera::Camera(ps2math::Vec4 startPosition, ps2math::Vec4 startUp, float startYaw, float startPitch, float movementSpeed, float turnSpeed)
-: _position(startPosition)
-, _front(0.0f, 0.0f, -1.0f, 1.0f)
-, _worldUp(startUp)
-, _yaw(startYaw)
-, _pitch(startPitch)
-, _movementSpeed(movementSpeed)
-, _turnSpeed(turnSpeed)
+	: _position(startPosition)
+	, _front(0.0f, 0.0f, -1.0f, 1.0f)
+	, _worldUp(startUp)
+	, _yaw(startYaw)
+	, _pitch(startPitch)
+	, _movementSpeed(movementSpeed)
+	, _turnSpeed(turnSpeed)
 {
     update();
 }

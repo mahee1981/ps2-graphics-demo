@@ -1,3 +1,6 @@
+#include <memory>
+#include <sstream>
+#include <fstream>
 #include "mesh/model.hpp"
 
 void Model::LoadModel(const char *fileName, const char *material_search_path )
