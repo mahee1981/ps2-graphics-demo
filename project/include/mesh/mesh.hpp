@@ -11,9 +11,6 @@
 class Mesh{
 
     public:
-    std::vector<ps2math::Vec4> VertexPositionCoord;
-    std::vector<ps2math::Vec4> VertexNormalCoord;
-    std::vector<texel_t> TexCoordinates;
     std::vector<int> VertexIndices;
     std::vector<int> _normalIndices;
     std::vector<int> TexIndices;

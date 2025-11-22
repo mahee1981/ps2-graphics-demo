@@ -1,6 +1,3 @@
-#include <memory>
-#include <sstream>
-#include <fstream>
 #include "mesh/model.hpp"
 
 void Model::LoadModel(const char *fileName, const char *material_search_path )
@@ -26,28 +23,30 @@ void Model::LoadModel(const char *fileName, const char *material_search_path )
     auto &attrib = reader.GetAttrib();
     auto &shapes = reader.GetShapes();
     // auto &materials = reader.GetMaterials();
+	//
+	// Store the mesh data
+	_texCoordinates.reserve(attrib.texcoords.size() / 2);
+	_vertexPositionCoord.reserve(attrib.vertices.size() /3);
+	for (size_t vi = 0; vi < attrib.vertices.size() / 3; ++vi)
+	{
+		tinyobj::real_t vx = attrib.vertices[3 * vi + 0];
+		tinyobj::real_t vy = attrib.vertices[3 * vi + 1];
+		tinyobj::real_t vz = attrib.vertices[3 * vi + 2];
+		_vertexPositionCoord.emplace_back(vx, vy, vz, 1.0f);
+	}
+
+	for (size_t vi = 0; vi < attrib.texcoords.size() / 2; ++vi)
+	{
+		texel_t texel;
+		texel.u = attrib.texcoords[2 * vi + 0];
+		texel.v = attrib.texcoords[2 * vi + 1];
+		_texCoordinates.push_back(texel);
+	}
     printf("Number of shapes: %zu\n", shapes.size());
-    // Loop over shapes
+		// Loop over shapes and store the indices
     for (size_t s = 0; s < shapes.size(); s++)
     {
         Mesh newMesh;
-        newMesh.VertexPositionCoord.reserve(attrib.vertices.size() /3);
-        for (size_t vi = 0; vi < attrib.vertices.size() / 3; ++vi)
-        {
-            tinyobj::real_t vx = attrib.vertices[3 * vi + 0];
-            tinyobj::real_t vy = attrib.vertices[3 * vi + 1];
-            tinyobj::real_t vz = attrib.vertices[3 * vi + 2];
-            newMesh.VertexPositionCoord.emplace_back(vx, vy, vz, 1.0f);
-        }
-		
-		newMesh.TexCoordinates.reserve(attrib.texcoords.size() / 2);
-        for (size_t vi = 0; vi < attrib.texcoords.size() / 2; ++vi)
-        {
-            texel_t texel;
-            texel.u = attrib.texcoords[2 * vi + 0];
-            texel.v = attrib.texcoords[2 * vi + 1];
-            newMesh.TexCoordinates.push_back(texel);
-        }
 
 		newMesh.TexIndices.reserve(shapes[s].mesh.indices.size());
 		newMesh.VertexIndices.reserve(shapes[s].mesh.indices.size());

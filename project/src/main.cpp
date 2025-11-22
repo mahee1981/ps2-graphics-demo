@@ -60,15 +60,21 @@ void ClipVertices(ps2math::Vec4& vertex)
 		: "$10", "memory");
 }
 
-void PrepareTriangleDisplayListForModel(packet2_t* dmaBuffer, const ps2math::Mat4 &viewMatrix, float angle, float moveHorizontal, const Mesh& firstMesh)
+void PrepareTriangleDisplayListForModel(packet2_t* dmaBuffer, 
+										const ps2math::Mat4 &viewMatrix, 
+										float angle, float moveHorizontal, 
+										const Mesh& mesh,
+										const Model& model)
 {
 	qword_t qword;
-	const unsigned int numberOfTimesGifTagExecutes = (firstMesh.VertexIndices.size() + 1) / 3;
+	const unsigned int numberOfTimesGifTagExecutes = (mesh.VertexIndices.size() + 1) / 3;
 	// PRIM REG = 0x5B -> triangle with Gouraud shading, texturing, alpha blending
-	qword.dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0x5B, GIF_FLG_PACKED, 9);
+	qword.dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0x5B, GIF_FLG_PACKED, 6);
 
-	constexpr u64 triangleGIFTag = u64(GIF_REG_XYZ2) << 32 | u64(GIF_REG_RGBAQ) << 28 | u64(GIF_REG_ST) << 24 | u64(GIF_REG_XYZ2) << 20 
-		| u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_ST) << 12 | u64(GIF_REG_XYZ2) << 8 | u64(GIF_REG_RGBAQ) << 4 | u64(GIF_REG_ST);
+	constexpr u64 triangleGIFTag =  u64(GIF_REG_XYZ2) << 20 | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_XYZ2)<< 12 | u64(GIF_REG_RGBAQ) << 8 | u64(GIF_REG_XYZ2) << 4 | u64(GIF_REG_RGBAQ);
+
+	// constexpr u64 triangleGIFTag = u64(GIF_REG_XYZ2) << 32 | u64(GIF_REG_RGBAQ) << 28 | u64(GIF_REG_ST) << 24 | u64(GIF_REG_XYZ2) << 20 
+	// 	| u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_ST) << 12 | u64(GIF_REG_XYZ2) << 8 | u64(GIF_REG_RGBAQ) << 4 | u64(GIF_REG_ST);
 	qword.dw[1] = triangleGIFTag;
 	packet2_add_u128(dmaBuffer, qword.qw);
 
@@ -80,12 +86,12 @@ void PrepareTriangleDisplayListForModel(packet2_t* dmaBuffer, const ps2math::Mat
 	ps2math::Vec4 scaleFactor = ps2math::Vec4(0.5f, 0.5f, 0.5f, 1.0f);
 	ps2math::Mat4 perspectiveMatrix = ps2math::Mat4::perspective(Utils::ToRadians(45.0f), (float)width / (float)height, 0.1f, 2000.0f);
 
-	for (std::size_t i = 0; i < firstMesh.VertexIndices.size(); i++) {
+	for (std::size_t i = 0; i < mesh.VertexIndices.size(); i++) {
 
-		const auto& texel = firstMesh.TexCoordinates[firstMesh.TexIndices[i]];
-		qword.dw[0] = texel.uv;
-		qword.dw[1] = zeroTexel.uv;
-		packet2_add_u128(dmaBuffer, qword.qw);
+		// const auto& texel = model.GetTexturePositions()[mesh.TexIndices[i]];
+		// qword.dw[0] = texel.uv;
+		// qword.dw[1] = zeroTexel.uv;
+		// packet2_add_u128(dmaBuffer, qword.qw);
 
 		// color
 		qword.dw[0] = (u64(128) & 0xFF) << 32 | (u64(128) & 0xFF);
@@ -94,7 +100,7 @@ void PrepareTriangleDisplayListForModel(packet2_t* dmaBuffer, const ps2math::Mat
 
 		// this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
 		// this is the one line of code that keeps my entire math from falling apart
-		ps2math::Vec4 vertex = firstMesh.VertexPositionCoord[firstMesh.VertexIndices[i]];
+		ps2math::Vec4 vertex = model.GetVertexPositions()[mesh.VertexIndices[i]];
 		// model transformations
 		ps2math::Mat4 modelMatrix;
 		modelMatrix = ps2math::Mat4::scale(modelMatrix, scaleFactor);
@@ -123,7 +129,7 @@ void PrepareTriangleDisplayListForModel(packet2_t* dmaBuffer, const ps2math::Mat
 		packet2_add_u128(dmaBuffer, qword.qw);
 	}
 
-	packet2_update(dmaBuffer, draw_finish(dmaBuffer->next));
+	// packet2_update(dmaBuffer, draw_finish(dmaBuffer->next));
 }
 
 
@@ -133,9 +139,24 @@ void SendGIFPacketWaitForDraw(packet2_t* dmaBuffer)
 
 	dma_channel_send_packet2(dmaBuffer, DMA_CHANNEL_GIF, 0);
 
+	dma_channel_wait(DMA_CHANNEL_GIF, 5000);
+
+	packet2_reset(dmaBuffer, false);
+
 	draw_wait_finish();
 
 	graph_wait_vsync();
+}
+
+void SendGIFPacket(packet2_t* dmaBuffer)
+{
+	dma_wait_fast();
+
+	dma_channel_send_packet2(dmaBuffer, DMA_CHANNEL_GIF, 0);
+
+	dma_channel_wait(DMA_CHANNEL_GIF, 5000);
+
+	packet2_reset(dmaBuffer, false);
 }
 
 Camera SetupCamera()
@@ -156,7 +177,7 @@ void render()
 {
 	//TODO: need to make transfers dynamic and split it into slices if bigger than u16_max
 	//OPTIONAL: make packed DMA transfers
-	packet2_t* myDMABuffer = packet2_create(15000, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+	packet2_t* myDMABuffer = packet2_create(25000, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
 
 	InitializeDMAC();
 
@@ -187,6 +208,7 @@ void render()
 
 	auto textureLoader = std::make_shared<graphics::STBITextureLoader>();
 	graphics::Texture myTex("CAT/TEX_CAT.PNG");
+	// graphics::Texture myTex("AIRPLANE/AIRPLANE_TEX.PNG");
 	myTex.LoadTexture(textureLoader);
 	myTex.AllocateVram();
 	myTex.TransferTextureToGS();
@@ -196,21 +218,21 @@ void render()
 
 	Model myModel;
 	//TODO: fix the default path search
-	myModel.LoadModel("CAT/MESH_CAT.OBJ", "CAT/");
+	// myModel.LoadModel("CAT/MESH_CAT.OBJ", "CAT/");
+	// myModel.LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
+	// myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
+	myModel.LoadModel("COMBO/combo.obj", "COMBO/");
 	printf("Mesh List count: %zu\n", myModel.GetMeshList().size());
 	Mesh firstMesh = myModel.GetMeshList()[0];
-	printf("Number of vertices %zu\n", firstMesh.VertexPositionCoord.size());
-	printf("Number of indices %zu\n", firstMesh.VertexIndices.size());
-	printf("Number of texels %zu\n", firstMesh.TexCoordinates.size());
-	printf("Number of texel indices %zu\n", firstMesh.TexIndices.size());
+	printf("Number of vertices %zu\n", myModel.GetVertexPositions().size());
+	printf("Number of indices in first mesh %zu\n", firstMesh.VertexIndices.size());
+	printf("Number of texels %zu\n", myModel.GetTexturePositions().size());
+	printf("Number of texel indices in first mesh %zu\n", firstMesh.TexIndices.size());
 
 	PadManager controllerInput;
 	auto myCamera = SetupCamera();
-
 	while (1) {
 		controllerInput.UpdatePad();
-		// reset the buffer
-		packet2_reset(myDMABuffer, false);
 
 		now = std::chrono::steady_clock::now();
 		deltaTime = (now - lastUpdate);
@@ -232,10 +254,27 @@ void render()
 		myCamera.RotationControl(controllerInput.getRightJoyPad(),  deltaTime.count());
 
 		drawEnv.ClearScreen(myDMABuffer);
+		auto loopSize = myModel.GetMeshList().size();
+		for(std::size_t i = 0; i < loopSize; i++)
+		{
+			const Mesh &mesh = myModel.GetMeshList()[i];
+			PrepareTriangleDisplayListForModel(myDMABuffer, myCamera.CalculateViewMatrix(), angle, moveHorizontal, mesh, myModel);
 
-		PrepareTriangleDisplayListForModel(myDMABuffer, myCamera.CalculateViewMatrix(), angle, moveHorizontal, firstMesh);
+			if(i == loopSize - 1)
+			{
+				packet2_update(myDMABuffer, draw_finish(myDMABuffer->next));
+				SendGIFPacketWaitForDraw(myDMABuffer);
+			}
+			else{
+				SendGIFPacket(myDMABuffer);
+			}
+		}
+		// packet2_update(myDMABuffer, draw_finish(myDMABuffer->next));
+		// SendGIFPacketWaitForDraw(myDMABuffer);
+		//
+		// // reset the buffer
+		// packet2_reset(myDMABuffer, false);
 
-		SendGIFPacketWaitForDraw(myDMABuffer);
 	}
 	packet2_free(myDMABuffer);
 }

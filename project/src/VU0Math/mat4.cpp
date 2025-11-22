@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdio>
 #include <cmath>
 #include "VU0Math/mat4.hpp"
 

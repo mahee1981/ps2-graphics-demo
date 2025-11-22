@@ -24,7 +24,7 @@ ISO_TGT = $(BIN_DIR)/game.iso
 # Default build
 all: output-dirs $(EE_BIN)
 	cp $(RESOURCES)/brick_wall_128.png $(BIN_DIR)/
-	cp -r $(RESOURCES)/CAT/ $(BIN_DIR)/
+	cp -rf $(RESOURCES)/CAT/ $(BIN_DIR)/
 	cp $(RESOURCES)/sio2man.irx $(BIN_DIR)/
 	cp $(RESOURCES)/padman.irx $(BIN_DIR)/
 
