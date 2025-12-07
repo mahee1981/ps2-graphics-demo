@@ -4,10 +4,11 @@
 namespace Buffers
 {
 
-    enum GraphicsConfig
-    {
-        SINGLE_BUFFER
-    };
+enum GraphicsConfig
+{
+    SINGLE_BUFFER,
+    DOUBLE_BUFFER
+};
 
 }
 #endif

@@ -1,5 +1,5 @@
-#include "BlendingConfig.hpp"
 #include "graphics/DrawingEnvironment.hpp"
+#include "BlendingConfig.hpp"
 
 
 DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, GraphicsConfig config) : 
@@ -9,52 +9,74 @@ DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, 
     xOffset(2048.0f - float(width >> 1)),     
     yOffset(2048.0f - float(height >> 1)),
     context(0),
-    framebuffer(nullptr),
     zbuffer(nullptr),
-    alphaTest(true, AlphaTestMethod::NOT_EQUAL, 0x00, AlphaTestOnFail::FB_UPDATE_ONLY) //TODO: Update via config, for now hardcoded
+    alphaTest(true, AlphaTestMethod::NOT_EQUAL, 0x00, AlphaTestOnFail::FB_UPDATE_ONLY), //TODO: Update via config, for now hardcoded
+    flipPacket(packet2_create(4, P2_TYPE_UNCACHED, P2_MODE_NORMAL, 0))
 {
     ConfigureBuffers();
+}
+
+void DrawingEnvironment::ConfigureBuffers()
+{
+    framebuffer[0] = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_32);
+    zbuffer = std::make_unique<ZBuffer>(width, height, 0, true, Buffers::ZbufferTestMethod::GREATER_EQUAL, Buffers::GSZbufferStorageMethodEnum::ZBUF_32);
+
+    if(config == GraphicsConfig::DOUBLE_BUFFER)
+    {
+        framebuffer[1] = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_32);
+    }
 }
 
 void DrawingEnvironment::InitializeEnvironment()
 {
     AllocateBuffers();
-    
+
     ConfigureOutput();
 
-    if(config == GraphicsConfig::SINGLE_BUFFER)
-    {
-        framebuffer->SetFramebufferAsActiveFilteredMode();
-    }
+    framebuffer[0]->EnableInActiveFilteredMode();
 
     graph_enable_output();
 
-    if(config == GraphicsConfig::SINGLE_BUFFER)
-    {
-        SetupGSRegisters(0);
-    }
+    SetupGSRegisters(0);
 }
 
-void DrawingEnvironment::ConfigureBuffers()
+
+void DrawingEnvironment::SwapBuffers()
 {
-    if(config == GraphicsConfig::SINGLE_BUFFER)
-    {
-        framebuffer = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_32);
-        zbuffer = std::make_unique<ZBuffer>(width, height, 0, true, Buffers::ZbufferTestMethod::GREATER_EQUAL, Buffers::GSZbufferStorageMethodEnum::ZBUF_32);
-    }
+    if(config == GraphicsConfig::SINGLE_BUFFER) // no swap if single buffer mode
+        return;
+    framebuffer[context]->EnableInActiveFilteredMode();	
+
+    context = 1 - context;
+
+    framebuffer_t sdkFB;
+    framebuffer[context]->ToSDKFramebuffer(&sdkFB);
+    packet2_reset(flipPacket, false);
+    packet2_update(flipPacket, draw_framebuffer(flipPacket->next,0, &sdkFB));
+    packet2_update(flipPacket, draw_finish(flipPacket->next));
+
+    dma_wait_fast();
+    dma_channel_send_packet2(flipPacket, DMA_CHANNEL_GIF, 0);
+
+    draw_wait_finish();
 }
 
 void DrawingEnvironment::AllocateBuffers()
 {
-  framebuffer->AllocateVRAMForBuffer();
-  zbuffer->AllocateVRAMForBuffer();
+    framebuffer[0]->AllocateVRAMForBuffer();
+    if(config == GraphicsConfig::DOUBLE_BUFFER)
+    {
+        framebuffer[1]->AllocateVRAMForBuffer(); 
+    }
+   
+    zbuffer->AllocateVRAMForBuffer();
 }
 
 void DrawingEnvironment::ConfigureOutput()
 {
-  graph_set_mode(GRAPH_MODE_INTERLACED, GRAPH_MODE_NTSC, GRAPH_MODE_FIELD, GRAPH_ENABLE);
-  graph_set_screen(0, 0, width, height); // TODO: learn more about this in docs
-  graph_set_bgcolor(0, 0, 0);
+    graph_set_mode(GRAPH_MODE_INTERLACED, GRAPH_MODE_NTSC, GRAPH_MODE_FIELD, GRAPH_ENABLE);
+    graph_set_screen(0, 0, width, height); // TODO: learn more about this in docs
+    graph_set_bgcolor(0, 0, 0);
 }
 
 void DrawingEnvironment::SetupGSRegisters(unsigned int context) const
@@ -76,15 +98,15 @@ void DrawingEnvironment::SetupGSRegisters(unsigned int context) const
     packet2_add_u128(packet, qword.qw);
 
     //configure Framebuffer
-    qword.dw[0] = framebuffer->GetFrameBufferSettings();
+    qword.dw[0] = framebuffer[0]->GetBufferSettings();
     qword.dw[1] = u64(GS_REG_FRAME + context);
     packet2_add_u128(packet, qword.qw);
 
     //configure Zbuffer
-    qword.dw[0] = zbuffer->GetZbufferSettings();
+    qword.dw[0] = zbuffer->GetBufferSettings();
     qword.dw[1] = u64(GS_REG_ZBUF + context);
     packet2_add_u128(packet, qword.qw);
-    
+
     //set global primitve attributes and disable manual override
     qword.dw[0] = u64(false & 0x01);
     qword.dw[1] = u64(GS_REG_PRMODECONT);
@@ -159,7 +181,7 @@ void DrawingEnvironment::SetupGSRegisters(unsigned int context) const
     packet2_add_u128(packet, qword.qw);
 
     // Now send the packet, no need to wait since it's the first.
-    dma_channel_send_normal(DMA_CHANNEL_GIF, packet->base, packet2_get_qw_count(packet), 0, 0);
+    dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, 0);
 
     dma_wait_fast();
 
@@ -180,12 +202,12 @@ void DrawingEnvironment::ClearScreen(packet2_t *packet) const
     packet2_add_u128(packet, qword.qw);
 
     packet2_update(packet, draw_clear( packet->next,0,
-                                       xOffset,yOffset,framebuffer->GetWidth(),framebuffer->GetHeight(),
-                                       clearScreenColor.GetComponentValueAsUByte(ColorComponent::Red),
-                                       clearScreenColor.GetComponentValueAsUByte(ColorComponent::Green),
-                                       clearScreenColor.GetComponentValueAsUByte(ColorComponent::Blue)  ));
+                                      xOffset,yOffset,framebuffer[0]->GetWidth(),framebuffer[0]->GetHeight(),
+                                      clearScreenColor.GetComponentValueAsUByte(ColorComponent::Red),
+                                      clearScreenColor.GetComponentValueAsUByte(ColorComponent::Green),
+                                      clearScreenColor.GetComponentValueAsUByte(ColorComponent::Blue)  ));
 
-    
+
     qword.dw[0] = (u64)GIF_SET_TAG(1, false, false, 0, GIF_FLG_PACKED, 1);
     qword.dw[1] = (u64)GIF_REG_AD;
     packet2_add_u128(packet, qword.qw);
@@ -207,26 +229,26 @@ u64 DrawingEnvironment::GetXYOffsetSettings() const
 
 u64 DrawingEnvironment::GetScissoringAreaSettings() const
 {
-    return ( (u64((framebuffer->GetHeight() - 1) & 0x7FF) << 48)   
-             | (u64(0 & 0x7FF) << 32) 
-             | (u64((framebuffer->GetWidth() - 1) & 0x7FF) << 16) 
-             | u64(0 & 0x7FF) );
+    return ( (u64((framebuffer[0]->GetHeight() - 1) & 0x7FF) << 48)   
+    | (u64(0 & 0x7FF) << 32) 
+    | (u64((framebuffer[0]->GetWidth() - 1) & 0x7FF) << 16) 
+    | u64(0 & 0x7FF) );
 }
 
 u64 DrawingEnvironment::GetAlphaAndDepthTestSettings() const
 {
     return (static_cast<u64>(zbuffer->GetDepthTestMethod()) & 0x03) << 17 
-            | u64(0x01) << 16 
-            | alphaTest.GetAlphaTestSettings();
+    | u64(0x01) << 16 
+    | alphaTest.GetAlphaTestSettings();
 }
 
 u64 DrawingEnvironment::GetDisabledAlphaAndDepthTestSettings() const
 {
     return (static_cast<u64>(ZbufferTestMethod::ALLPASS) & 0x03) << 17 
-            | u64(0x01) << 16 
-            | alphaTest.GetAlphaTestSettings();
+    | u64(0x01) << 16 
+    | alphaTest.GetAlphaTestSettings();
 }
- 
+
 u64 DrawingEnvironment::GetFogColorSettings(u8 r, u8 g, u8 b) const
 {
     return  u64(b) << 16 | u64(g) << 8 | u64(r);
@@ -235,18 +257,18 @@ u64 DrawingEnvironment::GetFogColorSettings(u8 r, u8 g, u8 b) const
 u64 DrawingEnvironment::GetDefaultAlphaBlendingSettings() const
 {
     return u64(0x80 & 0xFF) << 32 
-           | (static_cast<u64>(AlphaBlendingColorConfig::COLOR_DESTINATION) & 0x03) << 6 
-           | (static_cast<u64>(AlphaBlendingAlphaConfig::ALPHA_SOURCE) & 0x03) << 4 
-           | (static_cast<u64>(AlphaBlendingColorConfig::COLOR_DESTINATION) & 0x03) << 2 
-           | (static_cast<u64>(AlphaBlendingColorConfig::COLOR_SOURCE) & 0x03);
+    | (static_cast<u64>(AlphaBlendingColorConfig::COLOR_DESTINATION) & 0x03) << 6 
+    | (static_cast<u64>(AlphaBlendingAlphaConfig::ALPHA_SOURCE) & 0x03) << 4 
+    | (static_cast<u64>(AlphaBlendingColorConfig::COLOR_DESTINATION) & 0x03) << 2 
+    | (static_cast<u64>(AlphaBlendingColorConfig::COLOR_SOURCE) & 0x03);
 }
 
 u64 DrawingEnvironment::GetTextureWrappingSettings(TextureWrappingOptions wrapOptions, unsigned int minU, unsigned int maxU, unsigned int minV, unsigned int maxV) const
 {
-   return ((static_cast<u64>(maxV) & 0x3FF) << 34)
-            | ((static_cast<u64>(minV) & 0x3FF) << 24)
-            | ((static_cast<u64>(maxU) & 0x3FF) << 14)
-            | ((static_cast<u64>(minU) & 0x3FF) << 4)
-            | ((static_cast<u64>(wrapOptions) & 0x03) << 2)
-            | (static_cast<u64>(wrapOptions) & 0x03);
+    return ((static_cast<u64>(maxV) & 0x3FF) << 34)
+    | ((static_cast<u64>(minV) & 0x3FF) << 24)
+    | ((static_cast<u64>(maxU) & 0x3FF) << 14)
+    | ((static_cast<u64>(minU) & 0x3FF) << 4)
+    | ((static_cast<u64>(wrapOptions) & 0x03) << 2)
+    | (static_cast<u64>(wrapOptions) & 0x03);
 }

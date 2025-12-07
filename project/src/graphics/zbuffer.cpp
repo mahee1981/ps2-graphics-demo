@@ -33,7 +33,7 @@ namespace Buffers {
         zb->mask = mask;
     }
     
-    u64 ZBuffer::GetZbufferSettings() const
+    u64 ZBuffer::GetBufferSettings() const
     {
         return (u64(mask & 0x01) << 32 | u64(static_cast<u64>(zbufferStorageMethod) & 0xF) << 24 | u64(address >> 11 & 0x1FF));
     }

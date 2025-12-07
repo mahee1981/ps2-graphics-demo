@@ -13,7 +13,7 @@ namespace Buffers
         explicit ZBuffer();
         explicit ZBuffer(unsigned int width, unsigned int height, unsigned int mask, bool enable, ZbufferTestMethod method, GSZbufferStorageMethodEnum zbufferStorageMethod);
         void ToSDKZbuffer(zbuffer_t *);
-        u64 GetZbufferSettings() const;
+        u64 GetBufferSettings() const;
         Buffers::ZbufferTestMethod GetDepthTestMethod() const;
         int AllocateVRAMForBuffer() override;
 

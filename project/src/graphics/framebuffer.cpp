@@ -18,7 +18,7 @@ namespace Buffers {
     {
     }
     
-    void Framebuffer::SetFramebufferAsActiveFilteredMode()
+    void Framebuffer::EnableInActiveFilteredMode()
     {
         graph_set_framebuffer_filtered(this->address, this->width, static_cast<int>(this->pixelStorageMethod), 0, 0);
     }
@@ -43,7 +43,7 @@ namespace Buffers {
         fb->mask = this->mask;
     }
     
-    u64 Framebuffer::GetFrameBufferSettings() const
+    u64 Framebuffer::GetBufferSettings() const
     {
         return (u64(mask) << 32 | (static_cast<u64>(pixelStorageMethod) & 0x3F) << 24 | u64((width >> 6) & 0x3F) << 16 | u64((address >> 11) & 0x1FF));
     }

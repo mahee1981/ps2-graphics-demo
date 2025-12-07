@@ -16,13 +16,13 @@ namespace Buffers
         explicit Framebuffer();
         explicit Framebuffer(unsigned int width, unsigned int height, unsigned int mask, GSPixelStorageMethod gsPSM);
         /* Sets the framebuffer to both drawing contexts*/
-        void SetFramebufferAsActiveFilteredMode();
+        void EnableInActiveFilteredMode();
         /* Sets the framebuffer to a single drawing context*/
         void SetFramebufferAsActive(int context);
 
         void ToSDKFramebuffer(framebuffer_t *);
 
-        u64 GetFrameBufferSettings() const;
+        u64 GetBufferSettings() const;
         int AllocateVRAMForBuffer() override;
         virtual ~Framebuffer();
 

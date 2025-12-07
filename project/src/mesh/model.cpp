@@ -2,12 +2,12 @@
 
 void Model::LoadModel(const char *fileName, const char *material_search_path )
 {
-	tinyobj::ObjReaderConfig reader_config;
-	reader_config.mtl_search_path = material_search_path; // Path to material files
+    tinyobj::ObjReaderConfig reader_config;
+    reader_config.mtl_search_path = material_search_path; // Path to material files
 
     tinyobj::ObjReader reader;
 
-	if(!reader.ParseFromFile(fileName, reader_config))
+    if(!reader.ParseFromFile(fileName, reader_config))
     {
         if (!reader.Error().empty())
         {
@@ -23,33 +23,34 @@ void Model::LoadModel(const char *fileName, const char *material_search_path )
     auto &attrib = reader.GetAttrib();
     auto &shapes = reader.GetShapes();
     // auto &materials = reader.GetMaterials();
-	//
-	// Store the mesh data
-	_texCoordinates.reserve(attrib.texcoords.size() / 2);
-	_vertexPositionCoord.reserve(attrib.vertices.size() /3);
-	for (size_t vi = 0; vi < attrib.vertices.size() / 3; ++vi)
-	{
-		tinyobj::real_t vx = attrib.vertices[3 * vi + 0];
-		tinyobj::real_t vy = attrib.vertices[3 * vi + 1];
-		tinyobj::real_t vz = attrib.vertices[3 * vi + 2];
-		_vertexPositionCoord.emplace_back(vx, vy, vz, 1.0f);
-	}
+    //
+    // Store the mesh data
+    _texCoordinates.reserve(attrib.texcoords.size() / 2);
+    _vertexPositionCoord.reserve(attrib.vertices.size() /3);
+    for (size_t vi = 0; vi < attrib.vertices.size() / 3; ++vi)
+    {
+        tinyobj::real_t vx = attrib.vertices[3 * vi + 0];
+        tinyobj::real_t vy = attrib.vertices[3 * vi + 1];
+        tinyobj::real_t vz = attrib.vertices[3 * vi + 2];
+        _vertexPositionCoord.emplace_back(vx, vy, vz, 1.0f);
+    }
 
-	for (size_t vi = 0; vi < attrib.texcoords.size() / 2; ++vi)
-	{
-		texel_t texel;
-		texel.u = attrib.texcoords[2 * vi + 0];
-		texel.v = attrib.texcoords[2 * vi + 1];
-		_texCoordinates.push_back(texel);
-	}
+    for (size_t vi = 0; vi < attrib.texcoords.size() / 2; ++vi)
+    {
+        texel_t texel;
+        texel.u = attrib.texcoords[2 * vi + 0];
+        texel.v = attrib.texcoords[2 * vi + 1];
+        _texCoordinates.push_back(texel);
+    }
     printf("Number of shapes: %zu\n", shapes.size());
-		// Loop over shapes and store the indices
+    printf("Total number of vertices in model: %zu\n", this->GetVertexPositions().size());
+    printf("Number of texels %zu\n", this->GetTexturePositions().size());
+    // Loop over shapes and store the indices
     for (size_t s = 0; s < shapes.size(); s++)
     {
         Mesh newMesh;
-
-		newMesh.TexIndices.reserve(shapes[s].mesh.indices.size());
-		newMesh.VertexIndices.reserve(shapes[s].mesh.indices.size());
+        newMesh.TexIndices.reserve(shapes[s].mesh.indices.size()); 
+        newMesh.VertexIndices.reserve(shapes[s].mesh.indices.size());
 
         for(const auto &idx : shapes[s].mesh.indices)
         {
@@ -62,10 +63,10 @@ void Model::LoadModel(const char *fileName, const char *material_search_path )
             {
                 newMesh.TexIndices.push_back(-1); // mark missing texcoord
             }
-            
+
         }
-        printf("Number of vertexes: %zu\n", attrib.vertices.size());
-        printf("Number of texels:  %zu \n", attrib.texcoords.size());
+        printf("Number of indices in %zu. mesh %zu\n", s + 1, newMesh.VertexIndices.size());
+        printf("Number of texel indices in %zu. mesh %zu\n", s + 1, newMesh.TexIndices.size());
         meshList.push_back(newMesh);
     }
 }

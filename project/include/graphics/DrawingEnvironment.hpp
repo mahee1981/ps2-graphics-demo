@@ -10,6 +10,7 @@
 #include <debug.h>
 
 #include <memory>
+#include <array>
 
 #include "graphics/zbuffer.hpp"
 #include "graphics/framebuffer.hpp"
@@ -29,10 +30,11 @@ private:
     float xOffset;
     float yOffset;
     unsigned int context;
-    std::unique_ptr<Framebuffer> framebuffer;
+    std::array<std::unique_ptr<Framebuffer>, 2> framebuffer;
     std::unique_ptr<ZBuffer> zbuffer;
     AlphaTest alphaTest;
     Colors::Color clearScreenColor;
+    packet2_t* flipPacket;
 
     u64 GetXYOffsetSettings() const;
     u64 GetScissoringAreaSettings() const;
@@ -52,6 +54,7 @@ public:
     void ClearScreen(packet2_t *packet) const;
     void SetClearScreenColor(unsigned char r, unsigned char g, unsigned char b);
     void InitializeEnvironment();
+    void SwapBuffers();
     DrawingEnvironment& operator=(const DrawingEnvironment &other) = delete;
     DrawingEnvironment(const DrawingEnvironment &other) = delete;
     
