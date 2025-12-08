@@ -23,14 +23,11 @@ ISO_TGT = $(BIN_DIR)/game.iso
 
 # Default build
 all: output-dirs $(EE_BIN)
-	cp $(RESOURCES)/brick_wall_128.png $(BIN_DIR)/
-	cp -rf $(RESOURCES)/* $(BIN_DIR)/
-	cp $(RESOURCES)/sio2man.irx $(BIN_DIR)/
-	cp $(RESOURCES)/padman.irx $(BIN_DIR)/
 
 # Ensure bin dir exists
 output-dirs:
 	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(BIN_DIR)/logging
 	@mkdir -p $(BIN_DIR)/input
 	@mkdir -p $(BIN_DIR)/graphics
 	@mkdir -p $(BIN_DIR)/resources
@@ -40,6 +37,7 @@ output-dirs:
 	@mkdir -p $(BIN_DIR)/light
 	@mkdir -p $(BIN_DIR)/mesh
 	@mkdir -p $(BIN_DIR)/CAT
+	cp -r $(RESOURCES)/* $(BIN_DIR)/
 
 
 # ISO build

@@ -20,6 +20,7 @@
 #include "renderer/Camera.hpp"
 #include "utils.hpp"
 #include "mesh/model.hpp"
+#include "logging/log.hpp"
 
 using namespace Input;
 
@@ -192,7 +193,6 @@ void render()
     myTex.SetTexSamplingMethodInGS();
     myTex.SetTextureAsActive();
 
-
     Model myModel;
     //TODO: fix the default path search
     myModel.LoadModel("CAT/MESH_CAT.OBJ", "CAT/");
@@ -201,6 +201,7 @@ void render()
     printf("Mesh List count: %zu\n", myModel.GetMeshList().size());
     Mesh firstMesh = myModel.GetMeshList()[0];
 
+    LOG_INFO("Logging framework initialized");
     PadManager controllerInput;
     auto myCamera = SetupCamera();
     unsigned int curr = 0;
