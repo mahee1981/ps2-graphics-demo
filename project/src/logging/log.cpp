@@ -23,7 +23,6 @@ LogMessage::~LogMessage() {
 void LogMessage::printLogMessage() {
     fprintf(stderr, "----------------------- %s -----------------------\n", SeverityStr[severity_]); 
 	fprintf(stderr, "In file %s: function: %s line:%d '%s'\n", fileName_, funcName_, line_, str().c_str());
-    fprintf(stderr, "--------------------------------------------------\n");
 }
 
 LogMessageFatal::LogMessageFatal(const char* fileName, const char* funcName, int line) :

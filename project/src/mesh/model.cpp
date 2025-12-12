@@ -1,4 +1,5 @@
 #include "mesh/model.hpp"
+#include "logging/log.hpp"
 
 void Model::LoadModel(const char *fileName, const char *material_search_path )
 {
@@ -11,13 +12,13 @@ void Model::LoadModel(const char *fileName, const char *material_search_path )
     {
         if (!reader.Error().empty())
         {
-            printf("TinyObjReader: %s", reader.Error().c_str());
+            LOG_ERROR("TinyObjReader: ") << reader.Error();
         }
     }
 
     if (!reader.Warning().empty())
     {
-        printf("TinyObjReader: %s", reader.Warning().c_str());
+        LOG_WARNING("TinyObjReader: ") << reader.Warning();
     }
 
     auto &attrib = reader.GetAttrib();
@@ -42,9 +43,9 @@ void Model::LoadModel(const char *fileName, const char *material_search_path )
         texel.v = attrib.texcoords[2 * vi + 1];
         _texCoordinates.push_back(texel);
     }
-    printf("Number of shapes: %zu\n", shapes.size());
-    printf("Total number of vertices in model: %zu\n", this->GetVertexPositions().size());
-    printf("Number of texels %zu\n", this->GetTexturePositions().size());
+    LOG_INFO("Number of shapes: ") << shapes.size();
+    LOG_INFO("Total number of vertices in model: ") << this->GetVertexPositions().size();
+    LOG_INFO("Number of texels: ") << this->GetTexturePositions().size();
     // Loop over shapes and store the indices
     for (size_t s = 0; s < shapes.size(); s++)
     {
@@ -65,8 +66,8 @@ void Model::LoadModel(const char *fileName, const char *material_search_path )
             }
 
         }
-        printf("Number of indices in %zu. mesh %zu\n", s + 1, newMesh.VertexIndices.size());
-        printf("Number of texel indices in %zu. mesh %zu\n", s + 1, newMesh.TexIndices.size());
+        LOG_INFO("Number of indices in ") << s + 1 << ". mesh: " << newMesh.VertexIndices.size();
+        LOG_INFO("Number of texel indices in ") << s + 1 << ". mesh: " << newMesh.TexIndices.size();
         meshList.push_back(newMesh);
     }
 }
