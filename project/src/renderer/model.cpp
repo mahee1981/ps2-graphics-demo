@@ -1,14 +1,16 @@
-#include "mesh/model.hpp"
+#include "renderer/model.hpp"
 #include "logging/log.hpp"
+namespace Renderer
+{
 
-void Model::LoadModel(const char *fileName, const char *material_search_path )
+void Model::LoadModel(const char *fileName, const char *material_search_path)
 {
     tinyobj::ObjReaderConfig reader_config;
     reader_config.mtl_search_path = material_search_path; // Path to material files
 
     tinyobj::ObjReader reader;
 
-    if(!reader.ParseFromFile(fileName, reader_config))
+    if (!reader.ParseFromFile(fileName, reader_config))
     {
         if (!reader.Error().empty())
         {
@@ -27,7 +29,7 @@ void Model::LoadModel(const char *fileName, const char *material_search_path )
     //
     // Store the mesh data
     _texCoordinates.reserve(attrib.texcoords.size() / 2);
-    _vertexPositionCoord.reserve(attrib.vertices.size() /3);
+    _vertexPositionCoord.reserve(attrib.vertices.size() / 3);
     for (size_t vi = 0; vi < attrib.vertices.size() / 3; ++vi)
     {
         tinyobj::real_t vx = attrib.vertices[3 * vi + 0];
@@ -50,10 +52,10 @@ void Model::LoadModel(const char *fileName, const char *material_search_path )
     for (size_t s = 0; s < shapes.size(); s++)
     {
         Mesh newMesh;
-        newMesh.TexIndices.reserve(shapes[s].mesh.indices.size()); 
+        newMesh.TexIndices.reserve(shapes[s].mesh.indices.size());
         newMesh.VertexIndices.reserve(shapes[s].mesh.indices.size());
 
-        for(const auto &idx : shapes[s].mesh.indices)
+        for (const auto &idx : shapes[s].mesh.indices)
         {
             newMesh.VertexIndices.push_back(idx.vertex_index);
             if (idx.texcoord_index >= 0)
@@ -64,10 +66,10 @@ void Model::LoadModel(const char *fileName, const char *material_search_path )
             {
                 newMesh.TexIndices.push_back(-1); // mark missing texcoord
             }
-
         }
         LOG_INFO("Number of indices in ") << s + 1 << ". mesh: " << newMesh.VertexIndices.size();
         LOG_INFO("Number of texel indices in ") << s + 1 << ". mesh: " << newMesh.TexIndices.size();
         meshList.push_back(newMesh);
     }
+}
 }

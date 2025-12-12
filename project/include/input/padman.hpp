@@ -1,28 +1,30 @@
 #ifndef PADMAN_HPP
 #define PADMAN_HPP
 
+#include <debug.h>
+#include <iopcontrol.h>
 #include <kernel.h>
 #include <libpad.h>
 #include <loadfile.h>
 #include <sifrpc.h>
 #include <tamtypes.h>
-#include <debug.h>
-#include <loadfile.h>
-#include <iopcontrol.h>
 
-namespace Input {
+namespace Input
+{
 
-struct PadButtons {
-    u8 Cross, Square, Triangle, Circle, DpadUp, DpadDown, DpadLeft, DpadRight, L1,
-        L2, L3, R1, R2, R3, Start, Select;
+struct PadButtons
+{
+    u8 Cross, Square, Triangle, Circle, DpadUp, DpadDown, DpadLeft, DpadRight, L1, L2, L3, R1, R2, R3, Start, Select;
 };
 
-struct PadJoy {
+struct PadJoy
+{
     u8 h, v, isCentered, isMoved;
 };
 
-class PadManager {
-private:
+class PadManager
+{
+  private:
     char padBuffer[256] __attribute__((aligned(64)));
     char actAlign[6];
     int actuators;
@@ -41,16 +43,28 @@ private:
     void handlePressedButtons();
     int WaitPadReady(int port, int slot);
 
-public:
+  public:
     PadManager();
     int InitializePad(int port, int slot);
     void UpdatePad();
-    inline const PadButtons& getClicked() const { return clicked; }
-    inline const PadButtons& getPressed() const { return pressed; }
-    inline const PadJoy& getLeftJoyPad() const { return leftJoyPad; }
-    inline const PadJoy& getRightJoyPad() const { return rightJoyPad; }
+    inline const PadButtons &getClicked() const
+    {
+        return clicked;
+    }
+    inline const PadButtons &getPressed() const
+    {
+        return pressed;
+    }
+    inline const PadJoy &getLeftJoyPad() const
+    {
+        return leftJoyPad;
+    }
+    inline const PadJoy &getRightJoyPad() const
+    {
+        return rightJoyPad;
+    }
 };
 
-}
+} // namespace Input
 
 #endif

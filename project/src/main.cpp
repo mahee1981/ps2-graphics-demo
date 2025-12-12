@@ -17,11 +17,12 @@
 #include "graphics/Texture.hpp"
 #include "input/padman.hpp"
 #include "logging/log.hpp"
-#include "mesh/model.hpp"
+#include "renderer/model.hpp"
 #include "renderer/Camera.hpp"
 #include "utils.hpp"
 
 using namespace Input;
+using namespace Renderer;
 
 constexpr int width = 640;
 constexpr int height = 448;
@@ -97,10 +98,9 @@ void PrepareTriangleDisplayListForModel(packet2_t *dmaBuffer,
     // modelMatrix = ps2math::Mat4::rotateX(modelMatrix, Utils::ToRadians(angle));
     modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(0.0f, 0.0f, moveHorizontal + 70.0f, 1.0f));
 
-    //When in doubt, remember, you can get free performance by 
-    //not having this in the vertex loop
+    // When in doubt, remember, you can get free performance by
+    // not having this in the vertex loop
     ps2math::Mat4 mvp = modelMatrix * viewMatrix * perspectiveMatrix;
-
 
     for (std::size_t i = 0; i < mesh.VertexIndices.size(); i++)
     {

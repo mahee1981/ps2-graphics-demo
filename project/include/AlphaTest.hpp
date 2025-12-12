@@ -1,16 +1,17 @@
 #ifndef ALPHA_TEST_HPP
 #define ALPHA_TEST_HPP
 
-#include <tamtypes.h>
 #include "AlphaTestConfig.hpp"
+#include <tamtypes.h>
 
-class AlphaTest{
+class AlphaTest
+{
 
-public:
+  public:
     AlphaTest(bool isEnabled, AlphaTestMethod, u8 refValue, AlphaTestOnFail);
     u64 GetAlphaTestSettings() const;
 
-private:
+  private:
     bool isEnabled;
     AlphaTestMethod testMethod;
     u8 referenceAlphaValue;

@@ -1,7 +1,7 @@
-#include <algorithm>
-#include <cstdio>
-#include <cmath>
 #include "VU0Math/mat4.hpp"
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
 
 ps2math::Mat4::Mat4()
 {
@@ -19,11 +19,22 @@ ps2math::Mat4 ps2math::Mat4::zero()
     return work;
 }
 
-
-ps2math::Mat4::Mat4(const float m11, const float m12, const float m13, const float m14,
-    const float m21, const float m22, const float m23, const float m24,
-    const float m31, const float m32, const float m33, const float m34,
-    const float m41, const float m42, const float m43, const float m44)
+ps2math::Mat4::Mat4(const float m11,
+                    const float m12,
+                    const float m13,
+                    const float m14,
+                    const float m21,
+                    const float m22,
+                    const float m23,
+                    const float m24,
+                    const float m31,
+                    const float m32,
+                    const float m33,
+                    const float m34,
+                    const float m41,
+                    const float m42,
+                    const float m43,
+                    const float m44)
 {
     data[0] = m11;
     data[1] = m12;
@@ -53,48 +64,67 @@ ps2math::Mat4::Mat4(const std::array<float, 16> &values)
 // TODO: SIMD optimization
 ps2math::Mat4 ps2math::Mat4::Transpose() const
 {
-    return Mat4(
-        data[0],  data[4],  data[8],  data[12],
-        data[1],  data[5],  data[9],  data[13],
-        data[2],  data[6],  data[10], data[14],
-        data[3],  data[7],  data[11], data[15]
-    );
+    return Mat4(data[0],
+                data[4],
+                data[8],
+                data[12],
+                data[1],
+                data[5],
+                data[9],
+                data[13],
+                data[2],
+                data[6],
+                data[10],
+                data[14],
+                data[3],
+                data[7],
+                data[11],
+                data[15]);
 }
 
 // Possibly messed up the coordinate system orientation, but idk, it works
-// Look At returns a camrea-to-world matrix, which is the opposite of what we need, it needs to be transposed to get the view matrix
-ps2math::Mat4 ps2math::Mat4::LookAt(const ps2math::Vec4& eye, const ps2math::Vec4& center, const ps2math::Vec4& up)
+// Look At returns a camrea-to-world matrix, which is the opposite of what we need, it needs to be transposed to get the
+// view matrix
+ps2math::Mat4 ps2math::Mat4::LookAt(const ps2math::Vec4 &eye, const ps2math::Vec4 &center, const ps2math::Vec4 &up)
 {
-    Vec4 f = (center - eye).Normalize();        // forward
-    Vec4 r = ps2math::CrossProduct(f, up).Normalize();   // right
-    Vec4 u = ps2math::CrossProduct(r, f);                // corrected up
+    Vec4 f = (center - eye).Normalize();               // forward
+    Vec4 r = ps2math::CrossProduct(f, up).Normalize(); // right
+    Vec4 u = ps2math::CrossProduct(r, f);              // corrected up
 
-    return Mat4(
-        r.x,   r.y,   r.z,   - (r.x * eye.x + r.y * eye.y + r.z * eye.z),
-        u.x,   u.y,   u.z,   - (u.x * eye.x + u.y * eye.y + u.z * eye.z),
-        -f.x,  -f.y,  -f.z,    (f.x * eye.x + f.y * eye.y + f.z * eye.z),
-        0.0f,  0.0f,  0.0f,   1.0f
-    );
+    return Mat4(r.x,
+                r.y,
+                r.z,
+                -(r.x * eye.x + r.y * eye.y + r.z * eye.z),
+                u.x,
+                u.y,
+                u.z,
+                -(u.x * eye.x + u.y * eye.y + u.z * eye.z),
+                -f.x,
+                -f.y,
+                -f.z,
+                (f.x * eye.x + f.y * eye.y + f.z * eye.z),
+                0.0f,
+                0.0f,
+                0.0f,
+                1.0f);
 }
 
-
-ps2math::Mat4& ps2math::Mat4::operator=(const Mat4& rhs)
+ps2math::Mat4 &ps2math::Mat4::operator=(const Mat4 &rhs)
 {
-    if(this == &rhs)
+    if (this == &rhs)
         return *this;
 
-    asm volatile(
-        "lqc2		$vf1, 0x00(%1)	\n"
-        "lqc2		$vf2, 0x10(%1)	\n"
-        "lqc2		$vf3, 0x20(%1)	\n"
-        "lqc2		$vf4, 0x30(%1)	\n"
-        "sqc2		$vf1, 0x00(%0)	\n"
-        "sqc2		$vf2, 0x10(%0)	\n"
-        "sqc2		$vf3, 0x20(%0)	\n"
-        "sqc2		$vf4, 0x30(%0)	\n"
-        :
-        : "r"(this->GetDataPtr()), "r"(rhs.GetDataPtr())
-        : "memory");
+    asm volatile("lqc2		$vf1, 0x00(%1)	\n"
+                 "lqc2		$vf2, 0x10(%1)	\n"
+                 "lqc2		$vf3, 0x20(%1)	\n"
+                 "lqc2		$vf4, 0x30(%1)	\n"
+                 "sqc2		$vf1, 0x00(%0)	\n"
+                 "sqc2		$vf2, 0x10(%0)	\n"
+                 "sqc2		$vf3, 0x20(%0)	\n"
+                 "sqc2		$vf4, 0x30(%0)	\n"
+                 :
+                 : "r"(this->GetDataPtr()), "r"(rhs.GetDataPtr())
+                 : "memory");
 
     return *this;
 }
@@ -108,7 +138,7 @@ ps2math::Mat4 ps2math::Mat4::identity()
     return Mat4();
 }
 
-ps2math::Mat4 ps2math::Mat4::rotateX(const ps2math::Mat4& model, float angle)
+ps2math::Mat4 ps2math::Mat4::rotateX(const ps2math::Mat4 &model, float angle)
 {
     Mat4 work = Mat4();
 
@@ -120,7 +150,7 @@ ps2math::Mat4 ps2math::Mat4::rotateX(const ps2math::Mat4& model, float angle)
     return model * work;
 }
 
-ps2math::Mat4 ps2math::Mat4::rotateY(const ps2math::Mat4& model, float angle)
+ps2math::Mat4 ps2math::Mat4::rotateY(const ps2math::Mat4 &model, float angle)
 {
     Mat4 work = Mat4();
 
@@ -132,7 +162,7 @@ ps2math::Mat4 ps2math::Mat4::rotateY(const ps2math::Mat4& model, float angle)
     return model * work;
 }
 
-ps2math::Mat4 ps2math::Mat4::rotateZ(const ps2math::Mat4& model, float angle)
+ps2math::Mat4 ps2math::Mat4::rotateZ(const ps2math::Mat4 &model, float angle)
 {
     Mat4 work = Mat4();
 
@@ -144,17 +174,16 @@ ps2math::Mat4 ps2math::Mat4::rotateZ(const ps2math::Mat4& model, float angle)
     return model * work;
 }
 
-ps2math::Mat4 ps2math::Mat4::translate(const Mat4& model, const Vec4 &translationVector)
+ps2math::Mat4 ps2math::Mat4::translate(const Mat4 &model, const Vec4 &translationVector)
 {
     Mat4 work = Mat4();
 
     work.data[12] = translationVector.x;
     work.data[13] = translationVector.y;
     work.data[14] = translationVector.z;
-    work.data[15] = 1;  
+    work.data[15] = 1;
 
     return model * work;
-
 }
 ps2math::Mat4 ps2math::Mat4::scale(const Mat4 &model, const Vec4 &scaleVector)
 {
@@ -166,63 +195,61 @@ ps2math::Mat4 ps2math::Mat4::scale(const Mat4 &model, const Vec4 &scaleVector)
 
     return model * work;
 }
-//row-major order -> vectors are rows = Vec * Mat
-ps2math::Vec4 ps2math::operator*(const Vec4& lhs, const Mat4& rhs)
+// row-major order -> vectors are rows = Vec * Mat
+ps2math::Vec4 ps2math::operator*(const Vec4 &lhs, const Mat4 &rhs)
 {
     Vec4 work;
-    asm volatile(
-        "lqc2		$vf1, 0x00(%2)	\n"
-        "lqc2		$vf2, 0x10(%2)	\n"
-        "lqc2		$vf3, 0x20(%2)	\n"
-        "lqc2		$vf4, 0x30(%2)	\n"
-        "lqc2		$vf5, 0x00(%1)	\n"
-        "vmulax 	$ACC, $vf1, $vf5\n" 
-        "vmadday	$ACC, $vf2, $vf5\n"
-        "vmaddaz	$ACC, $vf3, $vf5\n"
-        "vmaddw	    $vf6, $vf4, $vf5\n" 
-        "sqc2		$vf6, 0x00(%0)	\n"
-        :
-        : "r"(&work), "r"(&lhs), "r"(rhs.GetDataPtr())
-        : "memory");
+    asm volatile("lqc2		$vf1, 0x00(%2)	\n"
+                 "lqc2		$vf2, 0x10(%2)	\n"
+                 "lqc2		$vf3, 0x20(%2)	\n"
+                 "lqc2		$vf4, 0x30(%2)	\n"
+                 "lqc2		$vf5, 0x00(%1)	\n"
+                 "vmulax 	$ACC, $vf1, $vf5\n"
+                 "vmadday	$ACC, $vf2, $vf5\n"
+                 "vmaddaz	$ACC, $vf3, $vf5\n"
+                 "vmaddw	    $vf6, $vf4, $vf5\n"
+                 "sqc2		$vf6, 0x00(%0)	\n"
+                 :
+                 : "r"(&work), "r"(&lhs), "r"(rhs.GetDataPtr())
+                 : "memory");
 
     return work;
 }
 
-ps2math::Mat4 ps2math::operator*(const Mat4& lhs, const Mat4& rhs)
+ps2math::Mat4 ps2math::operator*(const Mat4 &lhs, const Mat4 &rhs)
 {
     Mat4 work = Mat4();
-    asm volatile(
-        "lqc2	  $vf1, 0x00(%0) \n"
-        "lqc2	  $vf2, 0x10(%0) \n"
-        "lqc2	  $vf3, 0x20(%0) \n"
-        "lqc2	  $vf4, 0x30(%0) \n"
-        "lqc2	  $vf5, 0x00(%1) \n"
-        "lqc2	  $vf6, 0x10(%1) \n"
-        "lqc2	  $vf7, 0x20(%1) \n"
-        "lqc2	  $vf8, 0x30(%1) \n"
-        "vmulax.xyzw	$ACC, $vf5, $vf1\n"
-        "vmadday.xyzw	$ACC, $vf6, $vf1\n"
-        "vmaddaz.xyzw	$ACC, $vf7, $vf1\n"
-        "vmaddw.xyzw	$vf1, $vf8, $vf1\n"
-        "vmulax.xyzw	$ACC, $vf5, $vf2\n"
-        "vmadday.xyzw	$ACC, $vf6, $vf2\n"
-        "vmaddaz.xyzw	$ACC, $vf7, $vf2\n"
-        "vmaddw.xyzw	$vf2, $vf8, $vf2\n"
-        "vmulax.xyzw	$ACC, $vf5, $vf3\n"
-        "vmadday.xyzw	$ACC, $vf6, $vf3\n"
-        "vmaddaz.xyzw	$ACC, $vf7, $vf3\n"
-        "vmaddw.xyzw	$vf3, $vf8, $vf3\n"
-        "vmulax.xyzw	$ACC, $vf5, $vf4\n"
-        "vmadday.xyzw	$ACC, $vf6, $vf4\n"
-        "vmaddaz.xyzw	$ACC, $vf7, $vf4\n"
-        "vmaddw.xyzw	$vf4, $vf8, $vf4\n"
-        "sqc2	  $vf1, 0x00(%2) \n"
-        "sqc2	  $vf2, 0x10(%2) \n"
-        "sqc2	  $vf3, 0x20(%2) \n"
-        "sqc2	  $vf4, 0x30(%2) \n"
-        :
-        : "r"(lhs.GetDataPtr()), "r"(rhs.GetDataPtr()), "r"(work.GetDataPtr())
-        : "memory");
+    asm volatile("lqc2	  $vf1, 0x00(%0) \n"
+                 "lqc2	  $vf2, 0x10(%0) \n"
+                 "lqc2	  $vf3, 0x20(%0) \n"
+                 "lqc2	  $vf4, 0x30(%0) \n"
+                 "lqc2	  $vf5, 0x00(%1) \n"
+                 "lqc2	  $vf6, 0x10(%1) \n"
+                 "lqc2	  $vf7, 0x20(%1) \n"
+                 "lqc2	  $vf8, 0x30(%1) \n"
+                 "vmulax.xyzw	$ACC, $vf5, $vf1\n"
+                 "vmadday.xyzw	$ACC, $vf6, $vf1\n"
+                 "vmaddaz.xyzw	$ACC, $vf7, $vf1\n"
+                 "vmaddw.xyzw	$vf1, $vf8, $vf1\n"
+                 "vmulax.xyzw	$ACC, $vf5, $vf2\n"
+                 "vmadday.xyzw	$ACC, $vf6, $vf2\n"
+                 "vmaddaz.xyzw	$ACC, $vf7, $vf2\n"
+                 "vmaddw.xyzw	$vf2, $vf8, $vf2\n"
+                 "vmulax.xyzw	$ACC, $vf5, $vf3\n"
+                 "vmadday.xyzw	$ACC, $vf6, $vf3\n"
+                 "vmaddaz.xyzw	$ACC, $vf7, $vf3\n"
+                 "vmaddw.xyzw	$vf3, $vf8, $vf3\n"
+                 "vmulax.xyzw	$ACC, $vf5, $vf4\n"
+                 "vmadday.xyzw	$ACC, $vf6, $vf4\n"
+                 "vmaddaz.xyzw	$ACC, $vf7, $vf4\n"
+                 "vmaddw.xyzw	$vf4, $vf8, $vf4\n"
+                 "sqc2	  $vf1, 0x00(%2) \n"
+                 "sqc2	  $vf2, 0x10(%2) \n"
+                 "sqc2	  $vf3, 0x20(%2) \n"
+                 "sqc2	  $vf4, 0x30(%2) \n"
+                 :
+                 : "r"(lhs.GetDataPtr()), "r"(rhs.GetDataPtr()), "r"(work.GetDataPtr())
+                 : "memory");
     return work;
 }
 
@@ -231,22 +258,23 @@ ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectR
     Mat4 perspective = zero();
 
     float scale = 1.0f / std::tanf(fieldOfViewRadians * 0.5);
-    
-    perspective.data[0] = scale /aspectRatio;
+
+    perspective.data[0] = scale / aspectRatio;
     perspective.data[5] = scale;
-    perspective.data[10] = (-near-far)/ (near-far);
+    perspective.data[10] = (-near - far) / (near - far);
     perspective.data[11] = 1.0f;
-    perspective.data[14] = (2 * far * near) / (near-far);
+    perspective.data[14] = (2 * far * near) / (near - far);
 
     return perspective;
-    
 }
 
 void ps2math::Mat4::PrintMatrix()
 {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
         printf("Row %d: ", i + 1);
-        for (int j = 0; j < 4; j++) {
+        for (int j = 0; j < 4; j++)
+        {
             printf("%f ", data[4 * i + j]);
         }
         printf("\n");

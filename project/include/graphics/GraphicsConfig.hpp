@@ -10,5 +10,5 @@ enum GraphicsConfig
     DOUBLE_BUFFER
 };
 
-}
+} // namespace Buffers
 #endif

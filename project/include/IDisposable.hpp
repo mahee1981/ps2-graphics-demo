@@ -1,14 +1,16 @@
 #ifndef IDISPOSABLE_HPP
 #define IDISPOSABLE_HPP
 
-
 class IDisposable
 {
-    protected:
+  protected:
     bool disposed;
-    public:
+
+  public:
     virtual void Dispose() = 0;
-    IDisposable() : disposed(false) {}
+    IDisposable() : disposed(false)
+    {
+    }
 };
 
 #endif

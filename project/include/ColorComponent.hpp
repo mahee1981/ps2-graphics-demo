@@ -3,12 +3,12 @@
 
 namespace Colors
 {
-    enum class ColorComponent
-    {
-        Red,
-        Green,
-        Blue,
-        Alpha
-    };
-}
+enum class ColorComponent
+{
+    Red,
+    Green,
+    Blue,
+    Alpha
+};
+} // namespace Colors
 #endif

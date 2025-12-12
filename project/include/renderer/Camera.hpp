@@ -1,11 +1,12 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
-#include "VU0Math/vec4.hpp"
 #include "VU0Math/mat4.hpp"
+#include "VU0Math/vec4.hpp"
 #include "input/padman.hpp"
 
-
+namespace Renderer
+{
 
 /*
 This camera system is a fly like camera that suits most purposes and works well with Euler angles,
@@ -16,32 +17,36 @@ and a static up vector of (0,1,0) doesn't work when we take roll values into acc
 */
 class Camera
 {
-public:
-	Camera(ps2math::Vec4 startPosition, ps2math::Vec4 startUp, float startYaw, float startPitch, float movementSpeed, float turnSpeed);
+  public:
+    Camera(ps2math::Vec4 startPosition,
+           ps2math::Vec4 startUp,
+           float startYaw,
+           float startPitch,
+           float movementSpeed,
+           float turnSpeed);
 
-	void MotionControl(const Input::PadJoy &leftAnalogStick, float deltaTime);
-	void RotationControl(const Input::PadJoy &rightAnalogStick, float deltaTime);
+    void MotionControl(const Input::PadJoy &leftAnalogStick, float deltaTime);
+    void RotationControl(const Input::PadJoy &rightAnalogStick, float deltaTime);
 
-	// ps2math::Vec4 GetCameraPosition() const;
-	// ps2math::Vec4 GetCameraDirection() const;
-	ps2math::Mat4 CalculateViewMatrix() const;
+    // ps2math::Vec4 GetCameraPosition() const;
+    // ps2math::Vec4 GetCameraDirection() const;
+    ps2math::Mat4 CalculateViewMatrix() const;
 
-private:
-	ps2math::Vec4 _position; //world position of the camera
+  private:
+    ps2math::Vec4 _position; // world position of the camera
 
-	ps2math::Vec4 _front; // where is camera looking at
-	ps2math::Vec4 _up; // up from camera
-	ps2math::Vec4 _right; // right of camera
+    ps2math::Vec4 _front; // where is camera looking at
+    ps2math::Vec4 _up;    // up from camera
+    ps2math::Vec4 _right; // right of camera
 
-	ps2math::Vec4 _worldUp; // where the sky is in the world
+    ps2math::Vec4 _worldUp; // where the sky is in the world
 
-	float _yaw;
-	float _pitch;
-	float _movementSpeed;
-	float _turnSpeed;
+    float _yaw;
+    float _pitch;
+    float _movementSpeed;
+    float _turnSpeed;
 
-	void update();
-
+    void update();
 };
-
+} // namespace Renderer
 #endif

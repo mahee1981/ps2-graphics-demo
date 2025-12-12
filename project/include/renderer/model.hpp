@@ -3,11 +3,13 @@
 
 #include <packet2.h>
 #include <vector>
+#include "VU0Math/vec4.hpp"
 #include "mesh.hpp"
 #include "graphics/Texture.hpp"
 
-using namespace graphics;
+namespace Renderer{
 
+using namespace graphics;
 class Model{
 
 	using Packet2Deleter = void (*)(packet2_t*);
@@ -25,8 +27,7 @@ private:
 	std::vector<ps2math::Vec4> VertexNormalCoord;
 	std::vector<texel_t> _texCoordinates;
 	std::vector<Texture> _textureList;
-	// std::unique_ptr<packet2_t, Packet2Deleter> _drawBuffer;
 
 };
-
+}
 #endif

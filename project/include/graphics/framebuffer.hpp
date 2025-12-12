@@ -4,31 +4,31 @@
 #include <draw_buffers.h>
 #include <graph.h>
 
-#include "graphics/GSbuffer.hpp"
 #include "graphics/GSBufferConfig.hpp"
+#include "graphics/GSbuffer.hpp"
 
 namespace Buffers
 {
 
-    class Framebuffer : public GSbuffer
-    {
-    public:
-        explicit Framebuffer();
-        explicit Framebuffer(unsigned int width, unsigned int height, unsigned int mask, GSPixelStorageMethod gsPSM);
-        /* Sets the framebuffer to both drawing contexts*/
-        void EnableInActiveFilteredMode();
-        /* Sets the framebuffer to a single drawing context*/
-        void SetFramebufferAsActive(int context);
+class Framebuffer : public GSbuffer
+{
+  public:
+    explicit Framebuffer();
+    explicit Framebuffer(unsigned int width, unsigned int height, unsigned int mask, GSPixelStorageMethod gsPSM);
+    /* Sets the framebuffer to both drawing contexts*/
+    void EnableInActiveFilteredMode();
+    /* Sets the framebuffer to a single drawing context*/
+    void SetFramebufferAsActive(int context);
 
-        void ToSDKFramebuffer(framebuffer_t *);
+    void ToSDKFramebuffer(framebuffer_t *);
 
-        u64 GetBufferSettings() const;
-        int AllocateVRAMForBuffer() override;
-        virtual ~Framebuffer();
+    u64 GetBufferSettings() const;
+    int AllocateVRAMForBuffer() override;
+    virtual ~Framebuffer();
 
-    private:
-        const GSPixelStorageMethod pixelStorageMethod;
-    };
+  private:
+    const GSPixelStorageMethod pixelStorageMethod;
+};
 
-}
+} // namespace Buffers
 #endif

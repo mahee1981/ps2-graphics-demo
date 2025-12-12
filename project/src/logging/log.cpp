@@ -1,37 +1,39 @@
 #include "logging/log.hpp"
 #include <stdio.h>
 
-namespace Log{
+namespace Log
+{
 
+std::unordered_map<Severity, const char *> LogMessage::SeverityStr{{Severity::INFO, "INFO"},
+                                                                   {Severity::WARNING, "WARNING"},
+                                                                   {Severity::ERROR, "ERROR"},
+                                                                   {Severity::FATAL, "FATAL"}};
 
-std::unordered_map<Severity, const char *> LogMessage::SeverityStr {
-    {Severity::INFO, "INFO"},
-    {Severity::WARNING, "WARNING"},
-    {Severity::ERROR, "ERROR"},
-    {Severity::FATAL, "FATAL"}
-};
-
-LogMessage::LogMessage(Severity severity, const char* fileName, const char* funcName, int line) :
-	severity_(severity), fileName_(fileName), funcName_(funcName), line_(line) {
-
+LogMessage::LogMessage(Severity severity, const char *fileName, const char *funcName, int line)
+    : severity_(severity), fileName_(fileName), funcName_(funcName), line_(line)
+{
 }
 
-LogMessage::~LogMessage() {
-	printLogMessage();
+LogMessage::~LogMessage()
+{
+    printLogMessage();
 }
 
-void LogMessage::printLogMessage() {
-    fprintf(stderr, "----------------------- %s -----------------------\n", SeverityStr[severity_]); 
-	fprintf(stderr, "In file %s: function: %s line:%d '%s'\n", fileName_, funcName_, line_, str().c_str());
+void LogMessage::printLogMessage()
+{
+    fprintf(stderr, "----------------------- %s -----------------------\n", SeverityStr[severity_]);
+    fprintf(stderr, "In file %s: function: %s line:%d '%s'\n", fileName_, funcName_, line_, str().c_str());
 }
 
-LogMessageFatal::LogMessageFatal(const char* fileName, const char* funcName, int line) :
-	LogMessage(Severity::FATAL, fileName, funcName, line) {
+LogMessageFatal::LogMessageFatal(const char *fileName, const char *funcName, int line)
+    : LogMessage(Severity::FATAL, fileName, funcName, line)
+{
 }
 
-LogMessageFatal::~LogMessageFatal() {
-	printLogMessage();
-	abort();
+LogMessageFatal::~LogMessageFatal()
+{
+    printLogMessage();
+    abort();
 }
 
-}
+} // namespace Log
