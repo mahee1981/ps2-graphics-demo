@@ -1,12 +1,37 @@
 #include "renderer/model.hpp"
 #include "logging/log.hpp"
+#include "utils.hpp"
+#include <iostream>
 namespace Renderer
 {
+
+Model::Model(const ps2math::Vec4 &position) : _transformComponent(position)
+{
+}
+
+void Model::Update()
+{
+    ps2math::Mat4 work;
+
+    float scaleFactor = _transformComponent.GetScaleFactor();
+    work = ps2math::Mat4::scale(work, ps2math::Vec4{scaleFactor, scaleFactor, scaleFactor, 1.0f});
+
+    work = ps2math::Mat4::rotateX(work, Utils::ToRadians(_transformComponent.GetAngleX()));
+
+    work = ps2math::Mat4::rotateY(work, Utils::ToRadians(_transformComponent.GetAngleY()));
+
+    work = ps2math::Mat4::rotateZ(work, Utils::ToRadians(_transformComponent.GetAngleZ()));
+
+    work = ps2math::Mat4::translate(work, _transformComponent.GetTranslate());
+
+    _worldMatrix = work;
+}
 
 void Model::LoadModel(const char *fileName, const char *material_search_path)
 {
     tinyobj::ObjReaderConfig reader_config;
     reader_config.mtl_search_path = material_search_path; // Path to material files
+    reader_config.vertex_color = true;
 
     tinyobj::ObjReader reader;
 
@@ -30,12 +55,18 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
     // Store the mesh data
     _texCoordinates.reserve(attrib.texcoords.size() / 2);
     _vertexPositionCoord.reserve(attrib.vertices.size() / 3);
+    // _vertexColorCoord.reserve(attrib.vertices.size() / 3);
     for (size_t vi = 0; vi < attrib.vertices.size() / 3; ++vi)
     {
         tinyobj::real_t vx = attrib.vertices[3 * vi + 0];
         tinyobj::real_t vy = attrib.vertices[3 * vi + 1];
         tinyobj::real_t vz = attrib.vertices[3 * vi + 2];
         _vertexPositionCoord.emplace_back(vx, vy, vz, 1.0f);
+
+        // tinyobj::real_t cx = attrib.vertices[3 * vi + 0];
+        // tinyobj::real_t cy = attrib.vertices[3 * vi + 1];
+        // tinyobj::real_t cz = attrib.vertices[3 * vi + 2];
+        // _vertexColorCoord.emplace_back(cx, cy, cz, 1.0f);
     }
 
     for (size_t vi = 0; vi < attrib.texcoords.size() / 2; ++vi)
@@ -72,4 +103,5 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
         meshList.push_back(newMesh);
     }
 }
-}
+
+} // namespace Renderer

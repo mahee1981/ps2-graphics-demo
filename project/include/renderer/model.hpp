@@ -1,33 +1,68 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
 
+#include "VU0Math/mat4.hpp"
+#include "VU0Math/vec4.hpp"
+#include "components/transform.hpp"
+#include "graphics/Texture.hpp"
+#include "mesh.hpp"
 #include <packet2.h>
 #include <vector>
-#include "VU0Math/vec4.hpp"
-#include "mesh.hpp"
-#include "graphics/Texture.hpp"
 
-namespace Renderer{
+namespace Renderer
+{
 
 using namespace graphics;
-class Model{
+class Model
+{
 
-	using Packet2Deleter = void (*)(packet2_t*);
+    using Packet2Deleter = void (*)(packet2_t *);
 
-public:
-	void LoadModel(const char* fileName, const char* materialPath);
-	void Render();
-	inline const std::vector<Mesh> &GetMeshList() const { return meshList; }
-	inline const std::vector<ps2math::Vec4> &GetVertexPositions() const { return _vertexPositionCoord; }
-	inline const std::vector<texel_t> &GetTexturePositions() const { return _texCoordinates; }
+  public:
+    Model(const ps2math::Vec4 &position);
+    void LoadModel(const char *fileName, const char *materialPath);
+    void Render();
+    void Update();
 
-private:
-	std::vector<Mesh> meshList;
-	std::vector<ps2math::Vec4> _vertexPositionCoord;
-	std::vector<ps2math::Vec4> VertexNormalCoord;
-	std::vector<texel_t> _texCoordinates;
-	std::vector<Texture> _textureList;
+    inline Components::Transform &GetTransformComponent()
+    {
+        return _transformComponent;
+    }
 
+    inline const ps2math::Mat4 &GetWorldMatrix() const
+    {
+        return _worldMatrix;
+    }
+
+    inline const std::vector<Mesh> &GetMeshList() const
+    {
+        return meshList;
+    }
+
+    inline const std::vector<ps2math::Vec4> &GetVertexPositions() const
+    {
+        return _vertexPositionCoord;
+    }
+
+    inline const std::vector<texel_t> &GetTexturePositions() const
+    {
+        return _texCoordinates;
+    }
+
+    // inline const std::vector<ps2math::Vec4> &GetColorPositions() const
+    // {
+    //     return _vertexColorCoord;
+    // }
+
+  private:
+    std::vector<Mesh> meshList;
+    std::vector<ps2math::Vec4> _vertexPositionCoord;
+    std::vector<ps2math::Vec4> _vertexNormalCoord;
+    // std::vector<ps2math::Vec4> _vertexColorCoord;
+    std::vector<texel_t> _texCoordinates;
+    std::vector<Texture> _textureList;
+    ps2math::Mat4 _worldMatrix;
+    Components::Transform _transformComponent;
 };
-}
+} // namespace Renderer
 #endif

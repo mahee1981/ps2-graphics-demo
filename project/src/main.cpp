@@ -17,8 +17,9 @@
 #include "graphics/Texture.hpp"
 #include "input/padman.hpp"
 #include "logging/log.hpp"
-#include "renderer/model.hpp"
 #include "renderer/Camera.hpp"
+#include "renderer/model.hpp"
+#include "renderer/renderer3d.hpp"
 #include "utils.hpp"
 
 using namespace Input;
@@ -35,8 +36,6 @@ void InitializeDMAC()
     dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
     dma_channel_fast_waits(DMA_CHANNEL_GIF);
 }
-ps2math::Mat4 perspectiveMatrix =
-    ps2math::Mat4::perspective(Utils::ToRadians(45.0f), (float)width / (float)height, 0.1f, 2000.0f);
 
 void ClipVertices(ps2math::Vec4 &vertex)
 {
@@ -62,8 +61,8 @@ void ClipVertices(ps2math::Vec4 &vertex)
                  : "$10", "memory");
 }
 
-void PrepareTriangleDisplayListForModel(packet2_t *dmaBuffer,
-                                        const ps2math::Mat4 &viewMatrix,
+void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
+                                        const ps2math::Mat4 &mvp,
                                         float angle,
                                         float moveHorizontal,
                                         const Mesh &mesh,
@@ -88,20 +87,6 @@ void PrepareTriangleDisplayListForModel(packet2_t *dmaBuffer,
     // game engines
     constexpr texel_t zeroTexel = {.u = 1.0f, .v = 1.0f};
 
-    ps2math::Vec4 scaleFactor = ps2math::Vec4(0.5f, 0.5f, 0.5f, 1.0f);
-
-    // model transformations
-    ps2math::Mat4 modelMatrix;
-    modelMatrix = ps2math::Mat4::scale(modelMatrix, scaleFactor);
-    modelMatrix = ps2math::Mat4::rotateZ(modelMatrix, Utils::ToRadians(180.f));
-    modelMatrix = ps2math::Mat4::rotateY(modelMatrix, Utils::ToRadians(angle));
-    // modelMatrix = ps2math::Mat4::rotateX(modelMatrix, Utils::ToRadians(angle));
-    modelMatrix = ps2math::Mat4::translate(modelMatrix, ps2math::Vec4(0.0f, 0.0f, moveHorizontal + 70.0f, 1.0f));
-
-    // When in doubt, remember, you can get free performance by
-    // not having this in the vertex loop
-    ps2math::Mat4 mvp = modelMatrix * viewMatrix * perspectiveMatrix;
-
     for (std::size_t i = 0; i < mesh.VertexIndices.size(); i++)
     {
 
@@ -111,6 +96,9 @@ void PrepareTriangleDisplayListForModel(packet2_t *dmaBuffer,
         packet2_add_u128(dmaBuffer, qword.qw);
 
         // color
+        // const ps2math::Vec4 &color = model.GetColorPositions()[mesh.VertexIndices[i]];
+        // qword.dw[0] = (u64(color.b * 128) & 0xFF) << 32 | (u64(color.r * 128) & 0xFF);
+        // qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(color.g * 128) & 0xFF);
         qword.dw[0] = (u64(128) & 0xFF) << 32 | (u64(128) & 0xFF);
         qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(128) & 0xFF);
         packet2_add_u128(dmaBuffer, qword.qw);
@@ -156,7 +144,6 @@ void render()
 {
     // TODO: need to make transfers dynamic and split it into slices if bigger than u16_max
     // OPTIONAL: make packed DMA transfers
-    //  using Packet2Deleter = void (*)(packet2_t*);
     std::array<packet2_t *, 2> drawBuffer;
 
     drawBuffer[0] = packet2_create(35000, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
@@ -166,7 +153,8 @@ void render()
 
     LOG_INFO("Starting to init GS and draw environment");
 
-    auto drawEnv = DrawingEnvironment(width, height, GraphicsConfig::DOUBLE_BUFFER);
+    auto drawEnv = DrawingEnvironment(width, height, BufferingConfig::DOUBLE_BUFFER);
+    auto renderer3d = Renderer3D(width, height);
 
     drawEnv.InitializeEnvironment();
 
@@ -200,7 +188,8 @@ void render()
     myTex.SetTexSamplingMethodInGS();
     myTex.SetTextureAsActive();
 
-    Model myModel;
+    Model myModel(ps2math::Vec4{0.0f, 0.0f, 70.0f, 1.0f});
+
     // TODO: fix the default path search
     // myModel.LoadModel("CAT/MESH_CAT.OBJ", "CAT/");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
@@ -244,16 +233,24 @@ void render()
         dma_channel_send_packet2(drawBuffer[curr], DMA_CHANNEL_GIF, 0);
         packet2_reset(drawBuffer[curr], false);
 
+        Components::Transform &transformComponentRef = myModel.GetTransformComponent();
+        transformComponentRef.SetScaleFactor(2.5f);
+        transformComponentRef.SetAngleZ(180.0f);
+        transformComponentRef.SetAngleY(angle);
+        transformComponentRef.SetTranslate(0.0f, 0.0f, 70.0f + moveHorizontal);
+
+        // TODO: to be handled by transform system
+        myModel.Update();
+        // When in doubt, remember, you can get free performance by
+        // not having this in the vertex loop
+        ps2math::Mat4 mvp =
+            myModel.GetWorldMatrix() * myCamera.CalculateViewMatrix() * renderer3d.GetPerspectiveMatrix();
+
         auto loopSize = myModel.GetMeshList().size();
         for (std::size_t i = 0; i < loopSize; i++)
         {
             const Mesh &mesh = myModel.GetMeshList()[i];
-            PrepareTriangleDisplayListForModel(drawBuffer[curr],
-                                               myCamera.CalculateViewMatrix(),
-                                               angle,
-                                               moveHorizontal,
-                                               mesh,
-                                               myModel);
+            GenerateTriangleDisplayListForModel(drawBuffer[curr], mvp, angle, moveHorizontal, mesh, myModel);
 
             if (i == loopSize - 1)
             {

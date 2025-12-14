@@ -30,6 +30,7 @@ output-dirs:
 	@mkdir -p $(BIN_DIR)/logging
 	@mkdir -p $(BIN_DIR)/input
 	@mkdir -p $(BIN_DIR)/graphics
+	@mkdir -p $(BIN_DIR)/components
 	@mkdir -p $(BIN_DIR)/resources
 	@mkdir -p $(BIN_DIR)/VU0Math
 	@mkdir -p $(BIN_DIR)/renderer
