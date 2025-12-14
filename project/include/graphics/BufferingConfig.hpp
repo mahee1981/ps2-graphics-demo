@@ -4,7 +4,7 @@
 namespace Buffers
 {
 
-enum GraphicsConfig
+enum BufferingConfig
 {
     SINGLE_BUFFER,
     DOUBLE_BUFFER

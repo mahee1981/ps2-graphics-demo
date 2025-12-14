@@ -15,7 +15,7 @@
 #include "AlphaTest.hpp"
 #include "Color.hpp"
 #include "TextureConfig.hpp"
-#include "graphics/GraphicsConfig.hpp"
+#include "graphics/BufferingConfig.hpp"
 #include "graphics/framebuffer.hpp"
 #include "graphics/zbuffer.hpp"
 
@@ -24,9 +24,18 @@ using namespace Buffers;
 class DrawingEnvironment
 {
 
+  public:
+    DrawingEnvironment(unsigned int width, unsigned int height, BufferingConfig config);
+    void ClearScreen(packet2_t *packet) const;
+    void SetClearScreenColor(unsigned char r, unsigned char g, unsigned char b);
+    void InitializeEnvironment();
+    void SwapBuffers();
+    DrawingEnvironment &operator=(const DrawingEnvironment &other) = delete;
+    DrawingEnvironment(const DrawingEnvironment &other) = delete;
+
   private:
     unsigned int width, height;
-    GraphicsConfig config;
+    BufferingConfig config;
     float xOffset;
     float yOffset;
     unsigned int context;
@@ -52,15 +61,6 @@ class DrawingEnvironment
     void ConfigureBuffers();
     void AllocateBuffers();
     void SetupGSRegisters(unsigned int context) const;
-
-  public:
-    DrawingEnvironment(unsigned int width, unsigned int height, GraphicsConfig config);
-    void ClearScreen(packet2_t *packet) const;
-    void SetClearScreenColor(unsigned char r, unsigned char g, unsigned char b);
-    void InitializeEnvironment();
-    void SwapBuffers();
-    DrawingEnvironment &operator=(const DrawingEnvironment &other) = delete;
-    DrawingEnvironment(const DrawingEnvironment &other) = delete;
 };
 
 #endif

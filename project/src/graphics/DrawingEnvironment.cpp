@@ -1,7 +1,7 @@
 #include "graphics/DrawingEnvironment.hpp"
 #include "BlendingConfig.hpp"
 
-DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, GraphicsConfig config)
+DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, BufferingConfig config)
     : width(width), height(height), config(config), xOffset(2048.0f - float(width >> 1)),
       yOffset(2048.0f - float(height >> 1)), context(0), zbuffer(nullptr),
       alphaTest(true,
@@ -23,7 +23,7 @@ void DrawingEnvironment::ConfigureBuffers()
                                         Buffers::ZbufferTestMethod::GREATER_EQUAL,
                                         Buffers::GSZbufferStorageMethodEnum::ZBUF_32);
 
-    if (config == GraphicsConfig::DOUBLE_BUFFER)
+    if (config == BufferingConfig::DOUBLE_BUFFER)
     {
         framebuffer[1] = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_32);
     }
@@ -44,7 +44,7 @@ void DrawingEnvironment::InitializeEnvironment()
 
 void DrawingEnvironment::SwapBuffers()
 {
-    if (config == GraphicsConfig::SINGLE_BUFFER) // no swap if single buffer mode
+    if (config == BufferingConfig::SINGLE_BUFFER) // no swap if single buffer mode
         return;
     framebuffer[context]->EnableInActiveFilteredMode();
 
@@ -65,7 +65,7 @@ void DrawingEnvironment::SwapBuffers()
 void DrawingEnvironment::AllocateBuffers()
 {
     framebuffer[0]->AllocateVRAMForBuffer();
-    if (config == GraphicsConfig::DOUBLE_BUFFER)
+    if (config == BufferingConfig::DOUBLE_BUFFER)
     {
         framebuffer[1]->AllocateVRAMForBuffer();
     }
