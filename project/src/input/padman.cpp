@@ -1,39 +1,41 @@
 #include "input/padman.hpp"
+#include "logging/log.hpp"
 #include <stdio.h>
 
 namespace Input
 {
 
+// TODO: Move it outside of this class later
 void PadManager::LoadModules()
 {
     int ret;
 
-    printf("loading sif module\n");
+    LOG_INFO("loading XSI02MAN module");
 
     ret = SifLoadModule("rom0:XSIO2MAN", 0, NULL);
     if (ret < 0)
     {
-        printf("sifLoadModule sio failed: %d\n", ret);
+        LOG_ERROR("sifLoadModule sio failed: ") << ret;
         SleepThread();
     }
     else
     {
-        printf("loaded sif module\n");
+        LOG_INFO("loaded sif module");
     }
 
-    printf("loading padman module\n");
+    LOG_INFO("loading XPADMAN module");
 
     ret = SifLoadModule("rom0:XPADMAN", 0, NULL);
     if (ret < 0)
     {
-        printf("sifLoadModule pad failed: %d\n", ret);
+        LOG_ERROR("sifLoadModule pad failed: ") << ret;
     }
     else
     {
-        printf("loaded padman module\n");
+        LOG_INFO("loaded padman module");
     }
 
-    printf("LoadedModeules\n");
+    LOG_INFO("Loaded All I/O Modules");
 }
 
 int PadManager::WaitPadReady(int port, int slot)
@@ -55,41 +57,43 @@ int PadManager::InitializePad(int port, int slot)
     int modes;
     int i;
 
-    printf("PAD initializing pad %d,%d\n", port, slot);
+    LOG_INFO("PAD initializing pad on port:") << port << ", slot: "<< slot;
 
     // is there any device connected to that port?
     if (WaitPadReady(port, slot) == PAD_STATE_DISCONN)
     {
-        printf("PAD pad %d,%d not connected.\n", port, slot);
+        LOG_ERROR("PAD pad on port: ") << port << ", slot: " << slot << " not connected.";
         return 1; // nope, don't waste your time here!
     }
 
     // How many different modes can this device operate in?
     // i.e. get # entrys in the modetable
     modes = padInfoMode(port, slot, PAD_MODETABLE, -1);
-    printf("PAD The device has %d modes: ", modes);
+    std::stringstream ss;
+    ss << "PAD The device has " << modes << " modes: ";
 
     if (modes > 0)
     {
-        printf("( ");
 
+        ss << "( ";
         for (i = 0; i < modes; i++)
         {
             tmp = padInfoMode(port, slot, PAD_MODETABLE, i);
-            printf("%d ", tmp);
+            ss << tmp << " ";
         }
 
-        printf(")\n");
+        ss << (")");
     }
+    LOG_INFO(ss.str().c_str());
 
     tmp = padInfoMode(port, slot, PAD_MODECURID, 0);
-    printf("PAD It is currently using mode %d\n", tmp);
+    LOG_INFO("PAD It is currently using mode ") << tmp;
 
     // If modes == 0, this is not a Dual shock controller
     // (it has no actuator engines)
     if (modes == 0)
     {
-        printf("PAD This is a digital controller?\n");
+        LOG_WARNING("PAD This is a digital controller?");
         return 1;
     }
 
@@ -104,7 +108,7 @@ int PadManager::InitializePad(int port, int slot)
 
     if (i >= modes)
     {
-        printf("PAD This is no Dual Shock controller\n");
+        LOG_WARNING("PAD This is no Dual Shock controller");
         return 1;
     }
 
@@ -113,26 +117,26 @@ int PadManager::InitializePad(int port, int slot)
     tmp = padInfoMode(port, slot, PAD_MODECUREXID, 0);
     if (tmp == 0)
     {
-        printf("PAD This is no Dual Shock controller??\n");
+        LOG_WARNING("PAD This is no Dual Shock controller??");
         return 1;
     }
 
-    printf("PAD Enabling dual shock functions\n");
+    LOG_INFO("PAD Enabling dual shock functions\n");
 
     // When using MMODE_LOCK, user cant change mode with Select button
     padSetMainMode(port, slot, PAD_MMODE_DUALSHOCK, PAD_MMODE_LOCK);
 
     WaitPadReady(port, slot);
     tmp = padInfoPressMode(port, slot);
-    printf("PAD infoPressMode: %d\n", tmp);
+    LOG_INFO("PAD infoPressMode: ") << tmp;
 
     WaitPadReady(port, slot);
     tmp = padEnterPressMode(port, slot);
-    printf("PAD enterPressMode: %d\n", tmp);
+    LOG_INFO("PAD enterPressMode: ") << tmp;
 
     WaitPadReady(port, slot);
     this->actuators = padInfoAct(this->port, this->slot, -1, 0);
-    printf("PAD # of actuators: %d\n", this->actuators);
+    LOG_INFO("PAD # of actuators: ") << this->actuators;
 
     if (this->actuators != 0)
     {
@@ -145,11 +149,11 @@ int PadManager::InitializePad(int port, int slot)
 
         WaitPadReady(port, slot);
         tmp = padSetActAlign(this->port, this->slot, this->actAlign);
-        printf("PAD padSetActAlign: %d\n", tmp);
+        LOG_INFO("PAD padSetActAlign: ") << tmp;
     }
     else
     {
-        printf("PAD Did not find any actuators.\n");
+        LOG_INFO("PAD Did not find any actuators.");
     }
 
     WaitPadReady(port, slot);
@@ -184,13 +188,13 @@ PadManager::PadManager()
 
     if ((ret = padPortOpen(port, slot, padBuffer)) == 0)
     {
-        printf("padOpenPort failed: %d\n", ret);
+        LOG_ERROR("padOpenPort failed: ") << ret;
         SleepThread();
     }
 
     if (!InitializePad(port, slot))
     {
-        printf("pad initalization failed!\n");
+        LOG_ERROR("pad initalization failed!");
         SleepThread();
     }
     state = padGetState(port, slot);
@@ -204,13 +208,13 @@ void PadManager::UpdatePad()
     if ((oldState == PAD_STATE_DISCONN) && ((this->state == PAD_STATE_STABLE) || (this->state == PAD_STATE_FINDCTP1)))
     {
         // Pad just connected.
-        printf("PAD pad %d,%d connected\n", this->port, this->slot);
+        LOG_INFO("PAD pad (") << this->port << ", " << this->slot << ") connected\n";
         InitializePad(port, slot);
     }
     // The pad may transit from any state to disconnected. So check only for the disconnected state.
     else if ((oldState != PAD_STATE_DISCONN) && (this->state == PAD_STATE_DISCONN))
     {
-        printf("PAD pad %d,%d disconnected\n", this->port, this->slot);
+        LOG_WARNING("PAD pad (") << this->port << ", " << this->slot << ") disconnected\n";
     }
 
     if ((this->state == PAD_STATE_STABLE) || (this->state == PAD_STATE_FINDCTP1))
