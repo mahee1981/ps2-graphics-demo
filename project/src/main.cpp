@@ -37,6 +37,41 @@ void InitializeDMAC()
     dma_channel_fast_waits(DMA_CHANNEL_GIF);
 }
 
+void AddVertexToDisplayList(packet2_t *dmaBuffer,
+                            const texel_t &texel,
+                            const ps2math::Vec4 vertex,
+                            bool kickVertex = false)
+{
+    // This line is a reminder of how incredibly silly decisions
+    // can have you lose three months of development time on PS2
+    // game engines
+    static constexpr texel_t zeroTexel = {.u = 1.0f, .v = 1.0f};
+    qword_t qword;
+    qword.dw[0] = texel.uv;
+    qword.dw[1] = zeroTexel.uv;
+    packet2_add_u128(dmaBuffer, qword.qw);
+
+    // color
+    // const ps2math::Vec4 &color = model.GetColorPositions()[mesh.VertexIndices[i]];
+    // qword.dw[0] = (u64(color.b * 128) & 0xFF) << 32 | (u64(color.r * 128) & 0xFF);
+    // qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(color.g * 128) & 0xFF);
+    qword.dw[0] = (u64(128) & 0xFF) << 32 | (u64(128) & 0xFF);
+    qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(128) & 0xFF);
+    packet2_add_u128(dmaBuffer, qword.qw);
+
+    // this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
+    // this is the one line of code that keeps my entire math from falling apart
+
+    qword.dw[0] =
+        (u64(Utils::FloatToFixedPoint<u16>((vertex.y)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x)));
+    qword.dw[1] = static_cast<unsigned int>(vertex.z);
+
+    if (kickVertex)
+    {
+        qword.dw[1] |= (u64(1 & 0x01) << 48); // on every third vertex send a drawing kick :)
+    }
+    packet2_add_u128(dmaBuffer, qword.qw);
+}
 void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
                                          const ps2math::Mat4 &mvp,
                                          float angle,
@@ -45,10 +80,35 @@ void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
                                          const Model &model,
                                          const std::vector<ps2math::Vec4> transformedVertices)
 {
-    qword_t qword;
-    const unsigned int numberOfTimesGifTagExecutes = (mesh.VertexIndices.size() + 1) / 3;
+    qword_t *header = dmaBuffer->next;
+    packet2_advance_next(dmaBuffer, sizeof(u128));
+    unsigned int numberOfTimesGifTagExecutes = (mesh.VertexIndices.size() + 1) / 3;
+
+    for (std::size_t i = 0; i < mesh.VertexIndices.size(); i += 3)
+    {
+
+        const ps2math::Vec4 &v0 = transformedVertices[mesh.VertexIndices[i]];
+        const ps2math::Vec4 &v1 = transformedVertices[mesh.VertexIndices[i + 1]];
+        const ps2math::Vec4 &v2 = transformedVertices[mesh.VertexIndices[i + 2]];
+
+        float triArea = (v1.x - v0.x) * (v2.y - v0.y) - (v2.x - v0.x) * (v1.y - v0.y);
+        // Y-axis in screen space is pointing down, so the culling sign is inverted
+        if (triArea > 0.0f)
+        {
+            --numberOfTimesGifTagExecutes;
+            continue;
+        }
+
+        const auto &t0 = model.GetTexturePositions()[mesh.TexIndices[i]];
+        const auto &t1 = model.GetTexturePositions()[mesh.TexIndices[i + 1]];
+        const auto &t2 = model.GetTexturePositions()[mesh.TexIndices[i + 2]];
+
+        AddVertexToDisplayList(dmaBuffer, t0, v0);
+        AddVertexToDisplayList(dmaBuffer, t1, v1);
+        AddVertexToDisplayList(dmaBuffer, t2, v2, true);
+    }
     // PRIM REG = 0x5B -> triangle with Gouraud shading, texturing, alpha blending
-    qword.dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0x5B, GIF_FLG_PACKED, 9);
+    header->dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0x5B, GIF_FLG_PACKED, 9);
 
     // constexpr u64 triangleGIFTag =  u64(GIF_REG_XYZ2) << 20 | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_XYZ2)<< 12 |
     // u64(GIF_REG_RGBAQ) << 8 | u64(GIF_REG_XYZ2) << 4 | u64(GIF_REG_RGBAQ);
@@ -56,44 +116,7 @@ void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
     constexpr u64 triangleGIFTag = u64(GIF_REG_XYZ2) << 32 | u64(GIF_REG_RGBAQ) << 28 | u64(GIF_REG_ST) << 24 |
                                    u64(GIF_REG_XYZ2) << 20 | u64(GIF_REG_RGBAQ) << 16 | u64(GIF_REG_ST) << 12 |
                                    u64(GIF_REG_XYZ2) << 8 | u64(GIF_REG_RGBAQ) << 4 | u64(GIF_REG_ST);
-    qword.dw[1] = triangleGIFTag;
-    packet2_add_u128(dmaBuffer, qword.qw);
-
-    // This line is a reminder of how incredibly silly decisions
-    // can have you lose three months of development time on PS2
-    // game engines
-    constexpr texel_t zeroTexel = {.u = 1.0f, .v = 1.0f};
-
-    for (std::size_t i = 0; i < mesh.VertexIndices.size(); i++)
-    {
-
-        const auto &texel = model.GetTexturePositions()[mesh.TexIndices[i]];
-        qword.dw[0] = texel.uv;
-        qword.dw[1] = zeroTexel.uv;
-        packet2_add_u128(dmaBuffer, qword.qw);
-
-        // color
-        // const ps2math::Vec4 &color = model.GetColorPositions()[mesh.VertexIndices[i]];
-        // qword.dw[0] = (u64(color.b * 128) & 0xFF) << 32 | (u64(color.r * 128) & 0xFF);
-        // qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(color.g * 128) & 0xFF);
-        qword.dw[0] = (u64(128) & 0xFF) << 32 | (u64(128) & 0xFF);
-        qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(128) & 0xFF);
-        packet2_add_u128(dmaBuffer, qword.qw);
-
-        // this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
-        // this is the one line of code that keeps my entire math from falling apart
-        const ps2math::Vec4 &vertex = transformedVertices[mesh.VertexIndices[i]];
-
-        qword.dw[0] =
-            (u64(Utils::FloatToFixedPoint<u16>((vertex.y)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x)));
-        qword.dw[1] = static_cast<unsigned int>(vertex.z);
-
-        if ((i + 1) % 3 == 0)
-        {
-            qword.dw[1] |= (u64(1 & 0x01) << 48); // on every third vertex send a drawing kick :)
-        }
-        packet2_add_u128(dmaBuffer, qword.qw);
-    }
+    header->dw[1] = triangleGIFTag;
 }
 
 Camera SetupCamera()
@@ -162,8 +185,8 @@ void render()
     // TODO: fix the default path search
     // myModel.LoadModel("CAT/MESH_CAT.OBJ", "CAT/");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
-    myModel.LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
-    // myModel.LoadModel("AIRPLANE/AIRPLANE.OBJ", "AIRPLANE/");
+    // myModel.LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
+    myModel.LoadModel("AIRPLANE/AIRPLANE.OBJ", "AIRPLANE/");
     LOG_INFO("Mesh List count: ") << myModel.GetMeshList().size();
     Mesh firstMesh = myModel.GetMeshList()[0];
 
@@ -201,11 +224,11 @@ void render()
         dma_wait_fast();
         dma_channel_send_packet2(drawBuffer[curr], DMA_CHANNEL_GIF, 0);
         packet2_reset(drawBuffer[curr], false);
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < 1; j++)
         {
 
             Components::Transform &transformComponentRef = myModel.GetTransformComponent();
-            transformComponentRef.SetScaleFactor(2.5f);
+            transformComponentRef.SetScaleFactor(0.005f);
             transformComponentRef.SetAngleZ(180.0f);
             transformComponentRef.SetAngleY(angle);
             transformComponentRef.SetTranslate(0.0f, j * 20.0f, 70.0f + moveHorizontal);
