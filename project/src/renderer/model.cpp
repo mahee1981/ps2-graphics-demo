@@ -1,7 +1,10 @@
 #include "renderer/model.hpp"
 #include "logging/log.hpp"
+#include "renderer/renderer3d.hpp"
 #include "utils.hpp"
+#include <algorithm>
 #include <iostream>
+
 namespace Renderer
 {
 
@@ -25,6 +28,33 @@ void Model::Update()
     work = ps2math::Mat4::translate(work, _transformComponent.GetTranslate());
 
     _worldMatrix = work;
+}
+
+// TODO: Move to a system maybe?
+std::vector<ps2math::Vec4> Model::TransformVertices(const ps2math::Mat4 &mvp,
+                                                    float width,
+                                                    float height,
+                                                    float xOff,
+                                                    float yOff)
+{
+    std::vector<ps2math::Vec4> transformedVertices;
+    transformedVertices.reserve(_vertexPositionCoord.size());
+    std::transform(_vertexPositionCoord.begin(),
+                   _vertexPositionCoord.end(),
+                   std::back_inserter(transformedVertices),
+                   [=, &mvp](ps2math::Vec4 vertex) {
+                       vertex = vertex * mvp;
+                       // clip vertices and perform perspective division
+                       Renderer3D::ClipVertex(vertex);
+
+                       // viewport transformation
+                       float winX = float(width) * vertex.x / 2.0f + (xOff);
+                       float winY = float(height) * vertex.y / 2.0f + (yOff);
+                       float deviceZ = (vertex.z + 1.0f) / 2.0f * (1 << 31);
+                       return ps2math::Vec4(winX, winY, deviceZ, 1.0f);
+                   });
+
+    return transformedVertices;
 }
 
 void Model::LoadModel(const char *fileName, const char *material_search_path)

@@ -15,6 +15,7 @@ class Renderer3D
     {
         return _perspectiveMatrix;
     }
+    static void ClipVertex(ps2math::Vec4 &vertex);
 
   private:
     float _screenWidth;

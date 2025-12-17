@@ -24,6 +24,12 @@ class Model
     void Render();
     void Update();
 
+    std::vector<ps2math::Vec4> TransformVertices(const ps2math::Mat4 &mvp,
+                                                 float width,
+                                                 float height,
+                                                 float xOff,
+                                                 float yOff);
+
     inline Components::Transform &GetTransformComponent()
     {
         return _transformComponent;
