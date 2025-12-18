@@ -196,6 +196,15 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 ---
 
+## **Asset Attributions**
+
+[Airplane](https://poly.pizza/m/8ciDd9k8wha) by [Poly by Google](https://poly.pizza/u/Poly%20by%20Google) [CC-BY](https://creativecommons.org/licenses/by/3.0/) via Poly Pizza
+[Cat](https://poly.pizza/m/6dM1J6f6pm9) by [Poly by Google](https://poly.pizza/u/Poly%20by%20Google) [CC-BY](https://creativecommons.org/licenses/by/3.0/) via Poly Pizza
+[Sniper Rifle](https://poly.pizza/m/vGAzj2Of5M) by [J-Toastie](https://poly.pizza/u/J-Toastie) [CC-BY](https://creativecommons.org/licenses/by/3.0/) via Poly Pizza
+[Man](https://poly.pizza/m/HMnuH5geEG) by [Quaternius](https://poly.pizza/u/Quaternius)
+
+---
+
 ### **What’s in the Dev Container?**
 
 The `devcontainer.json` file is configured to:

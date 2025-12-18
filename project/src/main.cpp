@@ -33,6 +33,8 @@ constexpr int height = 448;
 constexpr float xOff = 2048.0f;
 constexpr float yOff = 2048.0f;
 
+static u64 trianglesRendered = 0;
+
 void InitializeDMAC()
 {
     dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
@@ -63,7 +65,6 @@ void AddVertexToDisplayList(packet2_t *dmaBuffer,
 
     // this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
     // this is the one line of code that keeps my entire math from falling apart
-
     qword.dw[0] =
         (u64(Utils::FloatToFixedPoint<u16>((vertex.y)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x)));
     qword.dw[1] = static_cast<unsigned int>(vertex.z);
@@ -114,6 +115,8 @@ void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
         AddVertexToDisplayList(dmaBuffer, t0, v0);
         AddVertexToDisplayList(dmaBuffer, t1, v1);
         AddVertexToDisplayList(dmaBuffer, t2, v2, true);
+
+        trianglesRendered++;
     }
     // PRIM REG = 0x5B -> triangle with Gouraud shading, texturing, alpha blending
     header->dw[0] = (u64)GIF_SET_TAG(numberOfTimesGifTagExecutes, false, true, 0x5B, GIF_FLG_PACKED, 9);
@@ -201,6 +204,7 @@ void render()
     unsigned int curr = 0;
     while (1)
     {
+        trianglesRendered = 0;
         const float deltaMs = deltaWatch.GetDeltaMs();
 
         deltaWatch.CaptureStartMoment();
@@ -230,7 +234,7 @@ void render()
         dma_wait_fast();
         dma_channel_send_packet2(drawBuffer[curr], DMA_CHANNEL_GIF, 0);
         packet2_reset(drawBuffer[curr], false);
-        for (int j = 0; j < 2; j++)
+        for (int j = 0; j < 4; j++)
         {
 
             Components::Transform &transformComponentRef = myModel.GetTransformComponent();
@@ -278,7 +282,8 @@ void render()
         draw_wait_finish();
         graph_wait_vsync();
         scr_setXY(0,0);
-        scr_printf("Time to render the frame: %f", deltaMs);
+        scr_printf("Time to render the frame: %f\n", deltaMs);
+        scr_printf("Triangles sent to GS: %llu", trianglesRendered);
         drawEnv.SwapBuffers();
     }
     packet2_free(drawBuffer[0]);
