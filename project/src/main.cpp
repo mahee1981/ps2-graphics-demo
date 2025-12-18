@@ -5,6 +5,7 @@
 #include <packet.h>
 #include <packet2.h>
 #include <stdio.h>
+#include <debug.h>
 
 #include <chrono>
 #include <memory>
@@ -20,6 +21,7 @@
 #include "renderer/Camera.hpp"
 #include "renderer/model.hpp"
 #include "renderer/renderer3d.hpp"
+#include "tools/Deltawatch.hpp"
 #include "utils.hpp"
 
 using namespace Input;
@@ -90,6 +92,12 @@ void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
         const ps2math::Vec4 &v0 = transformedVertices[mesh.VertexIndices[i]];
         const ps2math::Vec4 &v1 = transformedVertices[mesh.VertexIndices[i + 1]];
         const ps2math::Vec4 &v2 = transformedVertices[mesh.VertexIndices[i + 2]];
+
+        if (v0.w == 0.0f || v1.w == 0.0f || v2.w == 0.0f)
+        {
+            --numberOfTimesGifTagExecutes;
+            continue;
+        }
 
         float triArea = (v1.x - v0.x) * (v2.y - v0.y) - (v2.x - v0.x) * (v1.y - v0.y);
         // Y-axis in screen space is pointing down, so the culling sign is inverted
@@ -163,10 +171,7 @@ void render()
 
     packet2_reset(drawBuffer[0], false);
 
-    std::chrono::duration<float, std::milli> deltaTime;
-    std::chrono::steady_clock::time_point lastUpdate;
-    auto now = std::chrono::steady_clock::now();
-    lastUpdate = now;
+    std::size_t numOfDMAFlushes = 0;
 
     float angle = 0.0f;
 
@@ -185,31 +190,32 @@ void render()
     // TODO: fix the default path search
     // myModel.LoadModel("CAT/MESH_CAT.OBJ", "CAT/");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
-    // myModel.LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
-    myModel.LoadModel("AIRPLANE/AIRPLANE.OBJ", "AIRPLANE/");
+    myModel.LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
+    // myModel.LoadModel("AIRPLANE/AIRPLANE.OBJ", "AIRPLANE/");
     LOG_INFO("Mesh List count: ") << myModel.GetMeshList().size();
     Mesh firstMesh = myModel.GetMeshList()[0];
+    Deltawatch deltaWatch;
 
     PadManager controllerInput;
     auto myCamera = SetupCamera();
     unsigned int curr = 0;
     while (1)
     {
+        const float deltaMs = deltaWatch.GetDeltaMs();
+
+        deltaWatch.CaptureStartMoment();
+
         controllerInput.UpdatePad();
-
-        now = std::chrono::steady_clock::now();
-        deltaTime = (now - lastUpdate);
-        lastUpdate = now;
-
-        angle += (10.0f * deltaTime.count()) / 100.0f;
+        
+        angle += (10.0f * deltaMs) / 100.0f;
 
         if (controllerInput.getPressed().DpadRight == 1)
         {
-            moveHorizontal += 0.01f * deltaTime.count();
+            moveHorizontal += 0.01f * deltaMs;
         }
         else if (controllerInput.getPressed().DpadLeft == 1)
         {
-            moveHorizontal += -0.01f * deltaTime.count();
+            moveHorizontal += -0.01f * deltaMs;
         }
 
         if (angle > 360.0f)
@@ -217,18 +223,18 @@ void render()
             angle = 0.0f;
         }
 
-        myCamera.MotionControl(controllerInput.getLeftJoyPad(), deltaTime.count());
-        myCamera.RotationControl(controllerInput.getRightJoyPad(), deltaTime.count());
+        myCamera.MotionControl(controllerInput.getLeftJoyPad(), deltaMs);
+        myCamera.RotationControl(controllerInput.getRightJoyPad(), deltaMs);
 
         drawEnv.ClearScreen(drawBuffer[curr]);
         dma_wait_fast();
         dma_channel_send_packet2(drawBuffer[curr], DMA_CHANNEL_GIF, 0);
         packet2_reset(drawBuffer[curr], false);
-        for (int j = 0; j < 1; j++)
+        for (int j = 0; j < 2; j++)
         {
 
             Components::Transform &transformComponentRef = myModel.GetTransformComponent();
-            transformComponentRef.SetScaleFactor(0.005f);
+            transformComponentRef.SetScaleFactor(2.5f);
             transformComponentRef.SetAngleZ(180.0f);
             transformComponentRef.SetAngleY(angle);
             transformComponentRef.SetTranslate(0.0f, j * 20.0f, 70.0f + moveHorizontal);
@@ -268,8 +274,11 @@ void render()
         dma_channel_send_packet2(drawBuffer[curr], DMA_CHANNEL_GIF, 0);
         packet2_reset(drawBuffer[curr], false);
 
+        deltaWatch.CaptureEndMoment();
         draw_wait_finish();
         graph_wait_vsync();
+        scr_setXY(0,0);
+        scr_printf("Time to render the frame: %f", deltaMs);
         drawEnv.SwapBuffers();
     }
     packet2_free(drawBuffer[0]);

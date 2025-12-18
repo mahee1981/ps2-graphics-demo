@@ -7,7 +7,7 @@ namespace Renderer
 Renderer3D::Renderer3D(int width, int height)
     : _screenWidth(width), _screenHeight(height),
       _perspectiveMatrix(
-          ps2math::Mat4::perspective(Utils::ToRadians(45.0f), (float)width / (float)height, 0.1f, 2000.0f))
+          ps2math::Mat4::perspective(Utils::ToRadians(60.0f), (float)width / (float)height, 0.1f, 2000.0f))
 {
 }
 
@@ -35,6 +35,7 @@ void Renderer3D::ClipVertex(ps2math::Vec4 &vertex)
                  "vmulq.xyz  $vf7, $vf7, $Q          \n"
                  "sqc2       $vf7, 0x00(%0)          \n"
                  "4:                                 \n"
+                 "vnop                               \n"
                  :
                  : "r"(&vertex)
                  : "$10", "memory");

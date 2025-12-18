@@ -15,7 +15,7 @@ DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, 
 
 void DrawingEnvironment::ConfigureBuffers()
 {
-    framebuffer[0] = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_32);
+    framebuffer[0] = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_24);
     zbuffer = std::make_unique<ZBuffer>(width,
                                         height,
                                         0,
@@ -25,7 +25,7 @@ void DrawingEnvironment::ConfigureBuffers()
 
     if (config == BufferingConfig::DOUBLE_BUFFER)
     {
-        framebuffer[1] = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_32);
+        framebuffer[1] = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_24);
     }
 }
 
@@ -35,7 +35,7 @@ void DrawingEnvironment::InitializeEnvironment()
 
     ConfigureOutput();
 
-    framebuffer[0]->EnableInActiveFilteredMode();
+    framebuffer[1]->EnableInActiveFilteredMode();
 
     graph_enable_output();
 

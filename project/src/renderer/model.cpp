@@ -51,6 +51,8 @@ std::vector<ps2math::Vec4> Model::TransformVertices(const ps2math::Mat4 &mvp,
                        float winX = float(width) * vertex.x / 2.0f + (xOff);
                        float winY = float(height) * vertex.y / 2.0f + (yOff);
                        float deviceZ = (vertex.z + 1.0f) / 2.0f * (1 << 31);
+                       if(vertex.x == 0.0f && vertex.z == 0.0f && vertex.z == 0.0f)
+                           return ps2math::Vec4(0.0f, 0.0f, 0.0f, 0.0f);
                        return ps2math::Vec4(winX, winY, deviceZ, 1.0f);
                    });
 
