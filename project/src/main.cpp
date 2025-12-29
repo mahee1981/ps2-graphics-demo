@@ -17,6 +17,8 @@
 #include "graphics/STBITextureLoader.hpp"
 #include "graphics/Texture.hpp"
 #include "input/padman.hpp"
+#include "light/BaseLight.hpp"
+#include "light/Lighting.hpp"
 #include "logging/log.hpp"
 #include "renderer/Camera.hpp"
 #include "renderer/model.hpp"
@@ -44,6 +46,7 @@ void InitializeDMAC()
 void AddVertexToDisplayList(packet2_t *dmaBuffer,
                             const texel_t &texel,
                             const ps2math::Vec4 vertex,
+                            const ps2math::Vec4 &lightColor,
                             bool kickVertex = false)
 {
     // This line is a reminder of how incredibly silly decisions
@@ -57,10 +60,8 @@ void AddVertexToDisplayList(packet2_t *dmaBuffer,
 
     // color
     // const ps2math::Vec4 &color = model.GetColorPositions()[mesh.VertexIndices[i]];
-    // qword.dw[0] = (u64(color.b * 128) & 0xFF) << 32 | (u64(color.r * 128) & 0xFF);
-    // qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(color.g * 128) & 0xFF);
-    qword.dw[0] = (u64(128) & 0xFF) << 32 | (u64(128) & 0xFF);
-    qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(128) & 0xFF);
+    qword.dw[0] = (u64(lightColor.b * 128) & 0xFF) << 32 | (u64(lightColor.r * 128) & 0xFF);
+    qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(lightColor.g * 128) & 0xFF);
     packet2_add_u128(dmaBuffer, qword.qw);
 
     // this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
@@ -81,7 +82,8 @@ void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
                                          float moveHorizontal,
                                          const Mesh &mesh,
                                          const Model &model,
-                                         const std::vector<ps2math::Vec4> transformedVertices)
+                                         const std::vector<ps2math::Vec4> transformedVertices,
+                                         const std::vector<ps2math::Vec4> &lightColors)
 {
     qword_t *header = dmaBuffer->next;
     packet2_advance_next(dmaBuffer, sizeof(u128));
@@ -112,9 +114,13 @@ void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
         const auto &t1 = model.GetTexturePositions()[mesh.TexIndices[i + 1]];
         const auto &t2 = model.GetTexturePositions()[mesh.TexIndices[i + 2]];
 
-        AddVertexToDisplayList(dmaBuffer, t0, v0);
-        AddVertexToDisplayList(dmaBuffer, t1, v1);
-        AddVertexToDisplayList(dmaBuffer, t2, v2, true);
+        const ps2math::Vec4 &lightColor0 = lightColors[mesh._normalIndices[i]];
+        const ps2math::Vec4 &lightColor1 = lightColors[mesh._normalIndices[i + 1]];
+        const ps2math::Vec4 &lightColor2 = lightColors[mesh._normalIndices[i + 2]];
+
+        AddVertexToDisplayList(dmaBuffer, t0, v0, lightColor0);
+        AddVertexToDisplayList(dmaBuffer, t1, v1, lightColor1);
+        AddVertexToDisplayList(dmaBuffer, t2, v2, lightColor2, true);
 
         trianglesRendered++;
     }
@@ -197,6 +203,14 @@ void render()
     // myModel.LoadModel("AIRPLANE/AIRPLANE.OBJ", "AIRPLANE/");
     LOG_INFO("Mesh List count: ") << myModel.GetMeshList().size();
     Mesh firstMesh = myModel.GetMeshList()[0];
+
+    // Setup lighting
+    Light::BaseLight mainLight;
+    mainLight.SetColor(1.0f, 1.0f, 1.0f);
+    mainLight.SetDirection(0.0f, -1.0f, -1.0f);
+    mainLight.SetAmbientIntensity(0.3f);
+    mainLight.SetDiffuseIntensity(0.7f);
+
     Deltawatch deltaWatch;
 
     PadManager controllerInput;
@@ -252,6 +266,14 @@ void render()
 
             auto transformedVertices = myModel.TransformVertices(mvp, width, height, xOff, yOff);
 
+            // Pre-calculate lighting for all normals
+            std::vector<ps2math::Vec4> lightColors(myModel.GetVertexNormals().size(), ps2math::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+            for (size_t i = 0; i < myModel.GetVertexNormals().size(); ++i)
+            {
+                ps2math::Vec4 transformedNormal = myModel.GetVertexNormals()[i] * myModel.GetWorldMatrix();
+                lightColors[i] = Light::CalculateLighting(transformedNormal.Normalize(), mainLight);
+            }
+
             for (const auto &mesh : myModel.GetMeshList())
             {
                 u32 qwords_needed = 1 + (mesh.VertexIndices.size() * 3); // 1 GIF Tag + 3 qwords per vertex
@@ -269,7 +291,8 @@ void render()
                                                     moveHorizontal,
                                                     mesh,
                                                     myModel,
-                                                    transformedVertices);
+                                                    transformedVertices,
+                                                    lightColors);
             }
         }
         packet2_update(drawBuffer[curr], draw_finish(drawBuffer[curr]->next));

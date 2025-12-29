@@ -9,7 +9,9 @@ class BaseLight
 {
   private:
     ps2math::Vec4 _color;
+    ps2math::Vec4 _direction;
     float _ambientIntensity;
+    float _diffuseIntensity;
 
   public:
     BaseLight();
@@ -32,6 +34,26 @@ class BaseLight
     inline const float GetAmbientIntensity() const
     {
         return _ambientIntensity;
+    }
+    inline void SetDiffuseIntensity(float newIntensity)
+    {
+        _diffuseIntensity = newIntensity;
+    }
+    inline const float GetDiffuseIntensity() const
+    {
+        return _diffuseIntensity;
+    }
+    inline void SetDirection(const ps2math::Vec4 &newDirection)
+    {
+        _direction = newDirection.Normalize();
+    }
+    inline void SetDirection(float x, float y, float z)
+    {
+        _direction = ps2math::Vec4(x, y, z, 0.0f).Normalize();
+    }
+    inline const ps2math::Vec4 &GetDirection() const
+    {
+        return _direction;
     }
 };
 } // namespace Light

@@ -87,6 +87,7 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
     // Store the mesh data
     _texCoordinates.reserve(attrib.texcoords.size() / 2);
     _vertexPositionCoord.reserve(attrib.vertices.size() / 3);
+    _vertexNormalCoord.reserve(attrib.normals.size() / 3);
     // _vertexColorCoord.reserve(attrib.vertices.size() / 3);
     for (size_t vi = 0; vi < attrib.vertices.size() / 3; ++vi)
     {
@@ -101,6 +102,14 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
         // _vertexColorCoord.emplace_back(cx, cy, cz, 1.0f);
     }
 
+    for (size_t ni = 0; ni < attrib.normals.size() / 3; ++ni)
+    {
+        tinyobj::real_t nx = attrib.normals[3 * ni + 0];
+        tinyobj::real_t ny = attrib.normals[3 * ni + 1];
+        tinyobj::real_t nz = attrib.normals[3 * ni + 2];
+        _vertexNormalCoord.emplace_back(nx, ny, nz, 0.0f);
+    }
+
     for (size_t vi = 0; vi < attrib.texcoords.size() / 2; ++vi)
     {
         texel_t texel;
@@ -110,6 +119,7 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
     }
     LOG_INFO("Number of shapes: ") << shapes.size();
     LOG_INFO("Total number of vertices in model: ") << this->GetVertexPositions().size();
+    LOG_INFO("Total number of normals in model: ") << this->GetVertexNormals().size();
     LOG_INFO("Number of texels: ") << this->GetTexturePositions().size();
     // Loop over shapes and store the indices
     for (size_t s = 0; s < shapes.size(); s++)
@@ -117,10 +127,12 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
         Mesh newMesh;
         newMesh.TexIndices.reserve(shapes[s].mesh.indices.size());
         newMesh.VertexIndices.reserve(shapes[s].mesh.indices.size());
+        newMesh._normalIndices.reserve(shapes[s].mesh.indices.size());
 
         for (const auto &idx : shapes[s].mesh.indices)
         {
             newMesh.VertexIndices.push_back(idx.vertex_index);
+            newMesh._normalIndices.push_back(idx.normal_index >= 0 ? idx.normal_index : -1);
             if (idx.texcoord_index >= 0)
             {
                 newMesh.TexIndices.push_back(idx.texcoord_index);

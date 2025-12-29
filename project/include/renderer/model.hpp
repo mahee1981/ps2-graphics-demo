@@ -50,6 +50,11 @@ class Model
         return _vertexPositionCoord;
     }
 
+    inline const std::vector<ps2math::Vec4> &GetVertexNormals() const
+    {
+        return _vertexNormalCoord;
+    }
+
     inline const std::vector<texel_t> &GetTexturePositions() const
     {
         return _texCoordinates;
