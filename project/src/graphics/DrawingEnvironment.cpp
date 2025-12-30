@@ -207,9 +207,9 @@ void DrawingEnvironment::ClearScreen(packet2_t *packet) const
                               yOffset,
                               framebuffer[0]->GetWidth(),
                               framebuffer[0]->GetHeight(),
-                              clearScreenColor.GetComponentValueAsUByte(ColorComponent::Red),
-                              clearScreenColor.GetComponentValueAsUByte(ColorComponent::Green),
-                              clearScreenColor.GetComponentValueAsUByte(ColorComponent::Blue)));
+                              clearScreenColor.r,
+                              clearScreenColor.b,
+                              clearScreenColor.g));
 
     qword.dw[0] = (u64)GIF_SET_TAG(1, false, false, 0, GIF_FLG_PACKED, 1);
     qword.dw[1] = (u64)GIF_REG_AD;
@@ -220,9 +220,12 @@ void DrawingEnvironment::ClearScreen(packet2_t *packet) const
     packet2_add_u128(packet, qword.qw);
 }
 
-void DrawingEnvironment::SetClearScreenColor(unsigned char r, unsigned char g, unsigned char b)
+void DrawingEnvironment::SetClearScreenColor(u8 r, u8 g, u8 b)
 {
-    this->clearScreenColor.SetColor(r, g, b, 0x80);
+    this->clearScreenColor.r = r;
+    this->clearScreenColor.g = g;
+    this->clearScreenColor.b = b;
+    this->clearScreenColor.a = 0x80;
 }
 
 u64 DrawingEnvironment::GetXYOffsetSettings() const

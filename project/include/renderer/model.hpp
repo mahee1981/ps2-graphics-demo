@@ -20,7 +20,7 @@ class Model
 
   public:
     Model(const ps2math::Vec4 &position);
-    void LoadModel(const char *fileName, const char *materialPath);
+    void LoadModel(const char *fileName, const char *materialPath = nullptr);
     void Render();
     void Update();
 

@@ -1,11 +1,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 
+#include <debug.h>
 #include <dma.h>
 #include <draw.h>
 #include <packet.h>
 #include <packet2.h>
 #include <stdio.h>
-#include <debug.h>
 
 #include <chrono>
 #include <memory>
@@ -44,29 +44,25 @@ void InitializeDMAC()
 }
 
 inline void AddVertexToDisplayList(packet2_t *dmaBuffer,
-                            const texel_t &texel,
-                            const ps2math::Vec4 &vertex,
-                            const ps2math::Vec4 &lightColor,
-                            bool kickVertex = false)
+                                   const texel_t &texel,
+                                   const ps2math::Vec4 &vertex,
+                                   const Colors::Color &lightColor,
+                                   bool kickVertex = false)
 {
     // This line is a reminder of how incredibly silly decisions
     // can have you lose three months of development time on PS2
     // game engines
     static constexpr texel_t zeroTexel = {.u = 1.0f, .v = 1.0f};
 
+    // texels
     packet2_add_u64(dmaBuffer, texel.uv);
     packet2_add_u64(dmaBuffer, zeroTexel.uv);
-
     // color
-    // const ps2math::Vec4 &color = model.GetColorPositions()[mesh.VertexIndices[i]];
-    packet2_add_u64(dmaBuffer, (u64(lightColor.b * 128) & 0xFF) << 32 | (u64(lightColor.r * 128) & 0xFF));
-    packet2_add_u64(dmaBuffer, (u64(0x80) & 0xFF) << 32 | (u64(lightColor.g * 128) & 0xFF));
-
-    // this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
-    // this is the one line of code that keeps my entire math from falling apart
-    packet2_add_u64(dmaBuffer, (u64(Utils::FloatToFixedPoint<u16>((vertex.y)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x))));
-    packet2_add_u64(dmaBuffer, static_cast<unsigned int>(vertex.z) | (u64(kickVertex & 0x01) << 48)); // on every third vertex send a drawing kick :)
-
+    packet2_add_u64(dmaBuffer, (u64{lightColor.b} & 0xFF) << 32 | (u64{lightColor.r} & 0xFF));
+    packet2_add_u64(dmaBuffer, (u64{0x80} & 0xFF) << 32 | (u64{lightColor.g} & 0xFF));
+    // position
+    packet2_add_u64(dmaBuffer, u64{Utils::FloatToFixedPoint<u16, 4>((vertex.y))} << 32 | u64{Utils::FloatToFixedPoint<u16, 4>(vertex.x)});
+    packet2_add_u64(dmaBuffer, static_cast<u32>(vertex.z) | (static_cast<u64>(kickVertex & 0x01) << 48)); // on every third vertex send a drawing kick :)
 }
 // TODO: Benchmark REGLIST mode
 void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
@@ -75,7 +71,7 @@ void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
                                          const Mesh &mesh,
                                          const Model &model,
                                          const std::vector<ps2math::Vec4> &transformedVertices,
-                                         const std::vector<ps2math::Vec4> &lightColors)
+                                         const std::vector<Colors::Color> &lightColors)
 {
     qword_t *header = dmaBuffer->next;
     packet2_advance_next(dmaBuffer, sizeof(u128));
@@ -106,9 +102,9 @@ void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
         const auto &t1 = model.GetTexturePositions()[mesh.TexIndices[i + 1]];
         const auto &t2 = model.GetTexturePositions()[mesh.TexIndices[i + 2]];
 
-        const ps2math::Vec4 &lightColor0 = lightColors[mesh._normalIndices[i]];
-        const ps2math::Vec4 &lightColor1 = lightColors[mesh._normalIndices[i + 1]];
-        const ps2math::Vec4 &lightColor2 = lightColors[mesh._normalIndices[i + 2]];
+        const auto &lightColor0 = lightColors[mesh._normalIndices[i]];
+        const auto &lightColor1 = lightColors[mesh._normalIndices[i + 1]];
+        const auto &lightColor2 = lightColors[mesh._normalIndices[i + 2]];
 
         AddVertexToDisplayList(dmaBuffer, t0, v0, lightColor0);
         AddVertexToDisplayList(dmaBuffer, t1, v1, lightColor1);
@@ -172,8 +168,6 @@ void render()
 
     packet2_reset(drawBuffer[0], false);
 
-    std::size_t numOfDMAFlushes = 0;
-
     float angle = 0.0f;
 
     float moveHorizontal = 0.0f;
@@ -186,10 +180,12 @@ void render()
     myTex.SetTexSamplingMethodInGS();
     myTex.SetTextureAsActive();
 
+    bool isDebuggingEnabled = false;
+
     Model myModel(ps2math::Vec4{0.0f, 0.0f, 70.0f, 1.0f});
 
     // TODO: fix the default path search
-    myModel.LoadModel("CAT/MESH_CAT.OBJ", "CAT/");
+    myModel.LoadModel("CAT/MESH_CAT.OBJ");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
     // myModel.LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
     // myModel.LoadModel("AIRPLANE/AIRPLANE.OBJ", "AIRPLANE/");
@@ -203,7 +199,7 @@ void render()
     mainLight.SetAmbientIntensity(0.3f);
     mainLight.SetDiffuseIntensity(0.7f);
 
-    Deltawatch deltaWatch;
+    Deltawatch deltaWatch, lastDisplayListPrepWatch;
 
     PadManager controllerInput;
     auto myCamera = SetupCamera();
@@ -212,11 +208,13 @@ void render()
     {
         trianglesRendered = 0;
         const float deltaMs = deltaWatch.GetDeltaMs();
+        const float timeToPrepLastDisplayList = lastDisplayListPrepWatch.GetDeltaMs();
 
+        lastDisplayListPrepWatch.CaptureStartMoment();
         deltaWatch.CaptureStartMoment();
 
         controllerInput.UpdatePad();
-        
+
         angle += (10.0f * deltaMs) / 100.0f;
 
         if (controllerInput.getPressed().DpadRight == 1)
@@ -226,6 +224,11 @@ void render()
         else if (controllerInput.getPressed().DpadLeft == 1)
         {
             moveHorizontal += -0.01f * deltaMs;
+        }
+
+        if (controllerInput.getClicked().Cross == 1)
+        {
+            isDebuggingEnabled = !isDebuggingEnabled;
         }
 
         if (angle > 360.0f)
@@ -240,13 +243,13 @@ void render()
         dma_wait_fast();
         dma_channel_send_packet2(drawBuffer[curr], DMA_CHANNEL_GIF, 0);
         packet2_reset(drawBuffer[curr], false);
-        for (int j = 0; j < 1; j++)
+        for (int j = 0; j < 2; j++)
         {
 
             Components::Transform &transformComponentRef = myModel.GetTransformComponent();
             transformComponentRef.SetScaleFactor(0.5f);
             transformComponentRef.SetAngleZ(180.0f);
-            transformComponentRef.SetAngleY(180.0f);
+            transformComponentRef.SetAngleY(angle);
 
             // transformComponentRef.SetAngleY(angle);
             transformComponentRef.SetTranslate(0.0f, j * 20.0f, 70.0f + moveHorizontal);
@@ -258,16 +261,18 @@ void render()
             ps2math::Mat4 mvp =
                 myModel.GetWorldMatrix() * myCamera.CalculateViewMatrix() * renderer3d.GetPerspectiveMatrix();
 
-            // TODO: format the vertices here
             auto transformedVertices = myModel.TransformVertices(mvp, width, height, xOff, yOff);
 
             // Pre-calculate lighting for all normals
             // TODO: format the normals here
-            std::vector<ps2math::Vec4> lightColors(myModel.GetVertexNormals().size(), ps2math::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
+            std::vector<Colors::Color> lightColors(myModel.GetVertexNormals().size(),
+                                                   Colors::Color(u8{0x80}, u8{0x80}, u8{0x80}, u8{0x80}));
             for (size_t i = 0; i < myModel.GetVertexNormals().size(); ++i)
             {
+                // for non-uniform scaling, we need the transpose of the inverse of the model matrix, but since
+                // we are only doing uniform scaling, this works just fine
                 ps2math::Vec4 transformedNormal = myModel.GetVertexNormals()[i] * myModel.GetWorldMatrix();
-                lightColors[i] = Light::CalculateLighting(transformedNormal.Normalize(), mainLight);
+                lightColors[i] = Light::CalculateLightingRGBA8(transformedNormal.Normalize(), mainLight);
             }
 
             for (const auto &mesh : myModel.GetMeshList())
@@ -295,13 +300,16 @@ void render()
         dma_wait_fast();
         dma_channel_send_packet2(drawBuffer[curr], DMA_CHANNEL_GIF, 0);
         packet2_reset(drawBuffer[curr], false);
-
-        deltaWatch.CaptureEndMoment();
+        lastDisplayListPrepWatch.CaptureEndMoment();
         draw_wait_finish();
         graph_wait_vsync();
-        scr_setXY(0,0);
-        scr_printf("Time to render the frame: %f\n", deltaMs);
-        scr_printf("Triangles sent to GS: %llu", trianglesRendered);
+        deltaWatch.CaptureEndMoment();
+        if (isDebuggingEnabled)
+        {
+            scr_setXY(0, 0);
+            scr_printf("Time to process display list: %f\n", timeToPrepLastDisplayList);
+            scr_printf("Triangles sent to GS: %llu", trianglesRendered);
+        }
         drawEnv.SwapBuffers();
     }
     packet2_free(drawBuffer[0]);

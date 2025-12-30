@@ -7,9 +7,9 @@
 namespace Utils
 {
 
-template <typename T> static inline T FloatToFixedPoint(float x)
+template <typename T, int NFracPart = 4> static inline T FloatToFixedPoint(float x)
 {
-    constexpr unsigned int numberOfDecimalBits = 4;
+    constexpr unsigned int numberOfDecimalBits = NFracPart;
     return T(x * (1 << numberOfDecimalBits));
 }
 

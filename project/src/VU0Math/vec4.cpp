@@ -107,6 +107,7 @@ ps2math::Vec4 ps2math::Vec4::Normalize() const
                  "vaddz.x   $vf2, $vf2, $vf2\n"
                  "vrsqrt    $Q, $vf0w, $vf2x\n"
                  "vwaitq                    \n"
+                 "vmulq.xyz  $vf1, $vf1, $Q  \n"
                  "sqc2      $vf1, 0x00(%0)  \n"
                  :
                  : "r"(&result), "r"(this)

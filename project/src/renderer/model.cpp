@@ -62,7 +62,8 @@ std::vector<ps2math::Vec4> Model::TransformVertices(const ps2math::Mat4 &mvp,
 void Model::LoadModel(const char *fileName, const char *material_search_path)
 {
     tinyobj::ObjReaderConfig reader_config;
-    reader_config.mtl_search_path = material_search_path; // Path to material files
+    if(material_search_path != nullptr)
+        reader_config.mtl_search_path = material_search_path; // Path to material files
     reader_config.vertex_color = true;
 
     tinyobj::ObjReader reader;
