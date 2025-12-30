@@ -13,7 +13,7 @@
 #include <memory>
 
 #include "AlphaTest.hpp"
-#include "Color.hpp"
+#include "common/Color.hpp"
 #include "TextureConfig.hpp"
 #include "graphics/BufferingConfig.hpp"
 #include "graphics/framebuffer.hpp"
@@ -27,7 +27,7 @@ class DrawingEnvironment
   public:
     DrawingEnvironment(unsigned int width, unsigned int height, BufferingConfig config);
     void ClearScreen(packet2_t *packet) const;
-    void SetClearScreenColor(unsigned char r, unsigned char g, unsigned char b);
+    void SetClearScreenColor(u8 r, u8 g, u8 b);
     void InitializeEnvironment();
     void SwapBuffers();
     DrawingEnvironment &operator=(const DrawingEnvironment &other) = delete;
@@ -45,6 +45,7 @@ class DrawingEnvironment
     Colors::Color clearScreenColor;
     packet2_t *flipPacket;
 
+    // TODO: move this to a config class
     u64 GetXYOffsetSettings() const;
     u64 GetScissoringAreaSettings() const;
     u64 GetAlphaAndDepthTestSettings() const;

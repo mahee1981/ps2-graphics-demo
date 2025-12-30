@@ -35,6 +35,7 @@ output-dirs:
 	@mkdir -p $(BIN_DIR)/VU0Math
 	@mkdir -p $(BIN_DIR)/renderer
 	@mkdir -p $(BIN_DIR)/external
+	@mkdir -p $(BIN_DIR)/common
 	@mkdir -p $(BIN_DIR)/light
 	@mkdir -p $(BIN_DIR)/CAT
 	cp -r $(RESOURCES)/* $(BIN_DIR)/

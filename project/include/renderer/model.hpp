@@ -20,7 +20,7 @@ class Model
 
   public:
     Model(const ps2math::Vec4 &position);
-    void LoadModel(const char *fileName, const char *materialPath);
+    void LoadModel(const char *fileName, const char *materialPath = nullptr);
     void Render();
     void Update();
 
@@ -48,6 +48,11 @@ class Model
     inline const std::vector<ps2math::Vec4> &GetVertexPositions() const
     {
         return _vertexPositionCoord;
+    }
+
+    inline const std::vector<ps2math::Vec4> &GetVertexNormals() const
+    {
+        return _vertexNormalCoord;
     }
 
     inline const std::vector<texel_t> &GetTexturePositions() const
