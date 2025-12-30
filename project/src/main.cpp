@@ -43,9 +43,9 @@ void InitializeDMAC()
     dma_channel_fast_waits(DMA_CHANNEL_GIF);
 }
 
-void AddVertexToDisplayList(packet2_t *dmaBuffer,
+inline void AddVertexToDisplayList(packet2_t *dmaBuffer,
                             const texel_t &texel,
-                            const ps2math::Vec4 vertex,
+                            const ps2math::Vec4 &vertex,
                             const ps2math::Vec4 &lightColor,
                             bool kickVertex = false)
 {
@@ -53,36 +53,28 @@ void AddVertexToDisplayList(packet2_t *dmaBuffer,
     // can have you lose three months of development time on PS2
     // game engines
     static constexpr texel_t zeroTexel = {.u = 1.0f, .v = 1.0f};
-    qword_t qword;
-    qword.dw[0] = texel.uv;
-    qword.dw[1] = zeroTexel.uv;
-    packet2_add_u128(dmaBuffer, qword.qw);
+
+    packet2_add_u64(dmaBuffer, texel.uv);
+    packet2_add_u64(dmaBuffer, zeroTexel.uv);
 
     // color
     // const ps2math::Vec4 &color = model.GetColorPositions()[mesh.VertexIndices[i]];
-    qword.dw[0] = (u64(lightColor.b * 128) & 0xFF) << 32 | (u64(lightColor.r * 128) & 0xFF);
-    qword.dw[1] = (u64(0x80) & 0xFF) << 32 | (u64(lightColor.g * 128) & 0xFF);
-    packet2_add_u128(dmaBuffer, qword.qw);
+    packet2_add_u64(dmaBuffer, (u64(lightColor.b * 128) & 0xFF) << 32 | (u64(lightColor.r * 128) & 0xFF));
+    packet2_add_u64(dmaBuffer, (u64(0x80) & 0xFF) << 32 | (u64(lightColor.g * 128) & 0xFF));
 
     // this copy is gonna be a performance killer, will not happen on VU1, but guarantees that it is 128-bit aligned
     // this is the one line of code that keeps my entire math from falling apart
-    qword.dw[0] =
-        (u64(Utils::FloatToFixedPoint<u16>((vertex.y)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x)));
-    qword.dw[1] = static_cast<unsigned int>(vertex.z);
+    packet2_add_u64(dmaBuffer, (u64(Utils::FloatToFixedPoint<u16>((vertex.y)))) << 32 | (u64(Utils::FloatToFixedPoint<u16>(vertex.x))));
+    packet2_add_u64(dmaBuffer, static_cast<unsigned int>(vertex.z) | (u64(kickVertex & 0x01) << 48)); // on every third vertex send a drawing kick :)
 
-    if (kickVertex)
-    {
-        qword.dw[1] |= (u64(1 & 0x01) << 48); // on every third vertex send a drawing kick :)
-    }
-    packet2_add_u128(dmaBuffer, qword.qw);
 }
+// TODO: Benchmark REGLIST mode
 void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
-                                         const ps2math::Mat4 &mvp,
                                          float angle,
                                          float moveHorizontal,
                                          const Mesh &mesh,
                                          const Model &model,
-                                         const std::vector<ps2math::Vec4> transformedVertices,
+                                         const std::vector<ps2math::Vec4> &transformedVertices,
                                          const std::vector<ps2math::Vec4> &lightColors)
 {
     qword_t *header = dmaBuffer->next;
@@ -153,7 +145,7 @@ void render()
     // TODO: need to make transfers dynamic and split it into slices if bigger than u16_max
     // OPTIONAL: make packed DMA transfers
     std::array<packet2_t *, 2> drawBuffer;
-    constexpr u16 MAX_PACKET_SIZE = 65000;
+    constexpr u16 MAX_PACKET_SIZE = 0xFFFF;
 
     drawBuffer[0] = packet2_create(MAX_PACKET_SIZE, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
     drawBuffer[1] = packet2_create(MAX_PACKET_SIZE, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
@@ -197,9 +189,9 @@ void render()
     Model myModel(ps2math::Vec4{0.0f, 0.0f, 70.0f, 1.0f});
 
     // TODO: fix the default path search
-    // myModel.LoadModel("CAT/MESH_CAT.OBJ", "CAT/");
+    myModel.LoadModel("CAT/MESH_CAT.OBJ", "CAT/");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
-    myModel.LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
+    // myModel.LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
     // myModel.LoadModel("AIRPLANE/AIRPLANE.OBJ", "AIRPLANE/");
     LOG_INFO("Mesh List count: ") << myModel.GetMeshList().size();
     Mesh firstMesh = myModel.GetMeshList()[0];
@@ -207,7 +199,7 @@ void render()
     // Setup lighting
     Light::BaseLight mainLight;
     mainLight.SetColor(1.0f, 1.0f, 1.0f);
-    mainLight.SetDirection(0.0f, -1.0f, -1.0f);
+    mainLight.SetDirection(1.0f, 0.0f, 0.0f);
     mainLight.SetAmbientIntensity(0.3f);
     mainLight.SetDiffuseIntensity(0.7f);
 
@@ -248,13 +240,15 @@ void render()
         dma_wait_fast();
         dma_channel_send_packet2(drawBuffer[curr], DMA_CHANNEL_GIF, 0);
         packet2_reset(drawBuffer[curr], false);
-        for (int j = 0; j < 4; j++)
+        for (int j = 0; j < 1; j++)
         {
 
             Components::Transform &transformComponentRef = myModel.GetTransformComponent();
-            transformComponentRef.SetScaleFactor(2.5f);
+            transformComponentRef.SetScaleFactor(0.5f);
             transformComponentRef.SetAngleZ(180.0f);
-            transformComponentRef.SetAngleY(angle);
+            transformComponentRef.SetAngleY(180.0f);
+
+            // transformComponentRef.SetAngleY(angle);
             transformComponentRef.SetTranslate(0.0f, j * 20.0f, 70.0f + moveHorizontal);
 
             // TODO: to be handled by transform system
@@ -264,9 +258,11 @@ void render()
             ps2math::Mat4 mvp =
                 myModel.GetWorldMatrix() * myCamera.CalculateViewMatrix() * renderer3d.GetPerspectiveMatrix();
 
+            // TODO: format the vertices here
             auto transformedVertices = myModel.TransformVertices(mvp, width, height, xOff, yOff);
 
             // Pre-calculate lighting for all normals
+            // TODO: format the normals here
             std::vector<ps2math::Vec4> lightColors(myModel.GetVertexNormals().size(), ps2math::Vec4(1.0f, 1.0f, 1.0f, 1.0f));
             for (size_t i = 0; i < myModel.GetVertexNormals().size(); ++i)
             {
@@ -286,7 +282,6 @@ void render()
                     curr = 1 - curr;
                 }
                 GenerateTriangleDisplayListForModel(drawBuffer[curr],
-                                                    mvp,
                                                     angle,
                                                     moveHorizontal,
                                                     mesh,
