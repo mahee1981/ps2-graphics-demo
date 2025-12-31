@@ -9,15 +9,15 @@ Milestones:
  - Basic Texture loading
  - Basic Model loading
  - Logging Framework
+ - Simple Dynamic Lighting
  - IN PROGRESS: Math on EE core and VU0
- - TODO: Lighting
  - TODO: Advanced Clipping Algorithm
  - TODO: VRAM Resource Management
  - TODO: VU1 Rendering Pipeline
 
 Latest results:
 
-<img src="./results/modelLoading.gif"/>
+<img src="./results/lighting.gif"/>
 
 # Project Setup
 

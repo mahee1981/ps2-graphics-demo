@@ -80,9 +80,9 @@ void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
     for (std::size_t i = 0; i < mesh.VertexIndices.size(); i += 3)
     {
 
-        const ps2math::Vec4 &v0 = transformedVertices[mesh.VertexIndices[i]];
-        const ps2math::Vec4 &v1 = transformedVertices[mesh.VertexIndices[i + 1]];
-        const ps2math::Vec4 &v2 = transformedVertices[mesh.VertexIndices[i + 2]];
+        const auto &v0 = transformedVertices[mesh.VertexIndices[i]];
+        const auto &v1 = transformedVertices[mesh.VertexIndices[i + 1]];
+        const auto &v2 = transformedVertices[mesh.VertexIndices[i + 2]];
 
         if (v0.w == 0.0f || v1.w == 0.0f || v2.w == 0.0f)
         {
@@ -196,8 +196,8 @@ void render()
     Light::BaseLight mainLight;
     mainLight.SetColor(1.0f, 1.0f, 1.0f);
     mainLight.SetDirection(1.0f, 0.0f, 0.0f);
-    mainLight.SetAmbientIntensity(0.3f);
-    mainLight.SetDiffuseIntensity(0.7f);
+    mainLight.SetAmbientIntensity(0.4f);
+    mainLight.SetDiffuseIntensity(0.6f);
 
     Deltawatch deltaWatch, lastDisplayListPrepWatch;
 
@@ -217,6 +217,7 @@ void render()
 
         angle += (10.0f * deltaMs) / 100.0f;
 
+        // TODO: move to an input handler class
         if (controllerInput.getPressed().DpadRight == 1)
         {
             moveHorizontal += 0.01f * deltaMs;
