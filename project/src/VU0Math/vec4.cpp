@@ -121,12 +121,16 @@ ps2math::Vec4 ps2math::CrossProduct(const Vec4 &lhs, const Vec4 &rhs)
     return Vec4(lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x, 1.0f);
 }
 
+ps2math::Vec4 ps2math::Reflect(const Vec4 &incident, const Vec4 &normal)
+{
+    return incident - 2.0f * ps2math::DotProduct(normal, incident) * normal;
+}
+
 float ps2math::DotProduct(const Vec4 &lhs, const Vec4 &rhs)
 {
     Vec4 work;
     asm __volatile__("lqc2 $vf1, 0x00(%0)    \n"
                      "lqc2 $vf2, 0x00(%1)    \n"
-                     "1:                     \n"
                      "vmul  $vf3, $vf1, $vf2\n"
                      "sqc2 $vf3, 0x00(%2)"
                      :

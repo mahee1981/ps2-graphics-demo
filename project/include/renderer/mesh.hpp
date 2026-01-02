@@ -11,7 +11,7 @@ class Mesh
 {
   public:
     std::vector<int> VertexIndices;
-    std::vector<int> _normalIndices;
+    std::vector<int> NormalIndices;
     std::vector<int> TexIndices;
 };
 } // namespace Renderer

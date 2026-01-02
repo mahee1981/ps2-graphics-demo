@@ -102,9 +102,9 @@ void GenerateTriangleDisplayListForModel(packet2_t *dmaBuffer,
         const auto &t1 = model.GetTexturePositions()[mesh.TexIndices[i + 1]];
         const auto &t2 = model.GetTexturePositions()[mesh.TexIndices[i + 2]];
 
-        const auto &lightColor0 = lightColors[mesh._normalIndices[i]];
-        const auto &lightColor1 = lightColors[mesh._normalIndices[i + 1]];
-        const auto &lightColor2 = lightColors[mesh._normalIndices[i + 2]];
+        const auto &lightColor0 = lightColors[mesh.NormalIndices[i]];
+        const auto &lightColor1 = lightColors[mesh.NormalIndices[i + 1]];
+        const auto &lightColor2 = lightColors[mesh.NormalIndices[i + 2]];
 
         AddVertexToDisplayList(dmaBuffer, t0, v0, lightColor0);
         AddVertexToDisplayList(dmaBuffer, t1, v1, lightColor1);
@@ -184,7 +184,6 @@ void render()
 
     Model myModel(ps2math::Vec4{0.0f, 0.0f, 70.0f, 1.0f});
 
-    // TODO: fix the default path search
     myModel.LoadModel("CAT/MESH_CAT.OBJ");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
     // myModel.LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");

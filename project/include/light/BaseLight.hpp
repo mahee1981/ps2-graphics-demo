@@ -12,6 +12,7 @@ class BaseLight
     ps2math::Vec4 _direction;
     float _ambientIntensity;
     float _diffuseIntensity;
+    float _specularIntensity;
 
   public:
     BaseLight();
@@ -43,6 +44,15 @@ class BaseLight
     {
         return _diffuseIntensity;
     }
+    inline void SetSpecularIntensity(float newIntensity)
+    {
+        _specularIntensity = newIntensity;
+    }
+    inline const float GetSpecularIntensity() const
+    {
+        return _specularIntensity;
+    }
+
     inline void SetDirection(const ps2math::Vec4 &newDirection)
     {
         _direction = newDirection.Normalize();

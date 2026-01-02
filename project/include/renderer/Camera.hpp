@@ -27,6 +27,7 @@ class Camera
 
     void MotionControl(const Input::PadJoy &leftAnalogStick, float deltaTime);
     void RotationControl(const Input::PadJoy &rightAnalogStick, float deltaTime);
+    inline const ps2math::Vec4 GetPosition() { return _position; }
 
     // ps2math::Vec4 GetCameraPosition() const;
     // ps2math::Vec4 GetCameraDirection() const;

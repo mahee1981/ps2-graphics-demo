@@ -60,16 +60,11 @@ class Model
         return _texCoordinates;
     }
 
-    // inline const std::vector<ps2math::Vec4> &GetColorPositions() const
-    // {
-    //     return _vertexColorCoord;
-    // }
 
   private:
     std::vector<Mesh> meshList;
     std::vector<ps2math::Vec4> _vertexPositionCoord;
     std::vector<ps2math::Vec4> _vertexNormalCoord;
-    // std::vector<ps2math::Vec4> _vertexColorCoord;
     std::vector<texel_t> _texCoordinates;
     std::vector<Texture> _textureList;
     ps2math::Mat4 _worldMatrix;

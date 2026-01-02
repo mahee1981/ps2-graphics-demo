@@ -89,7 +89,6 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
     _texCoordinates.reserve(attrib.texcoords.size() / 2);
     _vertexPositionCoord.reserve(attrib.vertices.size() / 3);
     _vertexNormalCoord.reserve(attrib.normals.size() / 3);
-    // _vertexColorCoord.reserve(attrib.vertices.size() / 3);
     for (size_t vi = 0; vi < attrib.vertices.size() / 3; ++vi)
     {
         tinyobj::real_t vx = attrib.vertices[3 * vi + 0];
@@ -97,10 +96,6 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
         tinyobj::real_t vz = attrib.vertices[3 * vi + 2];
         _vertexPositionCoord.emplace_back(vx, vy, vz, 1.0f);
 
-        // tinyobj::real_t cx = attrib.vertices[3 * vi + 0];
-        // tinyobj::real_t cy = attrib.vertices[3 * vi + 1];
-        // tinyobj::real_t cz = attrib.vertices[3 * vi + 2];
-        // _vertexColorCoord.emplace_back(cx, cy, cz, 1.0f);
     }
 
     for (size_t ni = 0; ni < attrib.normals.size() / 3; ++ni)
@@ -128,12 +123,12 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
         Mesh newMesh;
         newMesh.TexIndices.reserve(shapes[s].mesh.indices.size());
         newMesh.VertexIndices.reserve(shapes[s].mesh.indices.size());
-        newMesh._normalIndices.reserve(shapes[s].mesh.indices.size());
+        newMesh.NormalIndices.reserve(shapes[s].mesh.indices.size());
 
         for (const auto &idx : shapes[s].mesh.indices)
         {
             newMesh.VertexIndices.push_back(idx.vertex_index);
-            newMesh._normalIndices.push_back(idx.normal_index >= 0 ? idx.normal_index : -1);
+            newMesh.NormalIndices.push_back(idx.normal_index >= 0 ? idx.normal_index : -1);
             if (idx.texcoord_index >= 0)
             {
                 newMesh.TexIndices.push_back(idx.texcoord_index);
