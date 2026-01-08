@@ -45,27 +45,10 @@ class Model
         return meshList;
     }
 
-    inline const std::vector<ps2math::Vec4> &GetVertexPositions() const
-    {
-        return _vertexPositionCoord;
-    }
-
-    inline const std::vector<ps2math::Vec4> &GetVertexNormals() const
-    {
-        return _vertexNormalCoord;
-    }
-
-    inline const std::vector<texel_t> &GetTexturePositions() const
-    {
-        return _texCoordinates;
-    }
 
 
   private:
     std::vector<Mesh> meshList;
-    std::vector<ps2math::Vec4> _vertexPositionCoord;
-    std::vector<ps2math::Vec4> _vertexNormalCoord;
-    std::vector<texel_t> _texCoordinates;
     std::vector<Texture> _textureList;
     ps2math::Mat4 _worldMatrix;
     Components::Transform _transformComponent;

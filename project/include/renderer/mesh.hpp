@@ -1,6 +1,8 @@
 #ifndef MESH_HPP
 #define MESH_HPP
 
+#include "VU0Math/mat4.hpp"
+#include "VU0Math/vec4.hpp"
 #include "tiny_obj_loader.h"
 #include <debug.h>
 #include <draw_types.h>
@@ -10,9 +12,9 @@ namespace Renderer
 class Mesh
 {
   public:
-    std::vector<int> VertexIndices;
-    std::vector<int> NormalIndices;
-    std::vector<int> TexIndices;
+    std::vector<ps2math::Vec4> Vertices;
+    std::vector<ps2math::Vec4> Normals;
+    std::vector<texel_t> Texels;
 };
 } // namespace Renderer
 #endif

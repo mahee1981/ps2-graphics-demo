@@ -267,6 +267,14 @@ ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectR
 
     return perspective;
 }
+ps2math::Mat4 ps2math::Mat4::viewportTransformation(const ps2math::Mat4 &perspective, int screenWidth, int screenHeight, int xOff, int yOff, int zRange)
+{
+    Mat4 work;
+    work = Mat4::scale(work, ps2math::Vec4{static_cast<float>(screenWidth / 2), static_cast<float>(screenHeight / 2), static_cast<float>(zRange / 2), 1.0f});
+    work = Mat4::translate(work, ps2math::Vec4{static_cast<float>(xOff), static_cast<float>(yOff), static_cast<float>(zRange / 2), 1.0f});
+
+    return perspective * work;
+}
 
 void ps2math::Mat4::PrintMatrix()
 {
