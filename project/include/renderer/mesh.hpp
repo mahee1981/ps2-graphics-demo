@@ -14,7 +14,7 @@ class Mesh
   public:
     std::vector<ps2math::Vec4> Vertices;
     std::vector<ps2math::Vec4> Normals;
-    std::vector<texel_t> Texels;
+    std::vector<ps2math::Vec4> Texels;
 };
 } // namespace Renderer
 #endif

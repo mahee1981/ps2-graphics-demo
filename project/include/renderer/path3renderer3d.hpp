@@ -39,7 +39,6 @@ class Path3Renderer3D : public IRenderer3D
     // TODO: need to make transfers dynamic and split it into slices if bigger than u16_max
     // OPTIONAL: make packed DMA transfers
     std::array<packet2_t *, 2> drawBuffer;
-    static constexpr u16 MAX_PACKET_SIZE = 0xFFFF;
     u32 context;
     bool isDebuggingEnabled;
     Deltawatch lastDisplayListPrepWatch;
@@ -49,7 +48,7 @@ class Path3Renderer3D : public IRenderer3D
                                     const std::vector<ps2math::Vec4> &transformedVertices,
                                     const ps2math::Mat4 &modelMatrix,
                                     const Light::BaseLight &mainLight);
-    void AddVertexToDisplayList(const texel_t &texel,
+    void AddVertexToDisplayList(const ps2math::Vec4 &texel,
                                 const ps2math::Vec4 &vertex,
                                 const Colors::Color &lightColor,
                                 bool kickVertex);

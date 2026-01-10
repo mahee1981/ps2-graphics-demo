@@ -267,6 +267,15 @@ ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectR
 
     return perspective;
 }
+ps2math::Mat4 ps2math::Mat4::SpecializePerspectiveForVU1(const ps2math::Mat4 &perspective, float width, float height)
+{
+    ps2math::Mat4 work = perspective;
+
+    work.data[0] = work.data[0] * width / 4096.0f; 
+    work.data[5] = work.data[5] * height / 4096.0f;
+
+    return work;
+}
 ps2math::Mat4 ps2math::Mat4::viewportTransformation(const ps2math::Mat4 &perspective, int screenWidth, int screenHeight, int xOff, int yOff, int zRange)
 {
     Mat4 work;

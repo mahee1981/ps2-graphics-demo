@@ -108,7 +108,7 @@ void Path3Renderer3D::RenderFrame(const std::vector<Model> &models,
     }
 }
 
-inline void Path3Renderer3D::AddVertexToDisplayList(const texel_t &texel,
+inline void Path3Renderer3D::AddVertexToDisplayList(const ps2math::Vec4 &texel,
                                                const ps2math::Vec4 &vertex,
                                                const Colors::Color &lightColor,
                                                bool kickVertex = false)
@@ -117,9 +117,10 @@ inline void Path3Renderer3D::AddVertexToDisplayList(const texel_t &texel,
     // can have you lose three months of development time on PS2
     // game engines
     static constexpr texel_t zeroTexel = {.u = 1.0f, .v = 1.0f};
+    texel_t texelSDK = {.u = texel.x, .v = texel.y};
 
     // texels
-    packet2_add_u64(drawBuffer[context], texel.uv);
+    packet2_add_u64(drawBuffer[context], texelSDK.uv);
     packet2_add_u64(drawBuffer[context], zeroTexel.uv);
     // color
     packet2_add_u64(drawBuffer[context], (u64{lightColor.b} & 0xFF) << 32 | (u64{lightColor.r} & 0xFF));
@@ -129,7 +130,7 @@ inline void Path3Renderer3D::AddVertexToDisplayList(const texel_t &texel,
                     u64{Utils::FloatToFixedPoint<u16, 4>((vertex.y))} << 32 |
                         u64{Utils::FloatToFixedPoint<u16, 4>(vertex.x)});
     packet2_add_u64(drawBuffer[context],
-                    static_cast<u64>(vertex.z) |
+                    u64{Utils::FloatToFixedPoint<u16,4>(vertex.z)} |
                         (static_cast<u64>(kickVertex & 0x01) << 48)); // on every third vertex send a drawing kick :)
 }
 // TODO: Benchmark REGLIST mode

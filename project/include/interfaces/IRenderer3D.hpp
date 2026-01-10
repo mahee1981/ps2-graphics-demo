@@ -12,6 +12,7 @@ class IRenderer3D
 protected:
     static constexpr float xOff = 2048.0f;
     static constexpr float yOff = 2048.0f;
+    static constexpr u16 MAX_PACKET_SIZE = 0xFFFF;
 public:
     virtual void SetPerspectiveMatrix(float angleRadians, float aspecRation, float near, float far) = 0;
     virtual const ps2math::Mat4 &GetPerspectiveMatrix() const = 0;

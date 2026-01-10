@@ -9,6 +9,10 @@
 # Helpers to make easy the use of newlib-nano
 NODEFAULTLIBS = 0
 
+EE_DVP = dvp-as
+VCL = vcl
+VCLPP = vclpp
+
 LIBC = -lc
 LIBM = -lm
 ifeq ($(NEWLIB_NANO), 1)
@@ -81,3 +85,15 @@ $(EE_ERL): $(EE_OBJS)
 
 $(EE_LIB): $(EE_OBJS)
 	$(EE_AR) cru $(EE_LIB) $(EE_OBJS)
+
+# bin/%.o: src/%.vsm
+# 	$(EE_DVP) $< -o $@
+# src/%.vsm_pp: src/%.vcl
+# 	$(VCLPP) $< $@
+# src/%.vsm: src/%.vsm_pp
+# 	$(VCL) $< > $@
+
+bin/%.o: src/%.vcl
+	$(VCLPP) $< src/$*.vsm_pp
+	$(VCL) src/$*.vsm_pp > src/$*.vsm
+	$(EE_DVP) src/$*.vsm -o $@

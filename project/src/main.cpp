@@ -21,6 +21,7 @@
 #include "renderer/Camera.hpp"
 #include "renderer/model.hpp"
 #include "renderer/path3renderer3d.hpp"
+#include "renderer/path1renderer3d.hpp"
 #include "tools/Deltawatch.hpp"
 
 using namespace Input;
@@ -29,6 +30,8 @@ using namespace Renderer;
 constexpr int width = 640;
 constexpr int height = 448;
 
+extern u32 VU1Draw3D_CodeStart __attribute__((section(".vudata")));
+extern u32 VU1Draw3D_CodeEnd __attribute__((section(".vudata")));
 
 void InitializeDMAC()
 {
@@ -58,7 +61,16 @@ void render()
     LOG_INFO("Starting to init GS and draw environment");
 
     auto drawEnv = DrawingEnvironment(width, height, BufferingConfig::DOUBLE_BUFFER);
-    auto renderer3d = Path3Renderer3D(width, height);
+    std::unique_ptr<IRenderer3D> renderer3d = std::make_unique<Path1Renderer3D>(width, height);
+
+    if(auto path1Renderer = dynamic_cast<Path1Renderer3D*>(renderer3d.get()); path1Renderer != nullptr)
+    {
+        LOG_INFO("Detected path 1 renderer");
+        dma_channel_initialize(DMA_CHANNEL_VIF1, NULL, 0);
+        dma_channel_fast_waits(DMA_CHANNEL_VIF1);
+        path1Renderer->UploadVU1MicroProgram(&VU1Draw3D_CodeStart, &VU1Draw3D_CodeEnd);
+        path1Renderer->SetDoubleBufferSettings();
+    }
 
     drawEnv.InitializeEnvironment();
 
@@ -86,7 +98,8 @@ void render()
     std::vector<Model> modelList;
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, 70.0f, 1.0f}});
 
-    modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
+    // modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
+    modelList[0].LoadModel("CUBE/cube.obj");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
     // myModel.LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
     // myModel.LoadModel("AIRPLANE/AIRPLANE.OBJ", "AIRPLANE/");
@@ -128,7 +141,7 @@ void render()
 
         if (controllerInput.getClicked().Cross == 1)
         {
-            renderer3d.ToggleDebugPrint();
+            renderer3d->ToggleDebugPrint();
         }
 
         if (angle > 360.0f)
@@ -143,18 +156,18 @@ void render()
         for(auto &model : modelList)
         {
             Components::Transform &transformComponentRef = model.GetTransformComponent();
-            transformComponentRef.SetScaleFactor(0.5f);
+            transformComponentRef.SetScaleFactor(10.5f);
             transformComponentRef.SetAngleZ(180.0f);
             transformComponentRef.SetAngleY(angle);
 
             // transformComponentRef.SetAngleY(angle);
-            transformComponentRef.SetTranslate(0.0f, 20.0f, 70.0f + moveHorizontal);
+            transformComponentRef.SetTranslate(0.0f, 0.0f, 70.0f + moveHorizontal);
 
             // TODO: to be handled by transform system
             model.Update();
 
         }
-        renderer3d.RenderFrame(modelList, mainLight, myCamera.CalculateViewMatrix());
+        renderer3d->RenderFrame(modelList, mainLight, myCamera.CalculateViewMatrix());
 
         deltaWatch.CaptureEndMoment();
         drawEnv.SwapBuffers();

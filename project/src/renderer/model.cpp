@@ -100,14 +100,11 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
                 {
                     tinyobj::real_t tx = attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
                     tinyobj::real_t ty = attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
-                    texel_t texel;
-                    texel.u = tx;
-                    texel.v = ty;
-                    newMesh.Texels.emplace_back(std::move(texel));
+                    newMesh.Texels.emplace_back(ps2math::Vec4{tx, ty, 1.0f, 0.0f});
                 }
                 else
                 {
-                    newMesh.Texels.emplace_back(texel_t{});
+                    newMesh.Texels.emplace_back(ps2math::Vec4{0.0f, 0.0f, 1.0f, 1.0f});
                 }
             }
             index_offset += fv;
