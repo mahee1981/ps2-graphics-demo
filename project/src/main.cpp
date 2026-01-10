@@ -153,6 +153,7 @@ void render()
         myCamera.RotationControl(controllerInput.getRightJoyPad(), deltaMs);
         dma_wait_fast();
         dma_channel_send_packet2(clearScreenPacket, DMA_CHANNEL_GIF, 0);
+        draw_wait_finish();
         for(auto &model : modelList)
         {
             Components::Transform &transformComponentRef = model.GetTransformComponent();

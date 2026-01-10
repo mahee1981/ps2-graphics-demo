@@ -1045,3 +1045,7 @@ dkms.conf
 
 
 *.clangd
+
+
+#vector unit assembly intermediate files
+*.vsm_pp

@@ -80,7 +80,8 @@ loop:
     mul.xyz     vertex, vertex,     q
     mula.xyz    acc,    viewPortTransform,      vf00[w]     ; scale to GS screen space
     madd.xyz    vertex, vertex,     viewPortTransform       ; multiply and add the scales -> vert = vert * scale + scale
-    ftoi4.xyz   vertex, vertex                  ; convert vertex to 12:4 fixed point format
+    ftoi4.xy   vertex, vertex                  ; convert x and y to 12:4 fixed point format
+    ftoi0.z   vertex, vertex                  ; convert z to an integer
     ;////////////////////////////////////////////
  
     mulq modStq, Stq, q

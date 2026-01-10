@@ -8,7 +8,8 @@ namespace Renderer
 Path1Renderer3D::Path1Renderer3D(int width, int height)
     : _screenWidth(width), _screenHeight(height),
       _perspectiveMatrix(
-          ps2math::Mat4::perspective(Utils::ToRadians(60.0f), (float)width / (float)height, 0.1f, 2000.0f))
+          ps2math::Mat4::perspective(Utils::ToRadians(60.0f), (float)width / (float)height, 1.0f, 2000.0f))
+
 {
     dynamicPacket[0] = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
     dynamicPacket[1] = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
@@ -35,11 +36,12 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
                                   const ps2math::Mat4 &viewMat)
 {
     const auto viewProjMat = viewMat * _perspectiveMatrix;
+    // constexpr u32 MAX_QWORDS_PER_VIF_PACKET = 120;
     for (const Model &model : models)
     {
         packet2_add_float(staticPacket, 2048.0F);        // scale
         packet2_add_float(staticPacket, 2048.0F);        // scale
-        packet2_add_float(staticPacket, (float(0xFFFFFF)) / 32.0F); // scale
+        packet2_add_float(staticPacket, float(1 << 31) / 2.0F); // scale
         std::size_t vertexCount = model.GetMeshList()[0].Vertices.size();            
         packet2_add_s32(staticPacket, vertexCount);
         packet2_utils_gs_add_prim_giftag(staticPacket, &primitiveTypeConfig, vertexCount, DRAW_STQ2_REGLIST, 3, 0);
@@ -52,12 +54,13 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
 
         for (const auto &mesh : model.GetMeshList())
         {
+
             auto &currentVifPacket = dynamicPacket[context];
             packet2_reset(currentVifPacket, 0);
 
             // Add the matrix at the top of the memory and skip the TOP register shenaningans
             // reserving 10 qwords for this is an overkill, but whatever
-            packet2_utils_vu_add_unpack_data(currentVifPacket, 0, mvp.GetDataPtr(), 8, 0);
+            packet2_utils_vu_add_unpack_data(currentVifPacket, 0, mvp.GetDataPtr(), 4, 0);
 
             u32 vifAddedBytes = 0; // zero because now we will use TOP register (double buffer)
                                      // we don't wan't to unpack at 8 + beggining of buffer, but at
@@ -72,11 +75,11 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
             vifAddedBytes += packet2_get_qw_count(staticPacket);
 
             // Add vertices
-            packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, (void*)mesh.Vertices.data(), vertexCount, 1);
+            packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, (void*)(mesh.Vertices.data()), vertexCount, 1);
             vifAddedBytes += vertexCount; // one VECTOR is size of qword
 
             // Add sts
-            packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, (void*)mesh.Texels.data(), vertexCount, 1);
+            packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, (void*)(mesh.Texels.data()), vertexCount, 1);
             vifAddedBytes += vertexCount;
 
             packet2_utils_vu_add_start_program(currentVifPacket, 0);
@@ -90,7 +93,6 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
 
         packet2_reset(staticPacket, 0);
     }
-    draw_wait_finish();
     graph_wait_vsync();
 
 
