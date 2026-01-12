@@ -11,9 +11,9 @@ Path1Renderer3D::Path1Renderer3D(int width, int height)
           ps2math::Mat4::perspective(Utils::ToRadians(60.0f), (float)width / (float)height, 1.0f, 2000.0f))
 
 {
-    dynamicPacket[0] = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-    dynamicPacket[1] = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-    staticPacket = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
+    dynamicPacket[0] = packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
+    dynamicPacket[1] = packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
+    staticPacket = packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
     _perspectiveMatrix = ps2math::Mat4::SpecializePerspectiveForVU1(_perspectiveMatrix, width, height);
 }
 void Path1Renderer3D::SetPerspectiveMatrix(float angleRadians, float aspectRatio, float near, float far)
@@ -31,20 +31,64 @@ void Path1Renderer3D::UploadVU1MicroProgram(u32 *VU1Draw3D_CodeStart, u32 *VU1Dr
     dma_channel_wait(DMA_CHANNEL_VIF1, 0);
     packet2_free(packet2);
 }
+void Path1Renderer3D::RenderChunck(const std::size_t vertexCount, ps2math::Mat4 &mvp, const Mesh &mesh, const std::size_t offset)
+{
+    auto &currentVifPacket = dynamicPacket[context];
+    packet2_reset(currentVifPacket, 0);
+
+    // Add the matrix at the top of the memory and skip the TOP register shenaningans
+    // reserving 10 qwords for this is an overkill, but whatever
+    packet2_utils_vu_add_unpack_data(currentVifPacket, 0, mvp.GetDataPtr(), 4, 0);
+
+    u32 vifAddedBytes = 0; // zero because now we will use TOP register (double buffer)
+                           // we don't wan't to unpack at 8 + beggining of buffer, but at
+                           // the beggining of the buffer
+
+    // Merge packets
+    packet2_utils_vu_add_unpack_data(currentVifPacket,
+                                     vifAddedBytes,
+                                     staticPacket->base,
+                                     packet2_get_qw_count(staticPacket),
+                                     1);
+    vifAddedBytes += packet2_get_qw_count(staticPacket);
+
+    // Add vertices
+    packet2_utils_vu_add_unpack_data(currentVifPacket,
+                                     vifAddedBytes,
+                                     (void *)(mesh.Vertices.data() + offset),
+                                     vertexCount,
+                                     1);
+    vifAddedBytes += vertexCount; // one VECTOR is size of qword
+
+    // Add sts
+    packet2_utils_vu_add_unpack_data(currentVifPacket,
+                                     vifAddedBytes,
+                                     (void *)(mesh.Texels.data() + offset),
+                                     vertexCount,
+                                     1);
+    vifAddedBytes += vertexCount;
+
+    packet2_utils_vu_add_start_program(currentVifPacket, 0); // ensures that the previous program is over
+    packet2_utils_vu_add_end_tag(currentVifPacket);
+    dma_channel_wait(DMA_CHANNEL_VIF1, 0);
+    dma_channel_send_packet2(currentVifPacket, DMA_CHANNEL_VIF1, 1);
+
+    // Switch packet, so we can proceed during DMA transfer
+    context = !context;
+}
 void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
                                   const Light::BaseLight &mainLight,
                                   const ps2math::Mat4 &viewMat)
 {
     const auto viewProjMat = viewMat * _perspectiveMatrix;
-    // constexpr u32 MAX_QWORDS_PER_VIF_PACKET = 120;
+    constexpr std::size_t MAX_QWORDS_PER_VIF_PACKET = 240;
     for (const Model &model : models)
     {
         packet2_add_float(staticPacket, 2048.0F);        // scale
         packet2_add_float(staticPacket, 2048.0F);        // scale
         packet2_add_float(staticPacket, float(1 << 31) / 2.0F); // scale
-        std::size_t vertexCount = model.GetMeshList()[0].Vertices.size();            
-        packet2_add_s32(staticPacket, vertexCount);
-        packet2_utils_gs_add_prim_giftag(staticPacket, &primitiveTypeConfig, vertexCount, DRAW_STQ2_REGLIST, 3, 0);
+        packet2_add_s32(staticPacket, MAX_QWORDS_PER_VIF_PACKET);
+        packet2_utils_gs_add_prim_giftag(staticPacket, &primitiveTypeConfig, MAX_QWORDS_PER_VIF_PACKET, DRAW_STQ2_REGLIST, 3, 0);
         u8 j = 0; // RGBA
         for (j = 0; j < 4; j++)
             packet2_add_u32(staticPacket, 128);
@@ -54,41 +98,19 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
 
         for (const auto &mesh : model.GetMeshList())
         {
+            std::size_t totalVertexCount = mesh.Vertices.size();
+            std::size_t numberOfWholeLoopIterations = totalVertexCount / MAX_QWORDS_PER_VIF_PACKET;
+            std::size_t remainder = totalVertexCount % MAX_QWORDS_PER_VIF_PACKET;
 
-            auto &currentVifPacket = dynamicPacket[context];
-            packet2_reset(currentVifPacket, 0);
-
-            // Add the matrix at the top of the memory and skip the TOP register shenaningans
-            // reserving 10 qwords for this is an overkill, but whatever
-            packet2_utils_vu_add_unpack_data(currentVifPacket, 0, mvp.GetDataPtr(), 4, 0);
-
-            u32 vifAddedBytes = 0; // zero because now we will use TOP register (double buffer)
-                                     // we don't wan't to unpack at 8 + beggining of buffer, but at
-                                     // the beggining of the buffer
-
-            // Merge packets
-            packet2_utils_vu_add_unpack_data(currentVifPacket,
-                                             vifAddedBytes,
-                                             staticPacket->base,
-                                             packet2_get_qw_count(staticPacket),
-                                             1);
-            vifAddedBytes += packet2_get_qw_count(staticPacket);
-
-            // Add vertices
-            packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, (void*)(mesh.Vertices.data()), vertexCount, 1);
-            vifAddedBytes += vertexCount; // one VECTOR is size of qword
-
-            // Add sts
-            packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, (void*)(mesh.Texels.data()), vertexCount, 1);
-            vifAddedBytes += vertexCount;
-
-            packet2_utils_vu_add_start_program(currentVifPacket, 0);
-            packet2_utils_vu_add_end_tag(currentVifPacket);
-            dma_channel_wait(DMA_CHANNEL_VIF1, 0);
-            dma_channel_send_packet2(currentVifPacket, DMA_CHANNEL_VIF1, 1);
-
-            // Switch packet, so we can proceed during DMA transfer
-            context = !context;
+            for(std::size_t offset = 0; offset < numberOfWholeLoopIterations * MAX_QWORDS_PER_VIF_PACKET; offset += MAX_QWORDS_PER_VIF_PACKET) 
+            {
+                RenderChunck(MAX_QWORDS_PER_VIF_PACKET, mvp, mesh, offset);
+                break;
+            }
+            // if(remainder != 0)
+            // {
+            //     RenderChunck(remainder, mvp, mesh, numberOfWholeLoopIterations * MAX_QWORDS_PER_VIF_PACKET);
+            // }
         }
 
         packet2_reset(staticPacket, 0);

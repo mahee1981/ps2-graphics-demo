@@ -30,6 +30,7 @@ class Path1Renderer3D : public IRenderer3D
     ps2math::Mat4 _perspectiveMatrix;
     alignas(64) packet2_t * dynamicPacket[2];
 
+    void RenderChunck(const std::size_t vertexCount, ps2math::Mat4 &mvp, const Mesh &mesh, const std::size_t offset);
     packet2_t * staticPacket;
     std::size_t context;
     static prim_t primitiveTypeConfig;
