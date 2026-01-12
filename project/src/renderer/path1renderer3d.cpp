@@ -115,8 +115,8 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
                                   const ps2math::Mat4 &viewMat)
 {
     const auto viewProjMat = viewMat * _perspectiveMatrix;
-    constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET =
-        99; // must be divisble by 3 so you avoid atrifacts between batches dumass
+    // must be divisble by 3 so you avoid atrifacts between batches dumass
+    constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 99;
     for (const Model &model : models)
     {
         ps2math::Mat4 mvp = model.GetWorldMatrix() * viewProjMat;

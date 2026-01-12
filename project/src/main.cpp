@@ -10,7 +10,6 @@
 #include <memory>
 #include <vector>
 
-#include "VU0Math/mat4.hpp"
 #include "VU0Math/vec4.hpp"
 #include "graphics/DrawingEnvironment.hpp"
 #include "graphics/STBITextureLoader.hpp"
