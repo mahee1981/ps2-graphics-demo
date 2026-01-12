@@ -1,4 +1,5 @@
 #include "VU0Math/mat4.hpp"
+#include "logging/log.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -266,6 +267,25 @@ ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectR
     perspective.data[14] = (2 * far * near) / (near - far);
 
     return perspective;
+}
+ps2math::Mat4 ps2math::Mat4::SpecializePerspectiveForVU1(const ps2math::Mat4 &perspective, float width, float height)
+{
+    ps2math::Mat4 work = perspective;
+
+    work.data[0] = work.data[0] * width / 4096.0f; 
+    work.data[5] = work.data[5] * height / 4096.0f;
+
+    return work;
+}
+ps2math::Mat4 ps2math::Mat4::viewportTransformation(const ps2math::Mat4 &perspective, int screenWidth, int screenHeight, int xOff, int yOff, int zRange)
+{
+    Mat4 work;
+    float zBuffRange = static_cast<float>(zRange / 2);
+    LOG_INFO("zbuffer scale:")<< zBuffRange;
+    work = Mat4::scale(work, ps2math::Vec4{static_cast<float>(screenWidth / 2), static_cast<float>(screenHeight / 2), zBuffRange, 1.0f});
+    work = Mat4::translate(work, ps2math::Vec4{static_cast<float>(xOff), static_cast<float>(yOff), static_cast<float>(zRange / 2), 1.0f});
+
+    return perspective * work;
 }
 
 void ps2math::Mat4::PrintMatrix()

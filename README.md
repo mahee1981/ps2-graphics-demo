@@ -11,9 +11,9 @@ Milestones:
  - Logging Framework
  - Simple Dynamic Lighting
  - IN PROGRESS: Math on EE core and VU0
+ - IN PROGRESS: VU1 Rendering Pipeline
  - TODO: Advanced Clipping Algorithm
  - TODO: VRAM Resource Management
- - TODO: VU1 Rendering Pipeline
 
 Latest results:
 

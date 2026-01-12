@@ -6,35 +6,22 @@ namespace Light
 
 ps2math::Vec4 CalculateLighting(const ps2math::Vec4 &normal, const BaseLight &light)
 {
-    ps2math::Vec4 result;
     const ps2math::Vec4 &lightDir = light.GetDirection();
     const ps2math::Vec4 &lightColor = light.GetColor();
     float ambientIntensity = light.GetAmbientIntensity();
     float diffuseIntensity = light.GetDiffuseIntensity();
+    float specularIntensity = light.GetSpecularIntensity();
 
-    // Calculate dot product using VU0 macro mode
-    float dotProduct;
-    asm volatile("lqc2 $vf1, 0x00(%1)    \n"
-                 "lqc2 $vf2, 0x00(%2)    \n"
-                 "vmul $vf3, $vf1, $vf2  \n"
-                 "sqc2 $vf3, 0x00(%0)    \n"
-                 :
-                 : "r"(&result), "r"(&normal), "r"(&lightDir)
-                 : "memory");
+    float diffuseImpact = -(ps2math::DotProduct(normal, lightDir));
+    diffuseImpact = std::max(0.0f, diffuseImpact);
 
-    dotProduct = -(result.x + result.y + result.z);
-    dotProduct = std::max(0.0f, dotProduct);
+
 
     // Ambient + Diffuse
-    float finalIntensity = ambientIntensity + (diffuseIntensity * dotProduct);
+    float finalIntensity = ambientIntensity + (diffuseIntensity * diffuseImpact);
     finalIntensity = std::min(1.0f, finalIntensity);
 
-    result.x = lightColor.x * finalIntensity;
-    result.y = lightColor.y * finalIntensity;
-    result.z = lightColor.z * finalIntensity;
-    result.w = 1.0f;
-
-    return result;
+    return lightColor * finalIntensity;
 }
 
 Colors::Color CalculateLightingRGBA8(const ps2math::Vec4 &normal, const BaseLight &light)

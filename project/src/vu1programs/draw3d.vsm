@@ -1,0 +1,69 @@
+;-------------------------
+;-------------------------
+;-----VCL CODE------------
+;-------------------------
+;-------------------------
+; =================================================
+; flowMon::Emit() vcl 1.4beta7 produced this code:
+		.vu
+		.align 4
+		.global	VU1Draw3D_CodeStart
+		.global	VU1Draw3D_CodeEnd
+VU1Draw3D_CodeStart:
+setup:
+; _LNOPT_w=[ normal2 ] 6 [6 0] 6   [setup]
+         NOP                                                        lq            VF01,0(VI00)                        
+         NOP                                                        lq            VF02,1(VI00)                        
+         NOP                                                        lq            VF03,2(VI00)                        
+         NOP                                                        lq            VF04,3(VI00)                        
+         NOP                                                        lq.xyz        VF05,4(VI00)                        
+         NOP                                                        lq            VF06,5(VI00)                        
+begin:
+; _LNOPT_w=[ normal2 ] 10 [10 0] 10   [begin]
+         NOP                                                        xtop          VI02                                
+         NOP                                                        ilw.w         VI07,0(VI02)                        
+         NOP                                                        lq            VF07,1(VI02)                        
+         NOP                                                        iaddiu        VI03,VI02,0x00000002                
+         NOP                                                        fcset         0                                   
+         NOP                                                        iadd          VI04,VI03,VI07                      
+         NOP                                                        iadd          VI06,VI04,VI07                      
+         NOP                                                        iadd          VI05,VI04,VI07                      
+         NOP                                                        sqi           VF07,(VI06++)                       
+         NOP                                                        iadd          VI07,VI02,VI07                      
+loop:
+; _LNOPT_w=[ normal2 ] 16 [31 15] 32   [loop]
+         NOP                                                        lq            VF07,0(VI03)                        
+         mulax         ACC,VF01,VF07x                               sq            VF06,1(VI06)                               ;	STALL_LATENCY ?3
+         madday        ACC,VF02,VF07y                               iaddiu        VI04,VI04,0x00000001                
+         maddaz        ACC,VF03,VF07z                               iaddiu        VI06,VI06,0x00000003                
+         maddw         VF07,VF04,VF07w                              NOP                                               
+         clipw.xyz     VF07xyz,VF07w                                div           Q,VF00w,VF07w                              ;	STALL_LATENCY ?3
+         mulq.xyz      VF07,VF07,Q                                  waitq                                                    ;	STALL_LATENCY ?6
+         mulaw.xyz     ACC,VF05,VF00w                               lq            VF08,-1(VI04)                       
+         madd.xyz      VF07,VF07,VF05                               iaddiu        VI03,VI03,0x00000001                       ;	STALL_LATENCY ?2
+         mulq          VF08,VF08,Q                                  isubiu        VI07,VI07,1                         
+         ftoi4.xy      VF07,VF07                                    fcand         VI01,262143                                ;	STALL_LATENCY ?2
+         ftoi0.z       VF07,VF07                                    iaddiu        VI01,VI01,0x00007fff                
+         NOP                                                        isw.w         VI01,-1(VI06)                       
+         NOP                                                        sq            VF08,-3(VI06)                       
+         NOP                                                        ibne          VI07,VI02,loop                      
+         NOP                                                        sq.xyz        VF07,-1(VI06)                       
+; _LNOPT_w=[ normal2 ] 1 [1 0] 1   [loopend]
+         NOP                                                        xgkick        VI05                                
+; _LNOPT_w=[ normal2 ] 2 [0 0] 2   [__v_src_vu1programs_draw3d_vsm_pp_8]
+         NOP[E]                                                     NOP                                               
+         NOP                                                        NOP                                               
+; _LNOPT_w=[ normal2 ] 2 [2 0] 2   [__v_src_vu1programs_draw3d_vsm_pp_9]
+         NOP                                                        b             begin                               
+         NOP                                                        NOP                                               
+		.align 4
+VU1Draw3D_CodeEnd:
+;	iCount=37
+; register stats:
+;   8 VU User integer
+;   9 VU User floating point
+;-------------------------
+;-------------------------
+;-------------------------
+;-------------------------
+;-------------------------
