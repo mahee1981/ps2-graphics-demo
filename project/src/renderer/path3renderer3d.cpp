@@ -14,7 +14,7 @@ Path3Renderer3D::Path3Renderer3D(int width, int height)
       _perspectiveMatrix(
           ps2math::Mat4::perspective(Utils::ToRadians(60.0f), (float)width / (float)height, 0.1f, 2000.0f)),
       _viewPortMatrix(
-          ps2math::Mat4::viewportTransformation(ps2math::Mat4::identity(), width, height, xOff, yOff,  1 << 31)),
+          ps2math::Mat4::viewportTransformation(ps2math::Mat4::identity(), width, height, xOff, yOff,  0x80000000/* 1 << 31 */)),
       context(0), trianglesRendered(0)
 {
     LOG_INFO("Created perspective matrix");
@@ -130,7 +130,7 @@ inline void Path3Renderer3D::AddVertexToDisplayList(const ps2math::Vec4 &texel,
                     u64{Utils::FloatToFixedPoint<u16, 4>((vertex.y))} << 32 |
                         u64{Utils::FloatToFixedPoint<u16, 4>(vertex.x)});
     packet2_add_u64(drawBuffer[context],
-                    u64{Utils::FloatToFixedPoint<u16,4>(vertex.z)} |
+                    u64{u32(vertex.z)} |
                         (static_cast<u64>(kickVertex & 0x01) << 48)); // on every third vertex send a drawing kick :)
 }
 // TODO: Benchmark REGLIST mode

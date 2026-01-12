@@ -65,6 +65,7 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
         newMesh.Vertices.reserve(shapes[s].mesh.indices.size());
         newMesh.Normals.reserve(shapes[s].mesh.indices.size());
         newMesh.Texels.reserve(shapes[s].mesh.indices.size());
+        LOG_INFO("Mesh ") << s << " size: " << shapes[s].mesh.indices.size();
         // Loop over faces(polygon)
         size_t index_offset = 0;
         for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)

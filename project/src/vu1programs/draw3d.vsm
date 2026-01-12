@@ -11,22 +11,24 @@
 		.global	VU1Draw3D_CodeEnd
 VU1Draw3D_CodeStart:
 setup:
-; _LNOPT_w=[ normal2 ] 16 [16 0] 16   [setup]
-         NOP                                                        xtop          VI02                                
+; _LNOPT_w=[ normal2 ] 6 [6 0] 6   [setup]
          NOP                                                        lq            VF01,0(VI00)                        
-         NOP                                                        lq            VF07,1(VI02)                        
          NOP                                                        lq            VF02,1(VI00)                        
-         NOP                                                        iaddiu        VI03,VI02,0x00000003                
-         NOP                                                        ilw.w         VI07,0(VI02)                        
          NOP                                                        lq            VF03,2(VI00)                        
          NOP                                                        lq            VF04,3(VI00)                        
-         NOP                                                        lq.xyz        VF05,0(VI02)                        
+         NOP                                                        lq.xyz        VF05,4(VI00)                        
+         NOP                                                        lq            VF06,5(VI00)                        
+begin:
+; _LNOPT_w=[ normal2 ] 10 [10 0] 10   [begin]
+         NOP                                                        xtop          VI02                                
+         NOP                                                        ilw.w         VI07,0(VI02)                        
+         NOP                                                        lq            VF07,1(VI02)                        
+         NOP                                                        iaddiu        VI03,VI02,0x00000002                
+         NOP                                                        fcset         0                                   
          NOP                                                        iadd          VI04,VI03,VI07                      
          NOP                                                        iadd          VI06,VI04,VI07                      
-         NOP                                                        lq            VF06,2(VI02)                        
          NOP                                                        iadd          VI05,VI04,VI07                      
          NOP                                                        sqi           VF07,(VI06++)                       
-         NOP                                                        fcset         0                                   
          NOP                                                        iadd          VI07,VI02,VI07                      
 loop:
 ; _LNOPT_w=[ normal2 ] 16 [31 15] 32   [loop]
@@ -46,13 +48,17 @@ loop:
          NOP                                                        sq            VF08,-3(VI06)                       
          NOP                                                        ibne          VI07,VI02,loop                      
          NOP                                                        sq.xyz        VF07,-1(VI06)                       
-; _LNOPT_w=[ normal2 ] 3 [1 0] 3   [loopend]
+; _LNOPT_w=[ normal2 ] 1 [1 0] 1   [loopend]
          NOP                                                        xgkick        VI05                                
+; _LNOPT_w=[ normal2 ] 2 [0 0] 2   [__v_src_vu1programs_draw3d_vsm_pp_8]
          NOP[E]                                                     NOP                                               
+         NOP                                                        NOP                                               
+; _LNOPT_w=[ normal2 ] 2 [2 0] 2   [__v_src_vu1programs_draw3d_vsm_pp_9]
+         NOP                                                        b             begin                               
          NOP                                                        NOP                                               
 		.align 4
 VU1Draw3D_CodeEnd:
-;	iCount=35
+;	iCount=37
 ; register stats:
 ;   8 VU User integer
 ;   9 VU User floating point

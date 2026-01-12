@@ -104,11 +104,11 @@ void render()
     // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -30.0f, 70.0f, 1.0f}});
     // modelList.emplace_back(Model{ps2math::Vec4{0.0f, 30.0f, 70.0f, 1.0f}});
 
-    modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
+    // modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
     // modelList[1].LoadModel("CAT/MESH_CAT.OBJ");
     // modelList[0].LoadModel("CUBE/cube.obj");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
-    // modelList[0].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
+    modelList[0].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
     // modelList[1].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
     // modelList[2].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
     // modelList[3].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
@@ -170,7 +170,7 @@ void render()
         for(auto &model : modelList)
         {
             Components::Transform &transformComponentRef = model.GetTransformComponent();
-            transformComponentRef.SetScaleFactor(0.5f);
+            transformComponentRef.SetScaleFactor(2.5f);
             transformComponentRef.SetAngleZ(180.0f);
             transformComponentRef.SetAngleY(angle);
 
