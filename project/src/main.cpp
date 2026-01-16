@@ -36,8 +36,6 @@ void InitializeDMAC()
 {
     dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
     dma_channel_fast_waits(DMA_CHANNEL_GIF);
-    dma_channel_initialize(DMA_CHANNEL_VIF1, NULL, 0);
-    dma_channel_fast_waits(DMA_CHANNEL_VIF1);
 }
 
 
@@ -67,6 +65,8 @@ void render()
     if(auto path1Renderer = dynamic_cast<Path1Renderer3D*>(renderer3d.get()); path1Renderer != nullptr)
     {
         LOG_INFO("Detected path 1 renderer");
+        dma_channel_initialize(DMA_CHANNEL_VIF1, NULL, 0);
+        dma_channel_fast_waits(DMA_CHANNEL_VIF1);
         path1Renderer->UploadVU1MicroProgram(&VU1Draw3D_CodeStart, &VU1Draw3D_CodeEnd);
         path1Renderer->SetDoubleBufferSettings();
     }
@@ -95,7 +95,7 @@ void render()
 
 
     std::vector<Model> modelList;
-    modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, 70.0f, 1.0f}});
+    modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, -70.0f, 1.0f}});
     // modelList.emplace_back(Model{ps2math::Vec4{0.0f, 20.0f, 70.0f, 1.0f}});
     // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -20.0f, 70.0f, 1.0f}});
     // modelList.emplace_back(Model{ps2math::Vec4{0.0f, 10.0f, 70.0f, 1.0f}});
@@ -105,9 +105,9 @@ void render()
 
     // modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
     // modelList[1].LoadModel("CAT/MESH_CAT.OBJ");
-    // modelList[0].LoadModel("CUBE/cube.obj");
+    modelList[0].LoadModel("CUBE/cube.obj");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
-    modelList[0].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
+    // modelList[0].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
     // modelList[1].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
     // modelList[2].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
     // modelList[3].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
@@ -170,11 +170,10 @@ void render()
         {
             Components::Transform &transformComponentRef = model.GetTransformComponent();
             transformComponentRef.SetScaleFactor(2.5f);
-            transformComponentRef.SetAngleZ(180.0f);
             transformComponentRef.SetAngleY(angle);
 
             // transformComponentRef.SetAngleY(angle);
-            transformComponentRef.SetTranslate(0.0f, transformComponentRef.GetTranslate().y, 70.0f + moveHorizontal);
+            transformComponentRef.SetTranslate(0.0f, transformComponentRef.GetTranslate().y, transformComponentRef.GetTranslate().z + moveHorizontal);
 
             // TODO: to be handled by transform system
             model.Update();

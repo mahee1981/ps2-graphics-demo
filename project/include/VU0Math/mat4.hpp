@@ -48,7 +48,7 @@ class Mat4
 
     static Mat4 LookAt(const Vec4 &eye, const Vec4 &center, const Vec4 &up);
     static Mat4 perspective(float fieldOfView, float aspectRatio, float nearPlaneDistance, float farPlaneDistance);
-    static Mat4 viewportTransformation(const Mat4 &perspective, int screenWidth, int screenHeight, int xOff, int yOff, int zRange);
+    static Mat4 viewportTransformation(const Mat4 &perspective, float screenWidth, float screenHeight, float xOff, float yOff, float zRange);
     static Mat4 SpecializePerspectiveForVU1(const Mat4 &perspective, float width, float height); 
 
     friend Mat4 operator*(const Mat4 &lhs, const Mat4 &rhs);

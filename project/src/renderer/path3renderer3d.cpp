@@ -13,8 +13,12 @@ Path3Renderer3D::Path3Renderer3D(int width, int height)
     : _screenWidth(width), _screenHeight(height),
       _perspectiveMatrix(
           ps2math::Mat4::perspective(Utils::ToRadians(60.0f), (float)width / (float)height, 0.1f, 2000.0f)),
-      _viewPortMatrix(
-          ps2math::Mat4::viewportTransformation(ps2math::Mat4::identity(), width, height, xOff, yOff,  0x80000000/* 1 << 31 */)),
+      _viewPortMatrix(ps2math::Mat4::viewportTransformation(ps2math::Mat4::identity(),
+                                                            width,
+                                                            height,
+                                                            xOff,
+                                                            yOff,
+                                                            float(0xFFFFFFFFu) / 16.0f)),
       context(0), trianglesRendered(0)
 {
     LOG_INFO("Created perspective matrix");

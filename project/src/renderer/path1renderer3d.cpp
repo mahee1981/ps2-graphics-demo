@@ -40,7 +40,7 @@ void Path1Renderer3D::PrepareStaticPacket()
 {
     packet2_add_float(staticPacket, 2048.0F);  // scale
     packet2_add_float(staticPacket, 2048.0F);  // scale
-    float zScale = float(s64(1 << 31)) / 2.0F; // this is bug that works :)
+    float zScale = float(0xFFFFFFFFu) / 32.0F;
     LOG_INFO("z-scale: ") << zScale;
     packet2_add_float(staticPacket, zScale); // scale
     packet2_add_float(staticPacket, 1.0f);   // scale
