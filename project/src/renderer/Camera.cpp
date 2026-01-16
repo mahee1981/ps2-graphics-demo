@@ -9,7 +9,7 @@ Camera::Camera(ps2math::Vec4 startPosition,
                float startPitch,
                float movementSpeed,
                float turnSpeed)
-    : _position(startPosition), _front(0.0f, 0.0f, -1.0f, 1.0f), _worldUp(startUp), _yaw(startYaw), _pitch(startPitch),
+    : _position(startPosition), _front(0.0f, 0.0f, 1.0f, 1.0f), _worldUp(startUp), _yaw(startYaw), _pitch(startPitch),
       _movementSpeed(movementSpeed), _turnSpeed(turnSpeed)
 {
     update();
@@ -33,7 +33,7 @@ void Camera::MotionControl(const Input::PadJoy &leftStick, float deltaTime)
     y = (y / magnitude) * scale;
 
     // Camera-space movement
-    ps2math::Vec4 moveDir = (_right * (-x) + _front * y).Normalize();
+    ps2math::Vec4 moveDir = (_right * (-x) + _front * (-y)).Normalize();
 
     // Apply movement
     _position += moveDir * (_movementSpeed * deltaTime * magnitude);
@@ -53,7 +53,7 @@ void Camera::RotationControl(const Input::PadJoy &rightStick, float deltaTime)
         vertInput = 0.0f;
 
     // Apply rotation with speed and deltaTime
-    _yaw -= horzInput * _turnSpeed * deltaTime;
+    _yaw += horzInput * _turnSpeed * deltaTime;
     _pitch -= vertInput * _turnSpeed * deltaTime;
 
     // Clamp pitch to avoid flipping

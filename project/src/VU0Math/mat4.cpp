@@ -92,22 +92,10 @@ ps2math::Mat4 ps2math::Mat4::LookAt(const ps2math::Vec4 &eye, const ps2math::Vec
     Vec4 r = ps2math::CrossProduct(f, up).Normalize(); // right
     Vec4 u = ps2math::CrossProduct(r, f);              // corrected up
 
-    return Mat4(r.x,
-                r.y,
-                r.z,
-                -(r.x * eye.x + r.y * eye.y + r.z * eye.z),
-                u.x,
-                u.y,
-                u.z,
-                -(u.x * eye.x + u.y * eye.y + u.z * eye.z),
-                -f.x,
-                -f.y,
-                -f.z,
-                (f.x * eye.x + f.y * eye.y + f.z * eye.z),
-                0.0f,
-                0.0f,
-                0.0f,
-                1.0f);
+    return Mat4(r.x, r.y, r.z, -(r.x * eye.x + r.y * eye.y + r.z * eye.z),
+                u.x, u.y, u.z, -(u.x * eye.x + u.y * eye.y + u.z * eye.z),
+                -f.x, -f.y, -f.z, (f.x * eye.x + f.y * eye.y + f.z * eye.z),
+                0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 ps2math::Mat4 &ps2math::Mat4::operator=(const Mat4 &rhs)
@@ -261,10 +249,10 @@ ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectR
     float scale = 1.0f / std::tanf(fieldOfViewRadians * 0.5);
 
     perspective.data[0] = scale / aspectRatio;
-    perspective.data[5] = scale;
-    perspective.data[10] = (-near - far) / (near - far);
-    perspective.data[11] = 1.0f;
-    perspective.data[14] = (2 * far * near) / (near - far);
+    perspective.data[5] = -scale;
+    perspective.data[10] = (near + far) / (far - near);
+    perspective.data[11] = -1.0f;
+    perspective.data[14] = (2 * far * near) / (far - near);
 
     return perspective;
 }
@@ -277,7 +265,7 @@ ps2math::Mat4 ps2math::Mat4::SpecializePerspectiveForVU1(const ps2math::Mat4 &pe
 
     return work;
 }
-ps2math::Mat4 ps2math::Mat4::viewportTransformation(const ps2math::Mat4 &perspective, int screenWidth, int screenHeight, int xOff, int yOff, int zRange)
+ps2math::Mat4 ps2math::Mat4::viewportTransformation(const ps2math::Mat4 &perspective, float screenWidth, float screenHeight, float xOff, float yOff, float zRange)
 {
     Mat4 work;
     float zBuffRange = static_cast<float>(zRange / 2);

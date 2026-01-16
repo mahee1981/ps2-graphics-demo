@@ -31,19 +31,24 @@ begin:
          NOP                                                        sqi           VF07,(VI06++)                       
          NOP                                                        iadd          VI07,VI02,VI07                      
 loop:
-; _LNOPT_w=[ normal2 ] 16 [31 15] 32   [loop]
+; _LNOPT_w=[ normal2 ] 21 [31 14] 31   [loop]
          NOP                                                        lq            VF07,0(VI03)                        
          mulax         ACC,VF01,VF07x                               sq            VF06,1(VI06)                               ;	STALL_LATENCY ?3
-         madday        ACC,VF02,VF07y                               iaddiu        VI04,VI04,0x00000001                
+         madday        ACC,VF02,VF07y                               lq            VF08,0(VI04)                        
          maddaz        ACC,VF03,VF07z                               iaddiu        VI06,VI06,0x00000003                
          maddw         VF07,VF04,VF07w                              NOP                                               
          clipw.xyz     VF07xyz,VF07w                                div           Q,VF00w,VF07w                              ;	STALL_LATENCY ?3
-         mulq.xyz      VF07,VF07,Q                                  waitq                                                    ;	STALL_LATENCY ?6
-         mulaw.xyz     ACC,VF05,VF00w                               lq            VF08,-1(VI04)                       
-         madd.xyz      VF07,VF07,VF05                               iaddiu        VI03,VI03,0x00000001                       ;	STALL_LATENCY ?2
+         NOP                                                        NOP                                               
+         NOP                                                        NOP                                               
+         NOP                                                        NOP                                               
+         NOP                                                        NOP                                               
+         NOP                                                        NOP                                               
+         NOP                                                        NOP                                               
+         mulq.xyz      VF07,VF07,Q                                  fcand         VI01,262143                         
+         mulaw.xyz     ACC,VF05,VF00w                               iaddiu        VI03,VI03,0x00000001                
+         madd.xyz      VF07,VF07,VF05                               iaddiu        VI04,VI04,0x00000001                       ;	STALL_LATENCY ?2
          mulq          VF08,VF08,Q                                  isubiu        VI07,VI07,1                         
-         ftoi4.xy      VF07,VF07                                    fcand         VI01,262143                                ;	STALL_LATENCY ?2
-         ftoi0.z       VF07,VF07                                    iaddiu        VI01,VI01,0x00007fff                
+         ftoi4.xyz     VF07,VF07                                    iaddiu        VI01,VI01,0x00007fff                       ;	STALL_LATENCY ?2
          NOP                                                        isw.w         VI01,-1(VI06)                       
          NOP                                                        sq            VF08,-3(VI06)                       
          NOP                                                        ibne          VI07,VI02,loop                      
@@ -58,7 +63,7 @@ loop:
          NOP                                                        NOP                                               
 		.align 4
 VU1Draw3D_CodeEnd:
-;	iCount=37
+;	iCount=42
 ; register stats:
 ;   8 VU User integer
 ;   9 VU User floating point
