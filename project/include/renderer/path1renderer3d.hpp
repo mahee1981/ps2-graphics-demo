@@ -29,7 +29,7 @@ class Path1Renderer3D : public IRenderer3D
     float _screenHeight;
     ps2math::Mat4 _perspectiveMatrix;
     alignas(64) packet2_t * dynamicPacket[2];
-    void RenderChunck(packet2_t* bufferHeader, const std::size_t vertexCount, ps2math::Mat4 &mvp, const Mesh &mesh, const std::size_t offset);
+    void RenderChunck(packet2_t* bufferHeader, const std::size_t vertexCount, ps2math::Mat4 &mvp, ps2math::Mat4 &modelMatrix, const Mesh &mesh, const std::size_t offset, const Light::BaseLight &light);
     packet2_t * staticPacket;
     packet2_t * bufferHeader;
     std::size_t context;

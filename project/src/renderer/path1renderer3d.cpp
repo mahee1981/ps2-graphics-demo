@@ -46,14 +46,16 @@ void Path1Renderer3D::PrepareStaticPacket()
     packet2_add_float(staticPacket, 1.0f);   // scale
     u8 j = 0;                                // RGBA
     for (j = 0; j < 4; j++)
-        packet2_add_u32(staticPacket, 128);
+        packet2_add_float(staticPacket, 128.0f);
 }
 
 void Path1Renderer3D::RenderChunck(packet2_t *header,
                                    const std::size_t vertexCount,
                                    ps2math::Mat4 &mvp,
+                                   ps2math::Mat4 &modelMatrix,
                                    const Mesh &mesh,
-                                   const std::size_t offset)
+                                   const std::size_t offset,
+                                   const Light::BaseLight &light)
 {
     packet2_t *currentVifPacket = dynamicPacket[context];
     packet2_reset(currentVifPacket, 0);
@@ -72,6 +74,16 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
                                      packet2_get_qw_count(staticPacket),
                                      0);
     vifAddedBytes += packet2_get_qw_count(staticPacket);
+
+    packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, modelMatrix.GetDataPtr(), 4, 0);
+    vifAddedBytes += 4;
+
+    packet2_utils_vu_add_unpack_data(currentVifPacket,
+                                     vifAddedBytes, // because of the world Matrix
+                                     light.GetPacketInformation()->base,
+                                     packet2_get_qw_count(light.GetPacketInformation()),
+                                     0);
+    vifAddedBytes += packet2_get_qw_count(light.GetPacketInformation());
 
     vifAddedBytes = 0; // zero because now we will use TOP register (double buffer)
                        // we don't wan't to unpack at 8 + beggining of buffer, but at
@@ -92,6 +104,13 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
                                      1);
     vifAddedBytes += vertexCount; // one VECTOR is size of qword
 
+    // Add normals
+    packet2_utils_vu_add_unpack_data(currentVifPacket,
+                                     vifAddedBytes,
+                                     (void *)(mesh.Normals.data() + offset),
+                                     vertexCount,
+                                     1);
+    vifAddedBytes += vertexCount;
     // Add sts
     packet2_utils_vu_add_unpack_data(currentVifPacket,
                                      vifAddedBytes,
@@ -116,9 +135,10 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
 {
     const auto viewProjMat = viewMat * _perspectiveMatrix;
     // must be divisble by 3 so you avoid atrifacts between batches dumass
-    constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 99;
+    constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 81;
     for (const Model &model : models)
     {
+        ps2math::Mat4 modelMatrix = model.GetWorldMatrix();
         ps2math::Mat4 mvp = model.GetWorldMatrix() * viewProjMat;
 
         for (const auto &mesh : model.GetMeshList())
@@ -139,7 +159,13 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
             // TODO: Clean this up, I don't like the convoluted calling
             while (offset < numberOfWholeLoopIterations * MAX_VERTEXDATA_PER_VIF_PACKET)
             {
-                RenderChunck(bufferHeader, MAX_VERTEXDATA_PER_VIF_PACKET, mvp, mesh, offset);
+                RenderChunck(bufferHeader,
+                             MAX_VERTEXDATA_PER_VIF_PACKET,
+                             mvp,
+                             modelMatrix,
+                             mesh,
+                             offset,
+                             mainLight);
                 offset += MAX_VERTEXDATA_PER_VIF_PACKET;
             }
             if (remainder != 0)
@@ -155,7 +181,7 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
                                                  DRAW_STQ2_REGLIST,
                                                  3,
                                                  0);
-                RenderChunck(bufferHeader, remainder, mvp, mesh, offset);
+                RenderChunck(bufferHeader, remainder, mvp, modelMatrix, mesh, offset, mainLight);
             }
             packet2_reset(bufferHeader, 0);
         }
@@ -165,7 +191,7 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
 void Path1Renderer3D::SetDoubleBufferSettings()
 {
     packet2_t *packet2 = packet2_create(1, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-    packet2_utils_vu_add_double_buffer(packet2, 6, (1024 - 6) / 2);
+    packet2_utils_vu_add_double_buffer(packet2, 12, (1024 - 12) / 2);
     packet2_utils_vu_add_end_tag(packet2);
     dma_channel_send_packet2(packet2, DMA_CHANNEL_VIF1, 1);
     dma_channel_wait(DMA_CHANNEL_VIF1, 0);
