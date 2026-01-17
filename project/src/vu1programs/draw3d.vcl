@@ -43,6 +43,8 @@ setup:
     sub.xyz    lightDirectionVec, vf00, lightDirectionVec  ; Invert the light direction vector
     lq    lightIntensitiesVec,    LightIntensities(vi00)        ; load the ambient, diffuse and specular intensity
 
+	fcset    0x000000                                       ; VCL won't let us use CLIP without first zeroing
+                                                            ; the clip flags
     ;//////////// --- Load data 2 --- /////////////
     ; Updated dynamically
 begin:
@@ -56,14 +58,13 @@ begin:
     iadd    stqData,    normalData,    vertCount            ; pointer to stq
     iadd    gifPacketStart,    stqData,    vertCount        ; pointer for XGKICK, point data to start after all of the data that's been sent from EE core
     iadd    destAddress,    stqData,    vertCount           ; helper pointer for data inserting
+
     ;////////////////////////////////////////////
 
     ;/////////// --- Store tags --- /////////////
     sqi    primTag,    (destAddress++)                      ; prim + tell gs how many data will be
     ;////////////////////////////////////////////
 
-	fcset    0x000000                                       ; VCL won't let us use CLIP without first zeroing
-                                                            ; the clip flags
 
     ;/////////////// --- Loop --- ///////////////
     iadd    vertexCounter,    iBase,    vertCount           ; loop vertCount times
@@ -72,6 +73,8 @@ loop:
     lq    vertex,    0(vertexData)                          ; load the vertex position data
     lq    normal,    0(normalData)
     lq    Stq,    0(stqData)                                ; load the texture coordinate data
+
+    ;/////////////// --- Vertex Operations --- ///////////////
 
     MatrixMultiplyVertex{ vertex, matrixMvp, vertex }
                                                             ; macro from vcl_macros.i, preprocessed using vclpp
@@ -97,32 +100,35 @@ loop:
     mul.xyz    vertex,    vertex,    q
     mula.xyz    acc,    viewPortTransform,    vf00[w]       ; scale to GS screen space
     madd.xyz    vertex,    vertex,    viewPortTransform     ; multiply and add the scales -> vert = vert * scale + scale
-    ftoi4.xyz    vertex,    vertex                           ; convert x and y to 12:4 fixed point format
+    ftoi4.xyz    vertex,    vertex                          ; convert x and y to 12:4 fixed point format
     ;////////////////////////////////////////////
+
 
     ;//////////// --- Calculate light --- ////////////
 
-
+    ; multiply normals by model matrix
     MatrixMultiplyVertex{ normal, matrixModel, normal }
+    ; normalize the transformed vector
     VectorNormalize{ normalOut, normal }
+    ; calculate the cosine between light direction and normal/diffuse impact
     VectorDotProduct{ normalOut, normalOut, lightDirectionVec }
-    max.x    normalOut,    normalOut,    vf00[x]                  ;clamp the diffuseImpact 
-    mul.x    normalOut,   normalOut,   lightIntensitiesVec[y]     ; multiply the diffuse factor by intensity
+    max.x    normalOut,    normalOut,    vf00[x]                  ; clamp the diffuseImpact 
+    mul.x    normalOut,   normalOut,   lightIntensitiesVec[y]     ; multiply the diffuse factor by diffuse intensity
 
-    mul.xyz   acc, rgba, lightIntensitiesVec[x]     ; Scale by the intensity
-    madd.xyz   FinalCol, rgba, normalOut[x]
-    mini.xyz   FinalCol, FinalCol, rgba[w]
-    add.w    FinalCol, vf00, rgba[w]
-    max.xyz   FinalCol, FinalCol, vf00[x]
+    mul.xyz    acc,    rgba,    lightIntensitiesVec[x]            ; Add the ambient light to final color
+    madd.xyz    FinalCol,    rgba,    normalOut[x]                ; Add the diffuse lighting to final color
+    mini.xyz    FinalCol,    FinalCol,     rgba[w]                ; Cap it to 128
+    add.w    FinalCol,    vf00,    rgba[w]                        ; Set the alpha to 128 
+    max.xyz     FinalCol,    FinalCol,    vf00[x]                 ; ensure that we send 0 or positive value
 
-    ftoi0 FinalCol, FinalCol
+    ftoi0    FinalCol,    FinalCol                                ; convert to integer since that's the format expected
     ;////////////////////////////////////////////
  
-    mulq    modStq,    Stq,    q
+    mulq    modStq,    Stq,    q                                  ; perform perspective correction on texture coordinates
 
     ;//////////// --- Store data --- ////////////
     sq    modStq,    0(destAddress)                         ; STQ
-    sq    FinalCol,    1(destAddress)                           ; RGBA ; q is grabbed from stq
+    sq    FinalCol,    1(destAddress)                       ; RGBA ; q is grabbed from stq
     sq.xyz    vertex,    2(destAddress)                     ; XYZ2
 
 

@@ -55,17 +55,18 @@ class Mat4
     friend Vec4 operator*(const Vec4 &lhs, const Mat4 &rhs);
 
     void PrintMatrix();
-    inline float *GetDataPtr()
+    // TODO: make this private and actually return the packet that renders it
+    inline const float *GetDataPtr() const
+    {
+        return &data[0];
+    }
+    inline float *GetDataPtr() 
     {
         return &data[0];
     }
 
   private:
     alignas(16 * sizeof(float)) float data[16];
-    inline const float *GetDataPtr() const
-    {
-        return &data[0];
-    }
 };
 
 Mat4 operator*(const Mat4 &lhs, const Mat4 &rhs);

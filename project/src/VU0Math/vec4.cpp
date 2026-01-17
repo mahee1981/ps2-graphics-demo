@@ -94,11 +94,6 @@ ps2math::Vec4 &ps2math::Vec4::operator-=(const Vec4 &rhs)
 
 ps2math::Vec4 ps2math::Vec4::Normalize() const
 {
-    // TODO: optimize through SIMD
-    // float length = std::sqrtf(this->x * this->x + this->y * this->y + this->z * this->z);
-    //
-    // Vec4 work(this->x / length, this->y / length, this->z / length, this->w);
-    // return work;
     Vec4 result;
 
     asm volatile("lqc2      $vf1, 0x00(%1)  \n"

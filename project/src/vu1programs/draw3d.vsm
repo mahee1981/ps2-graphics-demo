@@ -11,7 +11,7 @@
 		.global	VU1Draw3D_CodeEnd
 VU1Draw3D_CodeStart:
 setup:
-; _LNOPT_w=[ normal2 ] 12 [12 0] 12   [setup]
+; _LNOPT_w=[ normal2 ] 13 [13 0] 13   [setup]
          NOP                                                        lq            VF01,0(VI00)                        
          NOP                                                        lq            VF02,1(VI00)                        
          NOP                                                        lq            VF03,2(VI00)                        
@@ -24,14 +24,14 @@ setup:
          NOP                                                        lq.xyz        VF09,8(VI00)                        
          sub.xyz       VF11,VF00,VF10                               lq.xyz        VF10,9(VI00)                        
          NOP                                                        lq.xy         VF12,11(VI00)                       
+         NOP                                                        fcset         0                                   
 begin:
-; _LNOPT_w=[ normal2 ] 11 [11 0] 11   [begin]
+; _LNOPT_w=[ normal2 ] 10 [10 0] 11   [begin]
          NOP                                                        xtop          VI02                                
          NOP                                                        ilw.w         VI08,0(VI02)                        
-         NOP                                                        lq            VF13,1(VI02)                        
          NOP                                                        iaddiu        VI03,VI02,0x00000002                
-         NOP                                                        fcset         0                                   
-         NOP                                                        iadd          VI04,VI03,VI08                      
+         NOP                                                        lq            VF13,1(VI02)                        
+         NOP                                                        iadd          VI04,VI03,VI08                             ;	STALL_LATENCY ?1
          NOP                                                        iadd          VI05,VI04,VI08                      
          NOP                                                        iadd          VI07,VI05,VI08                      
          NOP                                                        iadd          VI06,VI05,VI08                      

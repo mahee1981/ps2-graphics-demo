@@ -2,6 +2,7 @@
 #define PATH1_RENDERER_3D
 
 #include "interfaces/IRenderer3D.hpp"
+#include "tools/Deltawatch.hpp"
 #include "utils.hpp"
 
 namespace Renderer
@@ -33,8 +34,10 @@ class Path1Renderer3D : public IRenderer3D
     packet2_t * staticPacket;
     packet2_t * bufferHeader;
     std::size_t context;
+    Deltawatch lastDisplayListPrepWatch;
     static prim_t primitiveTypeConfig;
     void PrepareStaticPacket();
+    bool isDebuggingEnabled;
 };
 
 } // namespace Renderer

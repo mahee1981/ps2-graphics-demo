@@ -97,15 +97,15 @@ void render()
 
     std::vector<Model> modelList;
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, -70.0f, 1.0f}});
-    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, 20.0f, 70.0f, 1.0f}});
-    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -20.0f, 70.0f, 1.0f}});
-    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, 10.0f, 70.0f, 1.0f}});
-    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -10.0f, 70.0f, 1.0f}});
+    modelList.emplace_back(Model{ps2math::Vec4{0.0f, 30.0f, -70.0f, 1.0f}});
+    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -20.0f, -70.0f, 1.0f}});
+    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, 10.0f, -70.0f, 1.0f}});
+    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -10.0f, -70.0f, 1.0f}});
     // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -30.0f, 70.0f, 1.0f}});
     // modelList.emplace_back(Model{ps2math::Vec4{0.0f, 30.0f, 70.0f, 1.0f}});
 
     modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
-    // modelList[1].LoadModel("CAT/MESH_CAT.OBJ");
+    modelList[1].LoadModel("CAT/MESH_CAT.OBJ");
     // modelList[0].LoadModel("CUBE/cube.obj");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
     // modelList[0].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
@@ -145,14 +145,19 @@ void render()
         // TODO: move to an input handler class
         if (controllerInput.getPressed().DpadRight == 1)
         {
-            moveHorizontal += 0.01f * deltaMs;
+            moveHorizontal = 0.01f * deltaMs;
         }
         else if (controllerInput.getPressed().DpadLeft == 1)
         {
-            moveHorizontal += -0.01f * deltaMs;
+            moveHorizontal = -0.01f * deltaMs;
         }
+        else
+        {
+            moveHorizontal = 0.0f;
+        }
+        
 
-        if (controllerInput.getClicked().Cross == 1)
+            if (controllerInput.getClicked().Cross == 1)
         {
             renderer3d->ToggleDebugPrint();
         }
@@ -173,7 +178,7 @@ void render()
             transformComponentRef.SetScaleFactor(0.5f);
             transformComponentRef.SetAngleY(15.0f);
 
-            // transformComponentRef.SetAngleY(angle);
+            transformComponentRef.SetAngleY(angle);
             transformComponentRef.SetTranslate(0.0f, transformComponentRef.GetTranslate().y, transformComponentRef.GetTranslate().z + moveHorizontal);
 
             // TODO: to be handled by transform system

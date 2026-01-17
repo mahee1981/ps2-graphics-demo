@@ -67,7 +67,7 @@ void Camera::RotationControl(const Input::PadJoy &rightStick, float deltaTime)
 
 ps2math::Mat4 Camera::CalculateViewMatrix() const
 {
-    return ps2math::Mat4::LookAt(_position, _position + _front, _up).Transpose();
+    return ps2math::Mat4::LookAt(_position, _position + _front, _up);
 }
 
 void Camera::update()

@@ -133,6 +133,9 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
                                   const Light::BaseLight &mainLight,
                                   const ps2math::Mat4 &viewMat)
 {
+    unsigned long long trianglesRendered = 0;
+    lastDisplayListPrepWatch.CaptureStartMoment();
+    const float timeToPrepLastDisplayList = lastDisplayListPrepWatch.GetDeltaMs();
     const auto viewProjMat = viewMat * _perspectiveMatrix;
     // must be divisble by 3 so you avoid atrifacts between batches dumass
     constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 81;
@@ -167,6 +170,7 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
                              offset,
                              mainLight);
                 offset += MAX_VERTEXDATA_PER_VIF_PACKET;
+                trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
             }
             if (remainder != 0)
             {
@@ -182,11 +186,19 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
                                                  3,
                                                  0);
                 RenderChunck(bufferHeader, remainder, mvp, modelMatrix, mesh, offset, mainLight);
+                trianglesRendered += remainder / 3;
             }
             packet2_reset(bufferHeader, 0);
         }
     }
+    lastDisplayListPrepWatch.CaptureEndMoment();
     graph_wait_vsync();
+    if (isDebuggingEnabled)
+    {
+        scr_setXY(0, 0);
+        scr_printf("Time to process display list: %f\n", timeToPrepLastDisplayList);
+        scr_printf("Triangles sent to GS: %llu", trianglesRendered);
+    }
 }
 void Path1Renderer3D::SetDoubleBufferSettings()
 {
@@ -200,6 +212,7 @@ void Path1Renderer3D::SetDoubleBufferSettings()
 
 void Path1Renderer3D::ToggleDebugPrint()
 {
+    isDebuggingEnabled = !isDebuggingEnabled;
 }
 
 Path1Renderer3D::~Path1Renderer3D()
