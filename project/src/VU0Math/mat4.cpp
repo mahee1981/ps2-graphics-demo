@@ -20,22 +20,10 @@ ps2math::Mat4 ps2math::Mat4::zero()
     return work;
 }
 
-ps2math::Mat4::Mat4(const float m11,
-                    const float m12,
-                    const float m13,
-                    const float m14,
-                    const float m21,
-                    const float m22,
-                    const float m23,
-                    const float m24,
-                    const float m31,
-                    const float m32,
-                    const float m33,
-                    const float m34,
-                    const float m41,
-                    const float m42,
-                    const float m43,
-                    const float m44)
+ps2math::Mat4::Mat4(const float m11, const float m12, const float m13, const float m14,
+                    const float m21, const float m22, const float m23, const float m24,
+                    const float m31, const float m32, const float m33, const float m34,
+                    const float m41, const float m42, const float m43, const float m44)
 {
     data[0] = m11;
     data[1] = m12;
@@ -65,22 +53,10 @@ ps2math::Mat4::Mat4(const std::array<float, 16> &values)
 // TODO: SIMD optimization
 ps2math::Mat4 ps2math::Mat4::Transpose() const
 {
-    return Mat4(data[0],
-                data[4],
-                data[8],
-                data[12],
-                data[1],
-                data[5],
-                data[9],
-                data[13],
-                data[2],
-                data[6],
-                data[10],
-                data[14],
-                data[3],
-                data[7],
-                data[11],
-                data[15]);
+    return Mat4(data[0], data[4], data[8], data[12],
+                data[1], data[5], data[9], data[13],
+                data[2], data[6], data[10], data[14],
+                data[3], data[7], data[11], data[15]);
 }
 
 // Possibly messed up the coordinate system orientation, but idk, it works
@@ -260,18 +236,23 @@ ps2math::Mat4 ps2math::Mat4::SpecializePerspectiveForVU1(const ps2math::Mat4 &pe
 {
     ps2math::Mat4 work = perspective;
 
-    work.data[0] = work.data[0] * width / 4096.0f; 
+    work.data[0] = work.data[0] * width / 4096.0f;
     work.data[5] = work.data[5] * height / 4096.0f;
 
     return work;
 }
-ps2math::Mat4 ps2math::Mat4::viewportTransformation(const ps2math::Mat4 &perspective, float screenWidth, float screenHeight, float xOff, float yOff, float zRange)
+ps2math::Mat4 ps2math::Mat4::viewportTransformation(const ps2math::Mat4 &perspective,
+                                                    float screenWidth,
+                                                    float screenHeight,
+                                                    float xOff,
+                                                    float yOff,
+                                                    float zRange)
 {
     Mat4 work;
     float zBuffRange = static_cast<float>(zRange / 2);
-    LOG_INFO("zbuffer scale:")<< zBuffRange;
-    work = Mat4::scale(work, ps2math::Vec4{static_cast<float>(screenWidth / 2), static_cast<float>(screenHeight / 2), zBuffRange, 1.0f});
-    work = Mat4::translate(work, ps2math::Vec4{static_cast<float>(xOff), static_cast<float>(yOff), static_cast<float>(zRange / 2), 1.0f});
+    LOG_INFO("z-buffer scale:") << zBuffRange;
+    work = Mat4::scale(work, ps2math::Vec4{screenWidth / 2.0f, screenHeight / 2.0f, zBuffRange, 1.0f});
+    work = Mat4::translate(work, ps2math::Vec4{xOff, yOff, zBuffRange, 1.0f});
 
     return perspective * work;
 }

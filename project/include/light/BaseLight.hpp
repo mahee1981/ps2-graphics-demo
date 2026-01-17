@@ -14,7 +14,7 @@ class BaseLight
     float _ambientIntensity;
     float _diffuseIntensity;
     float _specularIntensity;
-    packet2_t* packetInformation;
+    packet2_t *packetInformation;
     void UpdatePacketInformation();
 
   public:
@@ -76,7 +76,7 @@ class BaseLight
     {
         return _direction;
     }
-    inline packet2_t* GetPacketInformation() const
+    inline packet2_t *GetPacketInformation() const
     {
         return packetInformation;
     }

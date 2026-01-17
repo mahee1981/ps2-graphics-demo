@@ -57,7 +57,7 @@ int PadManager::InitializePad(int port, int slot)
     int modes;
     int i;
 
-    LOG_INFO("PAD initializing pad on port:") << port << ", slot: "<< slot;
+    LOG_INFO("PAD initializing pad on port:") << port << ", slot: " << slot;
 
     // is there any device connected to that port?
     if (WaitPadReady(port, slot) == PAD_STATE_DISCONN)

@@ -45,8 +45,6 @@ class Model
         return meshList;
     }
 
-
-
   private:
     std::vector<Mesh> meshList;
     std::vector<Texture> _textureList;

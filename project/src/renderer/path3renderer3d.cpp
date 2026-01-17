@@ -59,8 +59,8 @@ void Path3Renderer3D::ClipVertex(ps2math::Vec4 &vertex)
 }
 
 void Path3Renderer3D::RenderFrame(const std::vector<Model> &models,
-                             const Light::BaseLight &mainLight,
-                             const ps2math::Mat4 &viewMat)
+                                  const Light::BaseLight &mainLight,
+                                  const ps2math::Mat4 &viewMat)
 {
 
     trianglesRendered = 0;
@@ -113,9 +113,9 @@ void Path3Renderer3D::RenderFrame(const std::vector<Model> &models,
 }
 
 inline void Path3Renderer3D::AddVertexToDisplayList(const ps2math::Vec4 &texel,
-                                               const ps2math::Vec4 &vertex,
-                                               const Colors::Color &lightColor,
-                                               bool kickVertex = false)
+                                                    const ps2math::Vec4 &vertex,
+                                                    const Colors::Color &lightColor,
+                                                    bool kickVertex = false)
 {
     // This line is a reminder of how incredibly silly decisions
     // can have you lose three months of development time on PS2
@@ -139,9 +139,9 @@ inline void Path3Renderer3D::AddVertexToDisplayList(const ps2math::Vec4 &texel,
 }
 // TODO: Benchmark REGLIST mode
 void Path3Renderer3D::GenerateDisplayListForMesh(const Mesh &mesh,
-                                            const std::vector<ps2math::Vec4> &transformedVertices,
-                                            const ps2math::Mat4 &modelMatrix,
-                                            const Light::BaseLight &mainLight)
+                                                 const std::vector<ps2math::Vec4> &transformedVertices,
+                                                 const ps2math::Mat4 &modelMatrix,
+                                                 const Light::BaseLight &mainLight)
 {
     qword_t *header = drawBuffer[context]->next;
     packet2_advance_next(drawBuffer[context], sizeof(u128));
@@ -172,8 +172,7 @@ void Path3Renderer3D::GenerateDisplayListForMesh(const Mesh &mesh,
         const auto &t1 = mesh.Texels[i + 1];
         const auto &t2 = mesh.Texels[i + 2];
 
-        const auto &lightColor0 = 
-            Light::CalculateLightingRGBA8((mesh.Normals[i] * modelMatrix).Normalize(), mainLight);
+        const auto &lightColor0 = Light::CalculateLightingRGBA8((mesh.Normals[i] * modelMatrix).Normalize(), mainLight);
         const auto &lightColor1 =
             Light::CalculateLightingRGBA8((mesh.Normals[i + 1] * modelMatrix).Normalize(), mainLight);
         const auto &lightColor2 =
@@ -207,7 +206,7 @@ std::vector<ps2math::Vec4> Renderer::Path3Renderer3D::TransformMeshVertices(cons
     std::vector<ps2math::Vec4> transformedVertices;
     transformedVertices.reserve(mesh.Vertices.size());
 
-    const auto& viewPortMat = _viewPortMatrix;
+    const auto &viewPortMat = _viewPortMatrix;
 
     std::transform(mesh.Vertices.begin(),
                    mesh.Vertices.end(),

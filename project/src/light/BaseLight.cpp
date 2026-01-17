@@ -1,7 +1,5 @@
 #include "light/BaseLight.hpp"
-#include "logging/log.hpp"
 #include "packet2.h"
-#include <cstdio>
 
 namespace Light
 {

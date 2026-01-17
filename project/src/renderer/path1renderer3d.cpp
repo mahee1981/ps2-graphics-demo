@@ -38,8 +38,8 @@ void Path1Renderer3D::UploadVU1MicroProgram(u32 *VU1Draw3D_CodeStart, u32 *VU1Dr
 
 void Path1Renderer3D::PrepareStaticPacket()
 {
-    packet2_add_float(staticPacket, 2048.0F);  // scale
-    packet2_add_float(staticPacket, 2048.0F);  // scale
+    packet2_add_float(staticPacket, 2048.0F); // scale
+    packet2_add_float(staticPacket, 2048.0F); // scale
     float zScale = float(0xFFFFFFFFu) / 32.0F;
     LOG_INFO("z-scale: ") << zScale;
     packet2_add_float(staticPacket, zScale); // scale
@@ -51,8 +51,8 @@ void Path1Renderer3D::PrepareStaticPacket()
 
 void Path1Renderer3D::RenderChunck(packet2_t *header,
                                    const std::size_t vertexCount,
-                                   ps2math::Mat4 &mvp,
-                                   ps2math::Mat4 &modelMatrix,
+                                   const ps2math::Mat4 &mvp,
+                                   const ps2math::Mat4 &modelMatrix,
                                    const Mesh &mesh,
                                    const std::size_t offset,
                                    const Light::BaseLight &light)
@@ -64,7 +64,7 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
     // Add the matrix at the top of the memory via REF tag so no copy here and skip the TOP register shenaningans
     // TODO: try sending this only once
     u32 vifAddedBytes = 0; // zero because now we will use TOP register (double buffer)
-    packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, mvp.GetDataPtr(), 4, 0);
+    packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, (void *)mvp.GetDataPtr(), 4, 0);
     vifAddedBytes += 4;
 
     // Merge packets
@@ -75,7 +75,7 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
                                      0);
     vifAddedBytes += packet2_get_qw_count(staticPacket);
 
-    packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, modelMatrix.GetDataPtr(), 4, 0);
+    packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, (void *)modelMatrix.GetDataPtr(), 4, 0);
     vifAddedBytes += 4;
 
     packet2_utils_vu_add_unpack_data(currentVifPacket,
@@ -162,13 +162,7 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
             // TODO: Clean this up, I don't like the convoluted calling
             while (offset < numberOfWholeLoopIterations * MAX_VERTEXDATA_PER_VIF_PACKET)
             {
-                RenderChunck(bufferHeader,
-                             MAX_VERTEXDATA_PER_VIF_PACKET,
-                             mvp,
-                             modelMatrix,
-                             mesh,
-                             offset,
-                             mainLight);
+                RenderChunck(bufferHeader, MAX_VERTEXDATA_PER_VIF_PACKET, mvp, modelMatrix, mesh, offset, mainLight);
                 offset += MAX_VERTEXDATA_PER_VIF_PACKET;
                 trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
             }
