@@ -1,5 +1,3 @@
-#define STB_IMAGE_IMPLEMENTATION
-
 #include <debug.h>
 #include <dma.h>
 #include <draw.h>
