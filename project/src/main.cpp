@@ -27,8 +27,8 @@ using namespace Renderer;
 constexpr int width = 640;
 constexpr int height = 448;
 
-extern u32 VU1Draw3D_CodeStart __attribute__((section(".vudata")));
-extern u32 VU1Draw3D_CodeEnd __attribute__((section(".vudata")));
+extern u32 VU1Draw3DTriangle_CodeStart __attribute__((section(".vudata")));
+extern u32 VU1Draw3DTriangle_CodeEnd __attribute__((section(".vudata")));
 
 void InitializeDMAC()
 {
@@ -64,7 +64,7 @@ void render()
         LOG_INFO("Detected path 1 renderer");
         dma_channel_initialize(DMA_CHANNEL_VIF1, NULL, 0);
         dma_channel_fast_waits(DMA_CHANNEL_VIF1);
-        path1Renderer->UploadVU1MicroProgram(&VU1Draw3D_CodeStart, &VU1Draw3D_CodeEnd);
+        path1Renderer->UploadVU1MicroProgram(&VU1Draw3DTriangle_CodeStart, &VU1Draw3DTriangle_CodeEnd);
         path1Renderer->SetDoubleBufferSettings();
     }
 
@@ -100,6 +100,7 @@ void render()
 
     modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
     modelList[1].LoadModel("CAT/MESH_CAT.OBJ");
+    PadManager controllerInput{ false };
     // modelList[0].LoadModel("CUBE/cube.obj");
     // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
     // modelList[0].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
@@ -124,7 +125,6 @@ void render()
 
     Deltawatch deltaWatch;
 
-    PadManager controllerInput;
     auto myCamera = SetupCamera();
     while (1)
     {
@@ -171,7 +171,7 @@ void render()
             transformComponentRef.SetScaleFactor(0.5f);
             transformComponentRef.SetAngleY(15.0f);
 
-            transformComponentRef.SetAngleY(angle);
+            // transformComponentRef.SetAngleY(angle);
             transformComponentRef.SetTranslate(0.0f,
                                                transformComponentRef.GetTranslate().y,
                                                transformComponentRef.GetTranslate().z + moveHorizontal);

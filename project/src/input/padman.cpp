@@ -161,22 +161,27 @@ int PadManager::InitializePad(int port, int slot)
     return 1;
 }
 
-PadManager::PadManager()
+PadManager::PadManager() : PadManager(true)
+{
+}
+
+PadManager::PadManager(bool resetIop)
 {
 
     SifInitRpc(0);
 
     // Reinit subsystems after reset
-
-    while (!SifIopReset("", 0))
+    if(resetIop)
     {
-    };
-    while (!SifIopSync())
-    {
-    };
+        while (!SifIopReset("", 0))
+        {
+        };
+        while (!SifIopSync())
+        {
+        };
 
-    SifInitRpc(0);
-
+        SifInitRpc(0);
+    }
     LoadModules();
 
     padInit(0);
