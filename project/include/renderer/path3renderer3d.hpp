@@ -22,20 +22,24 @@ class Path3Renderer3D : public IRenderer3D
     {
         return _perspectiveMatrix;
     }
-    const ps2math::Mat4 &GetViewPortMatrix() const 
+    const ps2math::Mat4 &GetViewPortMatrix() const
     {
         return _viewPortMatrix;
     }
     static void ClipVertex(ps2math::Vec4 &vertex);
-    void RenderFrame(const std::vector<Model> &models, const Light::BaseLight &mainLight, const ps2math::Mat4 &viewProjMatrix) override;
-    void ToggleDebugPrint() override { isDebuggingEnabled = !isDebuggingEnabled; };
-
+    void RenderFrame(const std::vector<Model> &models,
+                     const Light::BaseLight &mainLight,
+                     const ps2math::Mat4 &viewProjMatrix) override;
+    void ToggleDebugPrint() override
+    {
+        isDebuggingEnabled = !isDebuggingEnabled;
+    };
 
   private:
     float _screenWidth;
     float _screenHeight;
     ps2math::Mat4 _perspectiveMatrix;
-    ps2math::Mat4 _viewPortMatrix; 
+    ps2math::Mat4 _viewPortMatrix;
     // TODO: need to make transfers dynamic and split it into slices if bigger than u16_max
     // OPTIONAL: make packed DMA transfers
     std::array<packet2_t *, 2> drawBuffer;

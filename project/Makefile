@@ -16,7 +16,7 @@ EE_OBJS := $(patsubst $(SRC_DIR)/%,$(BIN_DIR)/%,$(EE_OBJS:.s=.o))
 EE_OBJS := $(patsubst $(SRC_DIR)/%,$(BIN_DIR)/%,$(EE_OBJS:.vcl=.o))
 
 # Libraries & includes
-EE_LIBS = -ldraw -lgraph -ldma -lpacket -lpacket2 -lpadx -ldebug
+EE_LIBS = -ldraw -lgraph -ldma -lpacket -lpacket2 -lpadx -ldebug -ltiny_obj_loader -llodepng -lstb_image
 EE_INCS = -Iinclude -Iexternal
 
 # ISO target

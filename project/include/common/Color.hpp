@@ -16,11 +16,22 @@ class Color
 
     u8 r, g, b, a;
 
-    inline float GetRedFloat() const { return float(r)/255.0f; }
-    inline float GetBlueFloat() const { return float(b)/255.0f; }
-    inline float GetGreenFloat() const { return float(g)/255.0f; }
-    inline float GetAlphaFloat() const { return float(a)/255.0f; }
-
+    inline float GetRedFloat() const
+    {
+        return float(r) / 255.0f;
+    }
+    inline float GetBlueFloat() const
+    {
+        return float(b) / 255.0f;
+    }
+    inline float GetGreenFloat() const
+    {
+        return float(g) / 255.0f;
+    }
+    inline float GetAlphaFloat() const
+    {
+        return float(a) / 255.0f;
+    }
 };
 } // namespace Colors
 #endif

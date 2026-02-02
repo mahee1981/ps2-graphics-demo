@@ -1,7 +1,6 @@
 #ifndef MESH_HPP
 #define MESH_HPP
 
-#include "VU0Math/mat4.hpp"
 #include "VU0Math/vec4.hpp"
 #include "tiny_obj_loader.h"
 #include <debug.h>

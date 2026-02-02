@@ -45,6 +45,7 @@ class PadManager
 
   public:
     PadManager();
+    PadManager(bool resetIop);
     int InitializePad(int port, int slot);
     void UpdatePad();
     inline const PadButtons &getClicked() const
