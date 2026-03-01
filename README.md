@@ -46,6 +46,32 @@ You have two options to set up and build this project:
 
 ---
 
+## **Important: External Libraries Requirement**
+
+This project depends on external libraries whose headers are included in the `external/` directory. These libraries (such as lodepng, stb_image, and tiny_obj_loader) **must be built and packaged as static libraries** for the project to compile successfully.
+
+The static library files (.a) need to be built manually and placed in the appropriate build directories before attempting to compile this project. The Makefile will then link these static libraries during the compilation process.
+
+### **Building External Libraries**
+
+Each external library must be compiled as a static library using the PS2 compiler toolchain. Use the following commands as a reference (adjust paths and filenames as needed):
+
+**For each library**, compile the source files and create a static library:
+
+```bash
+# Compile library source files to object files
+mips64r5900el-ps2-elf-gcc -O2 -G0 -I. <source_file.c> -c -o <source_file.o>
+
+# Create a static library from the object files
+mips64r5900el-ps2-elf-ar cru lib<library_name>.a <object_files.o>
+```
+
+**Note**: Use `mips64r5900el-ps2-elf-gcc` for C files and `mips64r5900el-ps2-elf-g++` for C++ files. The `-O2 -G0` flags match the optimization settings used in this project's Makefile.
+
+Once the static libraries (.a files) are built, ensure they are placed in directories that are referenced in the project's `Makefile` library search paths (`-L` flags) and link flags (`-l` flags).
+
+---
+
 ## **Option 1: Using the Dev Containers Extension in VS Code (Recommended)**
 
 This method uses the **Dev Containers** extension to set up a pre-configured development environment with all necessary dependencies.
