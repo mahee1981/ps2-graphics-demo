@@ -91,7 +91,7 @@ void render()
 
     std::vector<Model> modelList;
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, -70.0f, 1.0f}});
-    modelList.emplace_back(Model{ps2math::Vec4{0.0f, 30.0f, -70.0f, 1.0f}});
+    modelList.emplace_back(Model{ps2math::Vec4{30.0f, 30.0f, +70.0f, 1.0f}});
     // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -20.0f, -70.0f, 1.0f}});
     // modelList.emplace_back(Model{ps2math::Vec4{0.0f, 10.0f, -70.0f, 1.0f}});
     // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -10.0f, -70.0f, 1.0f}});
@@ -134,7 +134,7 @@ void render()
 
         controllerInput.UpdatePad();
 
-        angle += (10.0f * deltaMs) / 100.0f;
+        // angle += (10.0f * deltaMs) / 100.0f;
 
         // TODO: move to an input handler class
         if (controllerInput.getPressed().DpadRight == 1)
