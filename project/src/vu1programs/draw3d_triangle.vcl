@@ -13,7 +13,10 @@
 #define ModelMatRow3     9
 #define LightDirection   10
 #define LightIntensities 11
+;not used
 #define LightColor       12
+#define GifTagAd         12
+#define GifTexSelect     13
 
 
 .syntax new
@@ -48,6 +51,9 @@ setup:
     sub.xyz     lightDirectionVec, vf00, lightDirectionVec  ; Invert the light direction vector
     lq          lightIntensitiesVec, LightIntensities(vi00) ; load the ambient, diffuse and specular intensity
 
+    lq          gifAdTag,          GifTagAd(vi00)           ; load gif tag for selecting the texture;
+    lq          tex0Config,        GifTexSelect(vi00)       ; load gif tag for selecting the texture;
+
     fcset       0x000000                                     ; VCL won't let us use CLIP without first zeroing
                                                             ; the clip flags
     iaddiu      dontDraw,          vi00,            1       ; used for backface culling, a constant that
@@ -71,8 +77,10 @@ begin:
     iadd        destAddress,       stqData,      vertCount  ; helper pointer for data inserting
 
     ;////////////////////////////////////////////////////////////
-    ;// --- Store GIF tag ---
+    ;// --- Store GIF tags ---
     ;////////////////////////////////////////////////////////////
+    sqi         gifAdTag,          (destAddress++)           ; GIF tag to set a register in GS
+    sqi         tex0Config,        (destAddress++)           ; set TEX0 register in GS (enable texture)
     sqi         primTag,           (destAddress++)           ; prim + tell gs how many data will be
     ;////////////////////////////////////////////////////////////
 
@@ -101,7 +109,7 @@ loop:
                                                             ; vclpp is very moody, and pay attention to spaces
                                                             ; before braces both in invocation and include files
 
-    ClipVertex{ vertex0, destAddress, 2,     iADC }
+    ClipVertex{ vertex0, destAddress, 2,   iADC }
     ClipVertex{ vertex1, destAddress, 2+3, iADC }
     ClipVertex{ vertex2, destAddress, 2+6, iADC }
 
@@ -112,7 +120,7 @@ loop:
 
 
     ClipSpaceBackfaceCulling{ vertex0, vertex1, vertex2, intRes }
-    ibgtz       intRes,             culled
+    ibgtz       intRes,             culled                   ; skip lighting calculation if culled
 
     ftoi4.xyz   vertex0,            vertex0                  ; convert x and y to 12:4 fixed point format
     ftoi4.xyz   vertex1,            vertex1                  ; convert x and y to 12:4 fixed point format

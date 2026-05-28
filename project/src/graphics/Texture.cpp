@@ -157,13 +157,11 @@ void Texture::SetTextureAsActive()
     qword.dw[1] = u64(GIF_REG_AD);
     packet2_add_u128(normal_packet.get(), qword.qw);
 
-    qword.dw[0] = ((u64(this->gsTextureBuffer->GetVramAddress()) >> 6) & 0x3fff) | (((u64(width) >> 6) & 0x3f) << 14) |
-                  ((u64(Buffers::GSPixelStorageMethod::PSM_24) & 0x3f) << 20) | ((u64(draw_log2(width)) & 0xf) << 26) |
-                  ((u64(draw_log2(height)) & 0xf) << 30) | ((u64(0) & 0x1) << 34) | // RGB or RGBA
-                  ((u64(0) & 0x3) << 35) | 0;                                       // 0 -> Modulate, 1 -> Decal
+    qword.dw[0] = GetTexGSSettings();
     qword.dw[1] = GS_REG_TEX0_1;
     packet2_add_u128(normal_packet.get(), qword.qw);
 
+    dma_wait_fast();
     dma_channel_send_packet2(normal_packet.get(), DMA_CHANNEL_GIF, 0);
     dma_wait_fast();
 }
@@ -194,4 +192,11 @@ void Texture::LoadTexture(std::shared_ptr<ITextureLoader> textureLoader)
     imageData = textureLoader->GetBytes(imgPath.c_str(), width, height, nrChannels);
 }
 
+u64 Texture::GetTexGSSettings() const
+{
+    return ((u64(this->gsTextureBuffer->GetVramAddress()) >> 6) & 0x3fff) | (((u64(width) >> 6) & 0x3f) << 14) |
+           ((u64(Buffers::GSPixelStorageMethod::PSM_24) & 0x3f) << 20) | ((u64(draw_log2(width)) & 0xf) << 26) |
+           ((u64(draw_log2(height)) & 0xf) << 30) | ((u64(1) & 0x1) << 34) | // RGB or RGBA
+           ((u64(0) & 0x3) << 35) | 0;
+}
 } // namespace graphics

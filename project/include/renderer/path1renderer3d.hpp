@@ -1,8 +1,10 @@
 #ifndef PATH1_RENDERER_3D
 #define PATH1_RENDERER_3D
 
+#include "graphics/Texture.hpp"
 #include "interfaces/IRenderer3D.hpp"
 #include "tools/Deltawatch.hpp"
+#include <memory>
 
 namespace Renderer
 {
@@ -39,7 +41,8 @@ class Path1Renderer3D : public IRenderer3D
                       const ps2math::Mat4 &modelMatrix,
                       const Mesh &mesh,
                       const std::size_t offset,
-                      const Light::BaseLight &light);
+                      const Light::BaseLight &light,
+                      const std::shared_ptr<Texture> &texture);
     void PrepareStaticPacket();
     bool isDebuggingEnabled;
 };

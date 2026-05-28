@@ -10,6 +10,7 @@
 
 #include "VU0Math/vec4.hpp"
 #include "graphics/DrawingEnvironment.hpp"
+#include "graphics/LodeTextureLoader.hpp"
 #include "graphics/STBITextureLoader.hpp"
 #include "graphics/Texture.hpp"
 #include "input/padman.hpp"
@@ -82,35 +83,35 @@ void render()
     dma_channel_send_packet2(clearScreenPacket, DMA_CHANNEL_GIF, 0);
 
     auto textureLoader = std::make_shared<graphics::STBITextureLoader>();
-    graphics::Texture myTex("CAT/TEX_CAT.PNG");
-    myTex.LoadTexture(textureLoader);
-    myTex.AllocateVram();
-    myTex.TransferTextureToGS();
-    myTex.SetTexSamplingMethodInGS();
-    myTex.SetTextureAsActive();
+    std::shared_ptr<graphics::Texture> catTex = std::make_shared<graphics::Texture>("CAT/TEX_CAT.PNG");
+    std::shared_ptr<graphics::Texture> airplaneTex = std::make_shared<graphics::Texture>("AIRPLANE/AIRPLANE_TEX2.PNG");
+
+    catTex->LoadTexture(textureLoader);
+    catTex->AllocateVram();
+    catTex->TransferTextureToGS();
+    catTex->SetTexSamplingMethodInGS();
+
+    airplaneTex->LoadTexture(textureLoader);
+    airplaneTex->AllocateVram();
+    airplaneTex->TransferTextureToGS();
+    airplaneTex->SetTexSamplingMethodInGS();
+    // Goal: Use path3 only for upload
 
     std::vector<Model> modelList;
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, -70.0f, 1.0f}});
     modelList.emplace_back(Model{ps2math::Vec4{30.0f, 30.0f, +70.0f, 1.0f}});
-    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -20.0f, -70.0f, 1.0f}});
-    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, 10.0f, -70.0f, 1.0f}});
-    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -10.0f, -70.0f, 1.0f}});
-    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, -30.0f, 70.0f, 1.0f}});
-    // modelList.emplace_back(Model{ps2math::Vec4{0.0f, 30.0f, 70.0f, 1.0f}});
+    modelList.emplace_back(Model{ps2math::Vec4{0.0f, -30.0f, 0.0f, 1.0f}});
 
     modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
+    modelList[0].AddTexture(catTex);
+
     modelList[1].LoadModel("CAT/MESH_CAT.OBJ");
+    modelList[1].AddTexture(catTex);
+
+    modelList[2].LoadModel("AIRPLANE/AIRPLANE.OBJ");
+    modelList[2].AddTexture(airplaneTex);
+    modelList[2].GetTransformComponent().SetScaleFactor(0.1f);
     PadManager controllerInput{ false };
-    // modelList[0].LoadModel("CUBE/cube.obj");
-    // myModel.LoadModel("HITBOX/manInTheBox.obj", "HITBOX/");
-    // modelList[0].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
-    // modelList[1].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
-    // modelList[2].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
-    // modelList[3].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
-    // modelList[4].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
-    // modelList[5].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
-    // modelList[6].LoadModel("RIFLE/RIFLE.OBJ", "RIFLE/");
-    // myModel.LoadModel("AIRPLANE/AIRPLANE.OBJ", "AIRPLANE/");
     LOG_INFO("Mesh List count: ") << modelList[0].GetMeshList().size();
 
     float angle = 0.0f;
@@ -168,7 +169,7 @@ void render()
         for (auto &model : modelList)
         {
             Components::Transform &transformComponentRef = model.GetTransformComponent();
-            transformComponentRef.SetScaleFactor(0.5f);
+            // transformComponentRef.SetScaleFactor(0.5f);
             transformComponentRef.SetAngleY(15.0f);
 
             // transformComponentRef.SetAngleY(angle);
