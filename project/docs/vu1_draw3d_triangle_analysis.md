@@ -2,7 +2,7 @@
 
 ## Overview
 
-`draw3d_triangle.vcl` is a **VCL** (VU1 Control Language) microprogram that runs on the PlayStation 2's **Vector Unit 1 (VU1)**. It is an evolution of the simpler `draw3d.vcl` — whereas the original processes **one vertex at a time**, this program processes **one triangle (3 vertices) per loop iteration**, enabling **clip-space backface culling** before perspective division.
+`draw3d_triangle.vcl` is a **VCL** microprogram that runs on the PlayStation 2's **Vector Unit 1 (VU1)**. This program processes **one triangle (3 vertices) per loop iteration**, enabling **clip-space backface culling** before perspective division.
 
 | Property | Value |
 |---|---|
@@ -25,12 +25,16 @@ The VCL source goes through two transformations:
 draw3d_triangle.vcl
     ↓ [vclpp — VCL Pre-Processor]
 draw3d_triangle.vsm_pp  (macros expanded, ready for assembler)
-    ↓ [vcl — VCL Assembler]
-draw3d_triangle.vsm     (final VU1 microcode)
+    ↓ [vcl — VCL]
+draw3d_triangle.vsm     (VU1 assembly)
+    ↓ [vcl — VSM Assembler]
+draw3d_triangle.o     (final VU1 microcode)
 ```
+Meaning that two tools are required: [VCLPP](https://github.com/glampert/vclppl) and [VCL - Vector Unit Command Line](https://ps2linux.no-ip.info/playstation2-linux.com/projects/vcl.html) for compiling the full binary.
 
-- The `.vsm` binary is linked into the PS2 ELF via a `.section(\".vudata\")` attribute.
+- The `.o` binary is linked into the PS2 ELF via a `.section(\".vudata\")` attribute.
 - At runtime, `path1Renderer->UploadVU1MicroProgram()` copies it into VU1's instruction memory.
+
 
 ---
 
@@ -52,6 +56,8 @@ The program defines 12 quadword constants, loaded from VU1's `vi00`-relative dat
 | `ModelMatRow3` | 9 | Model matrix row 3 |
 | `LightDirection` | 10 | Light direction vector (world space) |
 | `LightIntensities` | 11 | Ambient (x), Diffuse (y), Specular (z) intensities |
+| `GifTagAd` | 12 | GIF tag specifying the number of GS registers to configure |
+| `GifTexSelect` | 13 | TEX0 GS register configuration |
 
 The data following these constants is the **vertex buffer** sent by the EE core via DMA/GIF, starting at the address obtained from `XTOP`.
 
@@ -59,7 +65,7 @@ The data following these constants is the **vertex buffer** sent by the EE core 
 
 ## Double-Buffering Strategy
 
-The reference quad-buffering approach (Dr. Henry S. Fortuna) divides VU1's data memory into **4 buffers** (2 input + 2 output) and uses VIF1's `BASE`/`OFFSET` codes to remap addresses, creating a 3-way pipeline: upload data to one input buffer while the VU1 processes the other input buffer and the GS rasterizes from the output buffer. This project uses a **different memory layout** and a **simpler double-buffering scheme**.
+This project uses a **simple double-buffering scheme**.
 
 ### VU1 Data Memory Map
 
@@ -84,9 +90,9 @@ VU1 DMEM (4 KB = 256 qwords)
 
 VIF1 is configured with:
 ```cpp
-packet2_utils_vu_add_double_buffer(packet2, 12, (1024 - 12) / 2);
+packet2_utils_vu_add_double_buffer(packet2, 14, (1024 - 14) / 2);
 ```
-This reserves the first **12 qwords** for constants and splits the remaining data memory into **2 buffers** for vertex data. The EE re-uploads the MVP, model matrix, and light data to addresses 0–11 at the start of each chunk (since matrices change per model), so the constants are **updated per chunk**, not just at program start.
+This reserves the first **14 qwords** for constants and splits the remaining data memory into **2 buffers** for vertex data. The EE re-uploads the vertex count, MVP, model matrix, light data and texture id to addresses 0–13 at the start of each chunk (since matrices change per model), so the constants are **updated per chunk**, not just at program start. 
 
 ### How the Double-Buffering Works
 
@@ -109,11 +115,7 @@ While DMA channel VIF1 is transmitting one packet to VU1's data memory, the EE c
 
 #### 2. VIF1 Data Memory Double-Buffering
 
-VIF1's double-buffer mode automatically alternates between the two data memory regions. The EE always unpacks data starting at address 0 (relative to the active buffer via the `TOP` register):
-
-```cpp
-u32 vifAddedBytes = 0; // zero because now we will use TOP register (double buffer)
-```
+VIF1's double-buffer mode automatically alternates between the two data memory regions. The EE always unpacks data starting at address 0 relative to the active buffer via the `TOP` register.
 
 VIF1 internally toggles the base address for each `MSCAL`/`MSCNT` call, so consecutive chunks automatically land in alternating memory regions.
 
@@ -130,20 +132,20 @@ else
 
 For subsequent chunks, `MSCNT` (micro-program continue) resumes the VU1 program at its current loop, waiting at `begin:` for the next `XTOP` packet. This allows the VU1 to process multiple chunks per frame without restarting its constant setup.
 
-### Comparison with Classic Quad-Buffering
+### Overview of the Buffering Strategy
 
-| Feature | Classic Quad-Buffering (Fortuna) | This Project |
-|---|---|---|
-| **VU1 buffers** | 4 (2 input + 2 output) | 2 (VIF1 double buffer) |
-| **EE-side packets** | 1 (single VIF packet) | 2 (ping-pong packets) |
-| **VIF remapping** | `BASE`/`OFFSET` codes | VIF1 double-buffer mode (`TOP` register) |
-| **Buffer size** | ~83 vertices each | ~81 vertices each (≈27 triangles) |
-| **Constants location** | First 16 qwords of each buffer | First 12 qwords of DMEM (shared) |
-| **Output buffer** | Separate from input | Same buffer (in-place transform) |
-| **Program restart** | `MSCALL` (initial) / `MSCNT` (subsequent) | `MSCAL` / `MSCNT` |
-| **Data flow** | Upload to input A → process → XGKICK output A | Upload to buffer → XTOP → process → XGKICK |
+| Feature | Implementation |
+|---|---|
+| **VU1 buffers** | 4 (2 input + 2 output) |
+| **EE-side packets** |  2 (ping-pong packets) |
+| **VIF remapping** | VIF1 double-buffer mode (`TOP` register) |
+| **Buffer size** | ~81 vertices each (≈27 triangles) |
+| **Constants location** | First 12 qwords of DMEM (shared) |
+| **Output buffer** | Same buffer (in-place transform) |
+| **Program restart** | `MSCALL` (initial) / `MSCNT` (subsequent) |
+| **Data flow** | Upload to buffer → XTOP → process → XGKICK |
 
-The project's approach is **simpler** — it uses VIF1's built-in double-buffer mode rather than manually managing 4 buffers via `BASE`/`OFFSET`. The EE-side packet double-buffering compensates for the reduced VU1 buffer count by allowing the EE to prepare the next chunk while DMA transmits the current one. The **in-place transform** design means that the input data is overwritten with output data as VU1 processes it — the `gifPacketStart` pointer points to the same memory region, and the output (GIF tag + processed vertices) is smaller than the input (positions + normals + STQ), so no data is corrupted during processing.
+The project uses VIF1's built-in double-buffer mode. The EE-side packet double-buffering compensates for the reduced VU1 buffer count by allowing the EE to prepare the next chunk while DMA transmits the current one. 
 
 ### Pipeline Timeline
 
@@ -159,7 +161,7 @@ Chunk 1:  [EE fills pkt[0]] → [DMA to VU1 buf 0] → [VU1 processes buf 0] →
 Chunk 2:                     [EE fills pkt[1]] → [DMA to VU1 buf 1] → [VU1 processes buf 1] → [XGKICK]
 ```
 
-Across consecutive chunks, the three stages overlap: the EE prepares chunk N+1 while VIF1 uploads chunk N to VU1 DMEM; the VU1 processes chunk N while the GS rasterizes chunk N-1 via XGKICK. This creates a **3-stage pipeline** where EE packet fill, VIF1 DMA upload, and GS rasterization all run concurrently.
+Across consecutive chunks, the three stages overlap: the EE prepares chunk N+1 while DMA uploads chunk N to VU1 DMEM via VIF1; the VU1 processes chunk N while the GS rasterizes chunk N-1 via XGKICK. This creates a **3-stage pipeline** where EE packet fill, VIF1 DMA upload, and GS rasterization all run concurrently.
 
 ### Chunking Strategy
 
@@ -175,11 +177,13 @@ This ensures:
 - The vertex count is always divisible by 3 (no partial triangles)
 - Multiple models/meshes can be rendered in a single frame by sending multiple chunks
 
-Note: The exact buffer capacity is determined by the VIF1 double-buffer configuration — the constant area (12 qwords) is excluded from VIF1's address remapping, and the remaining DMEM is split into 2 regions. With 81 vertices per chunk, the input (header + positions + normals + STQ ≈ 245 qwords) and output (GIF tag + 3N qwords ≈ 244 qwords) are stored in the same buffer, with the VU1 reading all input data before overwriting the buffer with output.
+Note: The exact buffer capacity is determined by the VIF1 double-buffer configuration — the constant area (16 qwords) is excluded from VIF1's address remapping, and the remaining DMEM is split into 2 regions. With 81 vertices per chunk, the input (header + positions + normals + STQ ≈ 245 qwords) and output (GIF tag + 3N qwords ≈ 244 qwords) are stored in the same buffer.
 
 The buffer header for each chunk contains:
-- **Qword 0**: Vertex count (integer)
-- **Qword 1**: GIF tag defining the primitive type and expected register count
+- **Qword 0**: GIF tag for configuring a GS register
+- **Qword 1**: GIF tag to set the GS register TEX0 (set texture as active)
+- **Qword 2**: Vertex count (integer)
+- **Qword 3**: GIF tag defining the primitive type and expected register count
 
 ---
 
@@ -199,7 +203,7 @@ LQ      lightIntensitiesVec, LightIntensities(vi00)
 - Loads all 4 rows of the MVP matrix, the viewport scale, RGBA base color, model matrix, light direction (inverted), and light intensity factors into VF registers.
 - **`LQ`** (Load Quadword): loads up to 4 fields of a VU FPR from adjacent words in VU data memory. The offset is in doublewords (16-byte units).
 - `FCSET 0x000000` — zeroes the clipping flags register (required before using `CLIPw`).
-- Initializes `dontDraw = 1 + 0x7FFF = 0x8000` — a sentinel value that, when stored in the `w` component of `XYZ2`, sets the **ADC** (ADjacent Context) bit in the GS, preventing the triangle from being drawn.
+- Initializes `dontDraw = 1 + 0x7FFF = 0x8000` — a sentinel value that, when stored in the `w` component of `XYZ2`, sets the **ADC** bit in the GS XYZ2 register, preventing the triangle from being drawn.
 
 #### Official VU Instruction References (setup)
 
@@ -231,18 +235,9 @@ ILW.w   vertCount,          0(iBase)
   - `normalData` → `vertexData + vertCount`
   - `stqData` → `normalData + vertCount`
   - `gifPacketStart` / `destAddress` → `stqData + vertCount` (output buffer)
-- The GIF tag (`primTag`) is stored at the start of the output buffer with **`SQI`** (Store Quadword Post-Increment): `[base] <- ft.dest; base += 8` (8 doublewords = 16 bytes = 1 quadword).
+- The GIF tags (`giffAdTag`, `tex0Config`, `primTag`) are stored at the start of the output buffer with **`SQI`** (Store Quadword Post-Increment)
 
 > **Important**: The `vertCount` represents the number of **vertices**, not triangles. Since triangles are 3 vertices each, the loop processes `vertCount / 3` triangles.
-
-#### Official VU Instruction References (begin)
-
-| Instruction | Format | Purpose |
-|---|---|---|
-| **XTOP** | `XTOP It` | VU1-only. Read the address of the micro-mode packet (GIF path control). |
-| **ILW** | `ILW.dest ft, offset(base)` | Load up to 4 fields of a VU FPR from VU data cache at offset (in doublewords) from base. |
-| **IADD** | `IADD Id, Is, It` | Integer add: `Id = Is + It` |
-| **SQI** | `SQI.dest ft, base++` | Store up to 4 fields of a VU FPR to VU data cache with post-increment: `[base] <- ft.dest; base += 8` |
 
 ---
 
@@ -271,18 +266,7 @@ MatrixMultiplyVertex{ vertex1, matrixMvp, vertex1 }
 MatrixMultiplyVertex{ vertex2, matrixMvp, vertex2 }
 ```
 
-Transforms each vertex from model space to clip space using the MVP matrix. The macro expands to:
-
-```
-MUL     acc,           matrix[0], vertex[x]
-MADD    acc,           matrix[1], vertex[y]
-MADD    acc,           matrix[2], vertex[z]
-MADD    vertex_result, matrix[3], vertex[w]
-```
-
-- **`MUL`** (Multiply): `ACC.field <- fs.field * ft.field`
-- **`MADD`** (Multiply-Add): `fd.field <- ACC.field + (fs.field * ft.field)`
-- Result: `vertex = MVP[0]*vx + MVP[1]*vy + MVP[2]*vz + MVP[3]*vw`
+Transforms each vertex from model space to clip space using the MVP matrix.
 
 #### c. Clipping Detection (ADC tagging)
 
@@ -307,14 +291,6 @@ ISW.w      iADC,     offset(destAddress)
 - **`ISW.w`** (Integer Store Word) — stores the integer ADC value at the `w` position in the output buffer.
 - The ADC value is written **ahead of time** into the output buffer. If the triangle is visible, `vertex.w` (from the perspective division) will **overwrite** this during the store step. If culled, the ADC marker remains.
 
-#### Official VU Instruction References (clipping)
-
-| Instruction | Format | Purpose |
-|---|---|---|
-| **CLIPw** | `CLIPw.xyz ft, fs` | Update the clipping flag based on vertex vs. frustum plane comparisons. Clipping flag bits are set when vertex components exceed the `w` range. |
-| **FCAND** | `FCAND It, imm24` | Logical AND of clipping flag with 24-bit immediate: `It <- clipping_flag AND imm24` |
-| **ISW** | `ISW.dest ft, offset(base)` | Store up to 4 integer fields of a VU FPR to VU data cache at offset (in doublewords) from base. |
-
 #### d. Perspective Division
 
 ```
@@ -333,22 +309,8 @@ MADD.xyz vertex, vertex,   viewPortTransform  ; vertex = vertex * scale + scale
 MULQ    outStq, inStq,     q                  ; perspective-correct STQ
 ```
 
-- **`DIV Q, ft.e, fs.e`** — divides a field of one FPR by a field of another, storing in the **Q** register: `Q <- ft / fs`
-- **`RSQRT Q, ft.e, fs.e`** — `Q <- ft / sqrt(fs)` (used in normal normalization later)
-- The **Q register** is a 32-bit fixed-point register used for pipelined division and square root operations. Results from `DIV`/`RSQRT` are available after 7 cycles of latency.
-- Performs the homogeneous divide: `x' = x/w`, `y' = y/w`, `z' = z/w`
-- **`MULA`** (Multiply-Add to ACC only): `ACC.field <- fs.field * ft.field`
-- **`MULQ`** (Multiply by Q): multiplies each field by the Q register value
 - Applies viewport transform: maps NDC `[-1, 1]` to GS screen coordinates
 - Corrects texture coordinates for perspective: `s' = s/w`, `t' = t/w`, `q' = q/w`
-
-#### Official VU Instruction References (perspective divide)
-
-| Instruction | Format | Purpose |
-|---|---|---|
-| **DIV** | `DIV Q, ft.e, fs.e` | Divide: `Q <- ft.e / fs.e` (7-cycle latency) |
-| **MULA** | `MULA.dest fs, ft` | Multiply into accumulator: `ACC.field <- fs.field * ft.field` |
-| **MADD** | `MADD.dest fd, fs, ft` | Multiply-add: `fd.field <- ACC.field + (fs.field * ft.field)` |
 
 #### e. Clip-Space Backface Culling
 
@@ -373,12 +335,9 @@ MTIR    intRes,     cullResult[x]              ; move to integer register
 ```
 
 - Computes the **2D cross product** (signed area) of the triangle in clip space (before perspective divide): `(v1.xy - v0.xy) × (v2.xy - v0.xy)`.
-- **`FTOI0`** (Float To Integer, 0 decimal digits): converts floating-point to fixed-point integer by truncation. This discards the fractional part.
-- **`MTIR`** (Move to Integer Register): `It <- fs.field` — moves one field of a VF register to a VI register.
 - The sign of the cross product tells us the triangle's winding direction (CW vs CCW).
-- Since the cross product is performed in clip space (before viewport transform), the sign convention matches the clip-space coordinate system: **positive = CW = backface** → culled.
+- Since the cross product is performed in clip space, the sign convention matches the clip-space coordinate system: **positive = CW = backface** → culled.
 - **`IBGTZ`** (Integer Branch if Greater Than Zero): `if It > 0, PC += imm` — branches to `culled:` if back-facing.
-- This is more efficient than doing backface culling on the EE core, as it avoids the DMA round-trip for culled triangles.
 
 #### f. Fixed-Point Conversion
 
@@ -460,17 +419,6 @@ ADD.x     dotproduct, dotproduct, dotproduct[z]
 - Colors are capped at 128 (not 255) — likely to prevent oversaturation when combined with other effects.
 - **`FTOI0`** converts the final color to 8-bit unsigned integer format for the GS.
 
-#### Official VU Instruction References (lighting)
-
-| Instruction | Format | Purpose |
-|---|---|---|
-| **RSQRT** | `RSQRT Q, ft.e, fs.e` | Reciprocal square root: `Q <- ft.e / sqrt(fs.e)` |
-| **MAX** | `MAX.dest fd, fs, ft` | Maximum: `fd.field <- max(fs.field, ft.field)` |
-| **MINI** | `MINI.dest fd, fs, ft` | Minimum: `fd.field <- min(fs.field, ft.field)` |
-| **FTOI0** | `FTOI0.dest ft, fs` | Float to integer (0 decimal digits): truncates fractional part |
-| **FTOI4** | `FTOI4.dest ft, fs` | Float to fixed-point (4 decimal digits): `12:4` format for GS coordinates |
-| **MUL** | `MUL.dest fd, fs, ft` | Multiply: `fd.field <- fs.field * ft.field` |
-
 ---
 
 #### h. Culled Triangle Path
@@ -515,12 +463,6 @@ SQ.xyz vertex2, 2+6(destAddress)          ; XYZ2 for vertex 2
 - Each vertex outputs **3 quadwords** in the `PACKED` GIF format with register chain `ST → RGBAQ → XYZ2`.
 - The output for each triangle occupies **9 quadwords** (3 vertices × 3 qwords each).
 
-#### Official VU Instruction References (store)
-
-| Instruction | Format | Purpose |
-|---|---|---|
-| **SQ** | `SQ.dest ft, offset(base)` | Store up to 4 fields of a VU FPR to adjacent words in VU data cache. Offset in doublewords. |
-
 ---
 
 ### 5. Pointer Advancement
@@ -539,13 +481,6 @@ IBNE   vertexCounter, iBase,         loop
 - Advances `destAddress` by 9 (3 vertices × 3 quadwords per vertex).
 - **`IADDI`** (Integer Add Immediate): `Id = Is + imm` — decrements the counter.
 - **`IBNE`** (Integer Branch if Not Equal): `if Is != It, PC += imm` — loops back if more triangles remain.
-
-#### Official VU Instruction References (loop control)
-
-| Instruction | Format | Purpose |
-|---|---|---|
-| **IADDI** | `IADDI Id, Is, imm` | Integer add immediate (sign-extended): `Id = Is + imm` |
-| **IBNE** | `IBNE Is, It, imm` | Integer branch if not equal: `if Is != It, PC += PC + imm` |
 
 ---
 
@@ -585,18 +520,20 @@ Where `N = vertCount` (total vertices across all triangles).
 
 ```
 Qword 0:              GIF Tag
+Qword 1:              GIF Tag
+Qword 2:              GIF Tag
                       ──────────────────────────
-Qword 1:              Vertex 0  →  ST (texture)
-Qword 2:              Vertex 0  →  RGBAQ (color + texture Q)
-Qword 3:              Vertex 0  →  XYZ2 (screen position + ADC)
+Qword 3:              Vertex 0  →  ST (texture)
+Qword 4:              Vertex 0  →  RGBAQ (color + texture Q)
+Qword 5:              Vertex 0  →  XYZ2 (screen position + ADC)
                       ──────────────────────────
-Qword 4:              Vertex 1  →  ST
-Qword 5:              Vertex 1  →  RGBAQ
-Qword 6:              Vertex 1  →  XYZ2
+Qword 6:              Vertex 1  →  ST
+Qword 7:              Vertex 1  →  RGBAQ
+Qword 8:              Vertex 1  →  XYZ2
                       ──────────────────────────
-Qword 7:              Vertex 2  →  ST
-Qword 8:              Vertex 2  →  RGBAQ
-Qword 9:              Vertex 2  →  XYZ2
+Qword 9:              Vertex 2  →  ST
+Qword 10:             Vertex 2  →  RGBAQ
+Qword 12:             Vertex 2  →  XYZ2
 (per triangle)
 ```
 
@@ -616,7 +553,7 @@ The GIF tag format is `GIF_PACKED` with the register chain: `ST → RGBAQ → XY
 | Lighting | Per-vertex | Per-vertex (same model) |
 | Performance | Higher vertex throughput (1/loop) | Lower vertex throughput (3/loop), but skips invisible tris |
 
-The primary advantage of the triangle-based approach is that **backface culling happens on VU1 without EE involvement**, saving DMA bandwidth for invisible triangles. The EE no longer needs to compute triangle winding or skip culled triangles when generating the display list.
+The primary advantage of the triangle-based approach is that **backface culling happens on VU1 without EE involvement**, saving VU1 processing time for invisible triangles.
 
 ---
 
@@ -642,21 +579,7 @@ The primary advantage of the triangle-based approach is that **backface culling 
 3. **Dual-issue**: VU1 can issue both an upper (floating-point) and lower (integer/branch) instruction per cycle. The VCL compiler handles scheduling.
 4. **CLIPw flag update**: The clipping flag is updated atomically by `CLIPw`. It accumulates results for the last 3 `CLIPw` operations, which is why `FCAND 0x3FFFF` is used to extract all three vertices' clip status.
 
----
-
-## Optimization Notes
-
-1. **Early ADC writes**: The clipping ADC values are written **before** the division and lighting pipeline. This is fine because the store step overwrites them with the properly computed `vertex[w]` (or they stay as ADC markers if culled).
-
-2. **No specular**: The lighting is ambient + diffuse only. The `lightIntensitiesVec[z]` (specular intensity) is never referenced in the code.
-
-3. **Color clamping at 128**: The `MINI.xyz FinalCol, FinalCol, rgba[w]` caps colors at 128 (which is `rgba[w]`), not 255. This is likely intentional — perhaps to prevent over-brightening or to match a specific color space for the target display.
-
-4. **Backface culling in clip space**: The culling uses the **signed area** of the triangle in 2D clip space (xy after MVP but before perspective division). This is mathematically equivalent to screen-space culling but avoids the perspective divide for culled triangles.
-
-5. **GIF packet format**: The `PACKED` format with 3 registers per vertex (`ST`, `RGBAQ`, `XYZ2`) is the most compact format for textured, Gouraud-shaded triangles. The `Q` component of `RGBAQ` is repurposed from the texture STQ's `q` value.
-
-6. **ADC as a culling mechanism**: Using the GS's ADC bit for backface culling is an elegant hack. The GS processes all 3 vertices of the culled triangle but simply skips the drawing kick, treating the vertices as adjacent to the previous (visible) primitive.
+However, this is handled by VCL (Vector Unit Command Line).
 
 ---
 
