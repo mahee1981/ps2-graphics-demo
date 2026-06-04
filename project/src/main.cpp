@@ -85,6 +85,7 @@ void render()
     auto textureLoader = std::make_shared<graphics::STBITextureLoader>();
     std::shared_ptr<graphics::Texture> catTex = std::make_shared<graphics::Texture>("CAT/TEX_CAT.PNG");
     std::shared_ptr<graphics::Texture> airplaneTex = std::make_shared<graphics::Texture>("AIRPLANE/AIRPLANE_TEX2.PNG");
+    // std::shared_ptr<graphics::Texture> brickTex = std::make_shared<graphics::Texture>("brick_wall_128.png");
 
     catTex->LoadTexture(textureLoader);
     catTex->AllocateVram();
@@ -101,6 +102,7 @@ void render()
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, -70.0f, 1.0f}});
     modelList.emplace_back(Model{ps2math::Vec4{30.0f, 30.0f, +70.0f, 1.0f}});
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, -30.0f, 0.0f, 1.0f}});
+    modelList.emplace_back(Model{ps2math::Vec4{0.0f, -90.0f, -70.0f, 1.0f}});
 
     modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
     modelList[0].AddTexture(catTex);
@@ -111,8 +113,10 @@ void render()
     modelList[2].LoadModel("AIRPLANE/AIRPLANE.OBJ");
     modelList[2].AddTexture(airplaneTex);
     modelList[2].GetTransformComponent().SetScaleFactor(0.1f);
+
+    modelList[3].LoadModel("FLOOR/FLOOR.OBJ");
+    modelList[3].AddTexture(catTex);
     PadManager controllerInput{ false };
-    LOG_INFO("Mesh List count: ") << modelList[0].GetMeshList().size();
 
     float angle = 0.0f;
     float moveHorizontal = 0.0f;
@@ -121,8 +125,9 @@ void render()
     Light::BaseLight mainLight;
     mainLight.SetColor(1.0f, 1.0f, 1.0f);
     mainLight.SetDirection(1.0f, 0.0f, 0.0f);
-    mainLight.SetAmbientIntensity(0.4f);
-    mainLight.SetDiffuseIntensity(0.6f);
+    mainLight.SetAmbientIntensity(0.1f);
+    mainLight.SetDiffuseIntensity(0.2f);
+    mainLight.SetSpecularIntensity(0.5f);
 
     Deltawatch deltaWatch;
 
@@ -180,7 +185,7 @@ void render()
             // TODO: to be handled by transform system
             model.Update();
         }
-        renderer3d->RenderFrame(modelList, mainLight, myCamera.CalculateViewMatrix());
+        renderer3d->RenderFrame(modelList, mainLight, myCamera.CalculateViewMatrix(), myCamera.GetPosition());
 
         deltaWatch.CaptureEndMoment();
         drawEnv.SwapBuffers();

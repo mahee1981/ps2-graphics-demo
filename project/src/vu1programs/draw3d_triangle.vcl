@@ -17,6 +17,7 @@
 #define LightColor       12
 #define GifTagAd         12
 #define GifTexSelect     13
+#define CameraPos        14
 
 
 .syntax new
@@ -48,7 +49,7 @@ setup:
     lq          matrixModel[3],    ModelMatRow3(vi00)       ; load the fourth row of the model matrix
 
     lq          lightDirectionVec, LightDirection(vi00)     ; load the light direction vector
-    sub.xyz     lightDirectionVec, vf00, lightDirectionVec  ; Invert the light direction vector
+    sub.xyz     toLight, vf00, lightDirectionVec            ; Invert the light direction vector
     lq          lightIntensitiesVec, LightIntensities(vi00) ; load the ambient, diffuse and specular intensity
 
     lq          gifAdTag,          GifTagAd(vi00)           ; load gif tag for selecting the texture;
@@ -91,9 +92,9 @@ begin:
     iadd        vertexCounter,     iBase,        vertCount  ; loop vertCount times
 loop:
 
-    lq          vertex0,           0(vertexData)             ; load the vertex position data
-    lq          vertex1,           1(vertexData)             ; load the vertex position data
-    lq          vertex2,           2(vertexData)             ; load the vertex position data
+    lq          baseVertex0,           0(vertexData)             ; load the vertex position data
+    lq          baseVertex1,           1(vertexData)             ; load the vertex position data
+    lq          baseVertex2,           2(vertexData)             ; load the vertex position data
     lq          Stq0,              0(stqData)                ; load the texture coordinate data
     lq          Stq1,              1(stqData)                ; load the texture coordinate data
     lq          Stq2,              2(stqData)                ; load the texture coordinate data
@@ -102,9 +103,9 @@ loop:
     ;// --- Vertex Operations ---
     ;////////////////////////////////////////////////////////////
 
-    MatrixMultiplyVertex{ vertex0, matrixMvp, vertex0 }
-    MatrixMultiplyVertex{ vertex1, matrixMvp, vertex1 }
-    MatrixMultiplyVertex{ vertex2, matrixMvp, vertex2 }
+    MatrixMultiplyVertex{ vertex0, matrixMvp, baseVertex0 }
+    MatrixMultiplyVertex{ vertex1, matrixMvp, baseVertex1 }
+    MatrixMultiplyVertex{ vertex2, matrixMvp, baseVertex2 }
                                                             ; macro from vcl_macros.i, preprocessed using vclpp
                                                             ; vclpp is very moody, and pay attention to spaces
                                                             ; before braces both in invocation and include files
@@ -138,13 +139,31 @@ loop:
     ;////////////////////////////////////////////////////////////
 
     MatrixMultiplyVertex{ normal0, matrixModel, normal0 }
-    VectorNormalize{ normal0Out, normal0 }
-    VectorDotProduct{ normal0Out, normal0Out, lightDirectionVec }
+    VectorNormalize{ normal0, normal0 }
+    VectorDotProduct{ normal0Out, normal0, toLight }
     max.x       normal0Out,        normal0Out,      vf00[x]                ; clamp the diffuseImpact
     mul.x       normal0Out,        normal0Out,      lightIntensitiesVec[y] ; multiply the diffuse factor by diffuse intensity
 
+
+    lq          cameraPos,         CameraPos(vi00)                          ; load camera position
+    MatrixMultiplyVertex{ vecWorld, matrixModel, baseVertex0 }              
+    sub.xyz     toCamera,         cameraPos,       vecWorld                ; get direction vector to cmaera
+    VectorNormalize{ toCamera, toCamera }                                  
+    add.xyz          halfVec, toCamera, toLight                          ; get bisecting vector
+    VectorNormalize{ halfVec, halfVec }
+    VectorDotProduct{ specComponent, halfVec, normal0 }
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   lightIntensitiesVec[z] ; multiply the specular factor by specular intensity
+    max.x       specComponent,     specComponent,   vf00[x]                ; clamp the specular intensity to > 0
+    mini.x      specComponent,     specComponent,   vf00[w]                ; clamp the specular intensity to < 1
+
     mul.xyz     acc,               rgba,            lightIntensitiesVec[x] ; Add the ambient light to final color
-    madd.xyz    FinalCol0,         rgba,            normal0Out[x]          ; Add the diffuse lighting to final color
+    madd.xyz    acc,               rgba,            normal0Out[x]          ; Add the diffuse lighting to final color
+    madd.xyz    FinalCol0,         rgba,            specComponent[x]       ; Add the specular lighting to final color
     mini.xyz    FinalCol0,         FinalCol0,       rgba[w]                ; Cap it to 128
     add.w       FinalCol0,         vf00,            rgba[w]                ; Set the alpha to 128
     max.xyz     FinalCol0,         FinalCol0,       vf00[x]                ; ensure that we send 0 or positive value
@@ -152,13 +171,30 @@ loop:
     ftoi0       FinalCol0,         FinalCol0                                ; convert to integer since that's the format expected
 
     MatrixMultiplyVertex{ normal1, matrixModel, normal1 }
-    VectorNormalize{ normal1Out, normal1 }
-    VectorDotProduct{ normal1Out, normal1Out, lightDirectionVec }
+    VectorNormalize{ normal1, normal1 }
+    VectorDotProduct{ normal1Out, normal1, toLight }
     max.x       normal1Out,        normal1Out,      vf00[x]                ; clamp the diffuseImpact
     mul.x       normal1Out,        normal1Out,      lightIntensitiesVec[y] ; multiply the diffuse factor by diffuse intensity
 
+    MatrixMultiplyVertex{ vecWorld, matrixModel, baseVertex1 }              
+    sub.xyz     toCamera,         toCamera,       vecWorld                ; get direction vector to cmaera
+    VectorNormalize{ toCamera, toCamera }                                  
+    add.xyz          halfVec, toCamera, toLight                          ; get bisecting vector
+    VectorNormalize{ halfVec, halfVec }
+    VectorDotProduct{ specComponent, halfVec, normal1 }
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   lightIntensitiesVec[z] ; multiply the specular factor by specular intensity
+    max.x       specComponent,     specComponent,   vf00[x]                ; clamp the specular intensity to > 0
+    mini.x      specComponent,     specComponent,   vf00[w]                ; clamp the specular intensity to < 1
+
+
     mul.xyz     acc,               rgba,            lightIntensitiesVec[x] ; Add the ambient light to final color
-    madd.xyz    FinalCol1,         rgba,            normal1Out[x]          ; Add the diffuse lighting to final color
+    madd.xyz    acc,               rgba,            normal1Out[x]          ; Add the diffuse lighting to final color
+    madd.xyz    FinalCol1,         rgba,            specComponent[x]       ; Add the specular lighting to final color
     mini.xyz    FinalCol1,         FinalCol1,       rgba[w]                ; Cap it to 128
     add.w       FinalCol1,         vf00,            rgba[w]                ; Set the alpha to 128
     max.xyz     FinalCol1,         FinalCol1,       vf00[x]                ; ensure that we send 0 or positive value
@@ -166,13 +202,30 @@ loop:
     ftoi0       FinalCol1,         FinalCol1                                ; convert to integer since that's the format expected
 
     MatrixMultiplyVertex{ normal2, matrixModel, normal2 }
-    VectorNormalize{ normal2Out, normal2 }
-    VectorDotProduct{ normal2Out, normal2Out, lightDirectionVec }
+    VectorNormalize{ normal2, normal2 }
+    VectorDotProduct{ normal2Out, normal2, toLight }
     max.x       normal2Out,        normal2Out,      vf00[x]                ; clamp the diffuseImpact
     mul.x       normal2Out,        normal2Out,      lightIntensitiesVec[y] ; multiply the diffuse factor by diffuse intensity
 
+    MatrixMultiplyVertex{ vecWorld, matrixModel, baseVertex2 }              
+    sub.xyz     toCamera,         toCamera,       vecWorld                ; get direction vector to cmaera
+    VectorNormalize{ toCamera, toCamera }                                  
+    add.xyz          halfVec, toCamera, toLight                          ; get bisecting vector
+    VectorNormalize{ halfVec, halfVec }
+    VectorDotProduct{ specComponent, halfVec, normal2 }
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   specComponent 
+    mul.x       specComponent,     specComponent,   lightIntensitiesVec[z] ; multiply the specular factor by specular intensity
+    max.x       specComponent,     specComponent,   vf00[x]                ; clamp the specular intensity to > 0
+    mini.x      specComponent,     specComponent,   vf00[w]                ; clamp the specular intensity to < 1
+
+
     mul.xyz     acc,               rgba,            lightIntensitiesVec[x] ; Add the ambient light to final color
-    madd.xyz    FinalCol2,         rgba,            normal2Out[x]          ; Add the diffuse lighting to final color
+    madd.xyz    acc,               rgba,            normal2Out[x]          ; Add the diffuse lighting to final color
+    madd.xyz    FinalCol2,         rgba,            specComponent[x]       ; Add the specular lighting to final color
     mini.xyz    FinalCol2,         FinalCol2,       rgba[w]                ; Cap it to 128
     add.w       FinalCol2,         vf00,            rgba[w]                ; Set the alpha to 128
     max.xyz     FinalCol2,         FinalCol2,       vf00[x]                ; ensure that we send 0 or positive value

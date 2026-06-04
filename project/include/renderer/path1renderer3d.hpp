@@ -20,7 +20,8 @@ class Path1Renderer3D : public IRenderer3D
     }
     void RenderFrame(const std::vector<Model> &models,
                      const Light::BaseLight &mainLight,
-                     const ps2math::Mat4 &viewProjMatrix) override;
+                     const ps2math::Mat4 &viewProjMatrix,
+                     const ps2math::Vec4 &cameraPos) override;
     void ToggleDebugPrint() override;
     void UploadVU1MicroProgram(u32 *VU1Draw3D_CodeStart, u32 *VU1Draw3D_CodeEnd);
     void SetDoubleBufferSettings();
@@ -42,7 +43,8 @@ class Path1Renderer3D : public IRenderer3D
                       const Mesh &mesh,
                       const std::size_t offset,
                       const Light::BaseLight &light,
-                      const std::shared_ptr<Texture> &texture);
+                      const std::shared_ptr<Texture> &texture,
+                      const ps2math::Vec4 &cameraPos);
     void PrepareStaticPacket();
     bool isDebuggingEnabled;
 };
