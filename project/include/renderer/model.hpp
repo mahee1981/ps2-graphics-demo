@@ -6,6 +6,7 @@
 #include "components/transform.hpp"
 #include "graphics/Texture.hpp"
 #include "mesh.hpp"
+#include <memory>
 #include <packet2.h>
 #include <vector>
 
@@ -45,9 +46,20 @@ class Model
         return meshList;
     }
 
+    // TODO: add bounds checking maybe?
+    inline const std::shared_ptr<Texture> &GetTextureById(int id) const
+    {
+        return _textureList.at(id);
+    }
+
+    inline void AddTexture(std::shared_ptr<Texture> texPtr)
+    {
+        _textureList.push_back(texPtr);
+    }
+
   private:
     std::vector<Mesh> meshList;
-    std::vector<Texture> _textureList;
+    std::vector<std::shared_ptr<Texture>> _textureList;
     ps2math::Mat4 _worldMatrix;
     Components::Transform _transformComponent;
 };

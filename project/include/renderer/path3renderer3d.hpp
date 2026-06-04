@@ -29,7 +29,8 @@ class Path3Renderer3D : public IRenderer3D
     static void ClipVertex(ps2math::Vec4 &vertex);
     void RenderFrame(const std::vector<Model> &models,
                      const Light::BaseLight &mainLight,
-                     const ps2math::Mat4 &viewProjMatrix) override;
+                     const ps2math::Mat4 &viewProjMatrix,
+                     const ps2math::Vec4 &cameraPos) override;
     void ToggleDebugPrint() override
     {
         isDebuggingEnabled = !isDebuggingEnabled;

@@ -39,6 +39,7 @@ class Texture
     }
     void SetTextureAsActive();
     void SetTexSamplingMethodInGS();
+    u64 GetTexGSSettings() const;
 
   private:
     std::string imgPath;

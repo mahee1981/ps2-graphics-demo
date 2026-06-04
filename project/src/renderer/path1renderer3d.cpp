@@ -1,8 +1,14 @@
 #include "renderer/path1renderer3d.hpp"
+#include "VU0Math/vec4.hpp"
+#include "graphics/Texture.hpp"
 #include "logging/log.hpp"
+#include "packet.h"
+#include "packet2.h"
 #include "packet2_utils.h"
 #include "packet2_vif.h"
 #include "utils.hpp"
+#include <filesystem>
+#include <memory>
 
 namespace Renderer
 {
@@ -55,7 +61,9 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
                                    const ps2math::Mat4 &modelMatrix,
                                    const Mesh &mesh,
                                    const std::size_t offset,
-                                   const Light::BaseLight &light)
+                                   const Light::BaseLight &light,
+                                   const std::shared_ptr<Texture> &texture,
+                                   const ps2math::Vec4 &cameraPos)
 {
     packet2_t *currentVifPacket = dynamicPacket[context];
     packet2_reset(currentVifPacket, 0);
@@ -85,8 +93,21 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
                                      0);
     vifAddedBytes += packet2_get_qw_count(light.GetPacketInformation());
 
+    packet2_utils_vu_open_unpack(currentVifPacket, vifAddedBytes, 0);
+    {
+        packet2_utils_gif_add_set(currentVifPacket, 1);
+        qword_t textureConfig;
+        textureConfig.dw[0] = texture->GetTexGSSettings();
+        textureConfig.dw[1] = GS_REG_TEX0_1;
+        packet2_add_u128(currentVifPacket,  textureConfig.qw);
+        packet2_add_float(currentVifPacket, cameraPos.x);
+        packet2_add_float(currentVifPacket, cameraPos.y);
+        packet2_add_float(currentVifPacket, cameraPos.z);
+        packet2_add_float(currentVifPacket, 0.0f);
+    }
+    packet2_utils_vu_close_unpack(currentVifPacket);
     vifAddedBytes = 0; // zero because now we will use TOP register (double buffer)
-                       // we don't wan't to unpack at 8 + beggining of buffer, but at
+                       // we don't wan't to unpack at 14 + beggining of buffer, but at
                        // the beggining of the buffer
 
     // Add Vertex Count And GifTag
@@ -124,6 +145,7 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
         packet2_utils_vu_add_continue_program(currentVifPacket);
     packet2_utils_vu_add_end_tag(currentVifPacket);
     dma_channel_wait(DMA_CHANNEL_VIF1, 0);
+    dma_channel_wait(DMA_CHANNEL_GIF, 0);
     dma_channel_send_packet2(currentVifPacket, DMA_CHANNEL_VIF1, 1);
 
     // Switch packet, so we can proceed during DMA transfer
@@ -131,7 +153,8 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
 }
 void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
                                   const Light::BaseLight &mainLight,
-                                  const ps2math::Mat4 &viewMat)
+                                  const ps2math::Mat4 &viewMat,
+                                  const ps2math::Vec4 &cameraPos)
 {
     unsigned long long trianglesRendered = 0;
     lastDisplayListPrepWatch.CaptureStartMoment();
@@ -162,7 +185,16 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
             // TODO: Clean this up, I don't like the convoluted calling
             while (offset < numberOfWholeLoopIterations * MAX_VERTEXDATA_PER_VIF_PACKET)
             {
-                RenderChunck(bufferHeader, MAX_VERTEXDATA_PER_VIF_PACKET, mvp, modelMatrix, mesh, offset, mainLight);
+                RenderChunck(bufferHeader,
+                             MAX_VERTEXDATA_PER_VIF_PACKET,
+                             mvp,
+                             modelMatrix,
+                             mesh,
+                             offset,
+                             mainLight,
+                             model.GetTextureById(0),
+                             cameraPos);
+
                 offset += MAX_VERTEXDATA_PER_VIF_PACKET;
                 trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
             }
@@ -179,7 +211,16 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
                                                  DRAW_STQ2_REGLIST,
                                                  3,
                                                  0);
-                RenderChunck(bufferHeader, remainder, mvp, modelMatrix, mesh, offset, mainLight);
+                RenderChunck(bufferHeader,
+                             remainder,
+                             mvp,
+                             modelMatrix,
+                             mesh,
+                             offset,
+                             mainLight,
+                             model.GetTextureById(0),
+                             cameraPos);
+
                 trianglesRendered += remainder / 3;
             }
             packet2_reset(bufferHeader, 0);
@@ -191,13 +232,13 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
     {
         scr_setXY(0, 0);
         scr_printf("Time to process display list: %f\n", timeToPrepLastDisplayList);
-        scr_printf("Triangles sent to GS: %llu", trianglesRendered);
+        scr_printf("Triangles sent to VU1: %llu", trianglesRendered);
     }
 }
 void Path1Renderer3D::SetDoubleBufferSettings()
 {
     packet2_t *packet2 = packet2_create(1, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-    packet2_utils_vu_add_double_buffer(packet2, 12, (1024 - 12) / 2);
+    packet2_utils_vu_add_double_buffer(packet2, 15, (1024 - 15) / 2);
     packet2_utils_vu_add_end_tag(packet2);
     dma_channel_send_packet2(packet2, DMA_CHANNEL_VIF1, 1);
     dma_channel_wait(DMA_CHANNEL_VIF1, 0);

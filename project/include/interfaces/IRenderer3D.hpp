@@ -1,6 +1,7 @@
 #ifndef IRENDERER_3D
 #define IRENDERER_3D
 
+#include "VU0Math/vec4.hpp"
 #include "light/BaseLight.hpp"
 #include "renderer/model.hpp"
 #include <vector>
@@ -19,7 +20,8 @@ class IRenderer3D
     virtual const ps2math::Mat4 &GetPerspectiveMatrix() const = 0;
     virtual void RenderFrame(const std::vector<Model> &models,
                              const Light::BaseLight &mainLight,
-                             const ps2math::Mat4 &viewProjMatrix) = 0;
+                             const ps2math::Mat4 &viewProjMatrix,
+                             const ps2math::Vec4 &cameraPosition) = 0;
     virtual void ToggleDebugPrint() = 0;
 };
 
