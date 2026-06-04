@@ -44,205 +44,200 @@ begin:
          NOP                                                        sqi           VF15,(VI08++)                       
          NOP                                                        iadd          VI09,VI03,VI09                      
 loop:
-; _LNOPT_w=[ normal2 ] 42 [46 0] 61   [loop]
+; _LNOPT_w=[ normal2 ] 45 [46 0] 61   [loop]
          NOP                                                        lq            VF15,0(VI04)                        
          mulax         ACC,VF01,VF15x                               NOP                                                      ;	STALL_LATENCY ?3
          madday        ACC,VF02,VF15y                               NOP                                               
          maddaz        ACC,VF03,VF15z                               NOP                                               
-         maddw         VF19,VF04,VF15w                              lq            VF16,1(VI04)                        
-         mulax         ACC,VF01,VF16x                               div           Q,VF00w,VF19w                              ;	STALL_LATENCY ?3
+         maddw         VF18,VF04,VF15w                              lq            VF16,1(VI04)                        
+         mulax         ACC,VF01,VF16x                               div           Q,VF00w,VF18w                              ;	STALL_LATENCY ?3
          madday        ACC,VF02,VF16y                               NOP                                               
-         maddaz        ACC,VF03,VF16z                               NOP                                               
-         maddw         VF21,VF04,VF16w                              lq            VF17,2(VI04)                        
-         mulax         ACC,VF01,VF17x                               div           Q,VF00w,VF21w                              ;	STALL_LATENCY_THRUPUT ?3
-         madday        ACC,VF02,VF17y                               NOP                                               
-         maddaz        ACC,VF03,VF17z                               lq            VF18,0(VI06)                        
-         maddw         VF23,VF04,VF17w                              NOP                                               
-         mulq.xyz      VF22,VF19,Q                                  NOP                                               
-         clipw.xyz     VF19xyz,VF19w                                NOP                                               
-         mulq          VF19,VF18,Q                                  NOP                                               
-         mulaw.xyz     ACC,VF05,VF00w                               div           Q,VF00w,VF23w                       
-         madd.xyz      VF18,VF22,VF05                               lq            VF20,1(VI06)                        
-         mulq.xyz      VF22,VF21,Q                                  NOP                                               
-         clipw.xyz     VF21xyz,VF21w                                NOP                                               
+         maddaz        ACC,VF03,VF16z                               lq            VF17,2(VI04)                        
+         maddw         VF20,VF04,VF16w                              NOP                                               
+         clipw.xyz     VF18xyz,VF18w                                NOP                                               
+         mulax         ACC,VF01,VF17x                               NOP                                                      ;	STALL_LATENCY ?1
+         madday        ACC,VF02,VF17y                               div           Q,VF00w,VF20w                       
+         maddaz        ACC,VF03,VF17z                               lq            VF22,0(VI06)                        
+         mulq.xyz      VF18,VF18,Q                                  NOP                                               
+         maddw         VF19,VF04,VF17w                              NOP                                               
          mulaw.xyz     ACC,VF05,VF00w                               NOP                                               
-         mulq          VF21,VF20,Q                                  NOP                                               
-         madd.xyz      VF20,VF22,VF05                               fcand         VI01,262143                         
-         mulq.xyz      VF22,VF23,Q                                  NOP                                               
-         mulaw.xyz     ACC,VF05,VF00w                               lq            VF25,2(VI06)                        
-         madd.xyz      VF22,VF22,VF05                               NOP                                                      ;	STALL_LATENCY ?2
-         clipw.xyz     VF23xyz,VF23w                                NOP                                               
-         sub.xy        VF24,VF20,VF18                               iaddiu        VI01,VI01,0x00007fff                
-         mulq          VF23,VF25,Q                                  isw.w         VI01,2(VI08)                        
-         sub.xy        VF25,VF22,VF18                               fcand         VI01,262143                         
-         NOP                                                        iaddiu        VI01,VI01,0x00007fff                
-         muly.x        VF24,VF24,VF25y                              NOP                                                      ;	STALL_LATENCY ?2
-         mulx.y        VF24,VF24,VF25x                              NOP                                               
-         suby.x        VF24,VF24,VF24y                              NOP                                                      ;	STALL_LATENCY ?3
-         ftoi0.x       VF24,VF24                                    isw.w         VI01,5(VI08)                               ;	STALL_LATENCY ?3
-         NOP                                                        fcand         VI01,262143                         
+         mulq          VF22,VF22,Q                                  lq            VF21,1(VI06)                        
+         madd.xyz      VF18,VF18,VF05                               NOP                                               
+         NOP                                                        div           Q,VF00w,VF19w                       
+         mulq          VF23,VF21,Q                                  NOP                                                      ;	STALL_LATENCY ?1
+         ftoi4.xyz     VF21,VF18                                    NOP                                               
+         clipw.xyz     VF20xyz,VF20w                                NOP                                               
+         mulq.xyz      VF20,VF20,Q                                  fcand         VI01,262143                         
+         mulaw.xyz     ACC,VF05,VF00w                               sq            VF22,0(VI08)                        
+         mulq.xyz      VF21,VF19,Q                                  sq.xyz        VF21,2(VI08)                        
+         clipw.xyz     VF19xyz,VF19w                                lq            VF22,2(VI06)                        
+         madd.xyz      VF20,VF20,VF05                               iaddiu        VI01,VI01,0x00007fff                
+         mulaw.xyz     ACC,VF05,VF00w                               isw.w         VI01,2(VI08)                        
+         madd.xyz      VF21,VF21,VF05                               fcand         VI01,262143                         
+         mulq          VF23,VF22,Q                                  sq            VF23,3(VI08)                        
+         ftoi4.xyz     VF22,VF20                                    iaddiu        VI01,VI01,0x00007fff                
+         sub.xy        VF19,VF20,VF18                               isw.w         VI01,5(VI08)                        
+         sub.xy        VF20,VF21,VF18                               NOP                                               
+         NOP                                                        sq.xyz        VF22,5(VI08)                               ;	STALL_LATENCY ?1
+         muly.x        VF18,VF19,VF20y                              NOP                                                      ;	STALL_LATENCY ?1
+         mulx.y        VF18,VF19,VF20x                              NOP                                               
+         suby.x        VF18,VF18,VF18y                              NOP                                                      ;	STALL_LATENCY ?3
+         ftoi0.x       VF18,VF18                                    fcand         VI01,262143                                ;	STALL_LATENCY ?3
          NOP                                                        iaddiu        VI01,VI01,0x00007fff                
          NOP                                                        isw.w         VI01,8(VI08)                        
-         NOP                                                        mtir          VI01,VF24x                          
+         ftoi4.xyz     VF21,VF21                                    sq            VF23,6(VI08)                        
+         NOP                                                        mtir          VI01,VF18x                          
          NOP                                                        NOP                                               
          NOP                                                        ibgtz         VI01,culled                         
-         NOP                                                        NOP                                               
-; _LNOPT_w=[ normal ] 138 [196 0] 223   [__v_src_vu1programs_draw3d_triangle_vsm_pp_7]
+         NOP                                                        sq.xyz        VF21,8(VI08)                        
+; _LNOPT_w=[ another ] 136 [135 0] 201   [__v_src_vu1programs_draw3d_triangle_vsm_pp_7]
+         mulax.xyz     ACC,VF07,VF16x                               lq            VF21,1(VI05)                        
+         madday.xyz    ACC,VF08,VF16y                               NOP                                               
+         maddaz.xyz    ACC,VF09,VF16z                               NOP                                               
+         maddw.xyz     VF18,VF10,VF16w                              lq.xyz        VF19,14(VI00)                       
          mulax.xyz     ACC,VF07,VF15x                               NOP                                               
          madday.xyz    ACC,VF08,VF15y                               NOP                                               
          maddaz.xyz    ACC,VF09,VF15z                               NOP                                               
-         maddw.xyz     VF25,VF10,VF15w                              lq.xyz        VF24,14(VI00)                       
-         sub.xyz       VF24,VF24,VF25                               NOP                                                      ;	STALL_LATENCY ?3
-         mulax.xyz     ACC,VF07,VF16x                               NOP                                               
-         madday.xyz    ACC,VF08,VF16y                               NOP                                               
-         mul.xyz       VF25,VF24,VF24                               NOP                                                      ;	STALL_LATENCY ?1
-         maddaz.xyz    ACC,VF09,VF16z                               NOP                                               
-         maddw.xyz     VF26,VF10,VF16w                              lq            VF16,1(VI05)                        
+         sub.xyz       VF22,VF19,VF18                               NOP                                               
+         maddw.xyz     VF18,VF10,VF15w                              NOP                                               
          mulax.xyz     ACC,VF07,VF17x                               NOP                                               
-         addy.x        VF25,VF25,VF25y                              NOP                                               
-         madday.xyz    ACC,VF08,VF17y                               lq            VF27,0(VI05)                        
+         madday.xyz    ACC,VF08,VF17y                               lq            VF15,2(VI05)                        
+         mul.xyz       VF20,VF22,VF22                               NOP                                               
          maddaz.xyz    ACC,VF09,VF17z                               NOP                                               
-         maddw.xyz     VF17,VF10,VF17w                              NOP                                               
-         addz.x        VF15,VF25,VF25z                              NOP                                               
-         mulax.xyz     ACC,VF07,VF27x                               NOP                                               
-         madday.xyz    ACC,VF08,VF27y                               NOP                                               
-         maddaz.xyz    ACC,VF09,VF27z                               NOP                                               
-         maddw.xyz     VF27,VF10,VF27w                              rsqrt         Q,VF00w,VF15x                       
-         mul.xyz       VF28,VF27,VF27                               NOP                                                      ;	STALL_LATENCY ?3
-         addy.x        VF28,VF28,VF28y                              NOP                                                      ;	STALL_LATENCY ?3
-         addz.x        VF28,VF28,VF28z                              NOP                                                      ;	STALL_LATENCY ?3
-         mulq.xyz      VF29,VF24,Q                                  waitq                                             
-         add.xyz       VF28,VF29,VF11                               rsqrt         Q,VF00w,VF28x                              ;	STALL_LATENCY ?3
-         mul.xyz       VF30,VF28,VF28                               NOP                                                      ;	STALL_LATENCY ?3
-         addy.x        VF30,VF30,VF30y                              NOP                                                      ;	STALL_LATENCY ?3
-         addz.x        VF31,VF30,VF30z                              NOP                                                      ;	STALL_LATENCY ?3
-         sub.xyz       VF26,VF29,VF26                               NOP                                               
-         mulq.xyz      VF27,VF27,Q                                  waitq                                             
-         mulax.xyz     ACC,VF07,VF16x                               rsqrt         Q,VF00w,VF31x                              ;	STALL_LATENCY ?1
-         mul.xyz       VF29,VF26,VF26                               NOP                                               
-         mul.xyz       VF30,VF27,VF11                               NOP                                               
-         madday.xyz    ACC,VF08,VF16y                               NOP                                               
-         addy.x        VF29,VF29,VF29y                              NOP                                                      ;	STALL_LATENCY ?1
-         maddaz.xyz    ACC,VF09,VF16z                               lq            VF25,2(VI05)                        
-         addy.x        VF30,VF30,VF30y                              NOP                                               
-         maddw.xyz     VF16,VF10,VF16w                              NOP                                               
-         addz.x        VF29,VF29,VF29z                              NOP                                               
-         mulax.xyz     ACC,VF07,VF25x                               NOP                                               
-         addz.x        VF30,VF30,VF30z                              NOP                                               
-         madday.xyz    ACC,VF08,VF25y                               NOP                                               
-         mulq.xyz      VF29,VF28,Q                                  rsqrt         Q,VF00w,VF29x                       
-         mul.xyz       VF15,VF16,VF16                               NOP                                               
-         maxx.x        VF30,VF30,VF00x                              NOP                                               
-         maddaz.xyz    ACC,VF09,VF25z                               NOP                                               
-         mul.xyz       VF27,VF29,VF27                               NOP                                               
-         maddw.xyz     VF25,VF10,VF25w                              NOP                                               
-         muly.x        VF28,VF30,VF12y                              NOP                                               
-         addy.x        VF15,VF15,VF15y                              NOP                                               
-         addy.x        VF27,VF27,VF27y                              NOP                                               
-         mulax.xyz     ACC,VF06,VF12x                               NOP                                               
-         maddax.xyz    ACC,VF06,VF28x                               NOP                                               
-         addz.x        VF28,VF15,VF15z                              NOP                                               
-         addz.x        VF15,VF27,VF27z                              NOP                                               
-         mulq.xyz      VF27,VF26,Q                                  waitq                                             
-         mul.x         VF15,VF15,VF15                               NOP                                                      ;	STALL_LATENCY ?2
-         add.xyz       VF26,VF27,VF11                               NOP                                               
-         mul.x         VF28,VF15,VF15                               rsqrt         Q,VF00w,VF28x                              ;	STALL_LATENCY ?2
-         mul.xyz       VF15,VF26,VF26                               NOP                                               
-         mul.x         VF28,VF28,VF28                               NOP                                                      ;	STALL_LATENCY ?2
-         addy.x        VF15,VF15,VF15y                              NOP                                               
-         mul.x         VF28,VF28,VF28                               NOP                                                      ;	STALL_LATENCY ?2
-         addz.x        VF29,VF15,VF15z                              NOP                                               
-         sub.xyz       VF17,VF27,VF17                               NOP                                               
-         mul.x         VF28,VF28,VF28                               rsqrt         Q,VF00w,VF29x                              ;	STALL_LATENCY_THRUPUT ?2
-         mul.xyz       VF27,VF17,VF17                               NOP                                               
-         mulz.x        VF29,VF28,VF12z                              NOP                                                      ;	STALL_LATENCY ?2
-         addy.x        VF28,VF27,VF27y                              NOP                                               
-         maxx.x        VF27,VF29,VF00x                              NOP                                                      ;	STALL_LATENCY ?2
-         addz.x        VF28,VF28,VF27z                              NOP                                               
-         mulq.xyz      VF16,VF16,Q                                  NOP                                               
-         miniw.x       VF27,VF27,VF00w                              NOP                                                      ;	STALL_LATENCY ?1
-         mulq.xyz      VF26,VF26,Q                                  rsqrt         Q,VF00w,VF28x                       
-         mul.xyz       VF24,VF25,VF25                               NOP                                               
-         mul.xyz       VF15,VF16,VF11                               NOP                                               
-         maddx.xyz     VF27,VF06,VF27x                              NOP                                               
-         mul.xyz       VF26,VF26,VF16                               NOP                                               
-         addy.x        VF24,VF24,VF24y                              NOP                                               
-         addy.x        VF15,VF15,VF15y                              NOP                                               
-         miniw.xyz     VF16,VF27,VF06w                              NOP                                               
-         addy.x        VF26,VF26,VF26y                              NOP                                               
-         addz.x        VF24,VF24,VF24z                              NOP                                               
-         addz.x        VF15,VF15,VF15z                              NOP                                               
-         maxx.xyz      VF16,VF16,VF00x                              NOP                                               
-         addz.x        VF26,VF26,VF26z                              NOP                                               
-         mulq.xyz      VF17,VF17,Q                                  rsqrt         Q,VF00w,VF24x                       
-         addw.w        VF16,VF00,VF06w                              NOP                                               
-         mul.x         VF26,VF26,VF26                               NOP                                                      ;	STALL_LATENCY ?1
-         add.xyz       VF17,VF17,VF11                               NOP                                               
-         ftoi0         VF24,VF16                                    NOP                                               
-         mul.x         VF16,VF26,VF26                               NOP                                                      ;	STALL_LATENCY ?1
-         mul.xyz       VF26,VF17,VF17                               NOP                                               
-         mul.x         VF16,VF16,VF16                               NOP                                                      ;	STALL_LATENCY ?2
-         addy.x        VF26,VF26,VF26y                              NOP                                               
-         mulq.xyz      VF25,VF25,Q                                  waitq                                             
-         mul.x         VF27,VF16,VF16                               NOP                                                      ;	STALL_LATENCY ?1
-         addz.x        VF16,VF26,VF26z                              NOP                                               
-         mul.xyz       VF26,VF25,VF11                               NOP                                               
-         mul.x         VF27,VF27,VF27                               NOP                                                      ;	STALL_LATENCY ?1
-         addy.x        VF26,VF26,VF26y                              rsqrt         Q,VF00w,VF16x                              ;	STALL_LATENCY ?1
-         mulz.x        VF16,VF27,VF12z                              NOP                                                      ;	STALL_LATENCY ?1
-         addz.x        VF26,VF26,VF26z                              NOP                                                      ;	STALL_LATENCY ?1
-         maxx.x        VF15,VF15,VF00x                              NOP                                               
-         maxx.x        VF16,VF16,VF00x                              NOP                                               
-         maxx.x        VF26,VF26,VF00x                              NOP                                                      ;	STALL_LATENCY ?1
-         muly.x        VF15,VF15,VF12y                              NOP                                               
-         miniw.x       VF27,VF16,VF00w                              NOP                                               
-         muly.x        VF16,VF26,VF12y                              NOP                                                      ;	STALL_LATENCY ?1
-         mulq.xyz      VF26,VF17,Q                                  waitq                                             
-         mulax.xyz     ACC,VF06,VF12x                               NOP                                               
-         maddax.xyz    ACC,VF06,VF15x                               NOP                                               
-         maddx.xyz     VF17,VF06,VF27x                              NOP                                               
-         mul.xyz       VF25,VF26,VF25                               NOP                                               
-         miniw.xyz     VF17,VF17,VF06w                              NOP                                                      ;	STALL_LATENCY ?2
+         maddw.xyz     VF16,VF10,VF17w                              NOP                                               
+         mulax.xyz     ACC,VF07,VF15x                               NOP                                               
+         addy.x        VF15,VF20,VF20y                              NOP                                               
+         addz.x        VF15,VF15,VF20z                              NOP                                                      ;	STALL_LATENCY ?3
+         sub.xyz       VF18,VF19,VF18                               NOP                                               
+         sub.xyz       VF19,VF19,VF16                               rsqrt         Q,VF00w,VF15x                              ;	STALL_LATENCY ?2
+         mul.xyz       VF16,VF18,VF18                               NOP                                               
+         mul.xyz       VF23,VF19,VF19                               NOP                                                      ;	STALL_LATENCY ?2
+         addy.x        VF16,VF16,VF16y                              NOP                                               
+         addz.x        VF17,VF16,VF16z                              NOP                                                      ;	STALL_LATENCY ?3
+         mulq.xyz      VF17,VF22,Q                                  rsqrt         Q,VF00w,VF17x                              ;	STALL_LATENCY_THRUPUT ?3
+         add.xyz       VF17,VF17,VF11                               NOP                                                      ;	STALL_LATENCY ?3
+         addy.x        VF22,VF23,VF23y                              NOP                                               
+         madday.xyz    ACC,VF08,VF15y                               NOP                                               
+         maddaz.xyz    ACC,VF09,VF15z                               NOP                                               
+         addz.x        VF22,VF22,VF23z                              NOP                                                      ;	STALL_LATENCY ?1
+         maddw.xyz     VF15,VF10,VF15w                              NOP                                               
+         mulax.xyz     ACC,VF07,VF21x                               rsqrt         Q,VF00w,VF22x                              ;	STALL_LATENCY_THRUPUT ?2
+         mul.xyz       VF26,VF15,VF15                               NOP                                               
+         addy.x        VF22,VF26,VF26y                              NOP                                                      ;	STALL_LATENCY ?3
+         madday.xyz    ACC,VF08,VF21y                               lq            VF20,0(VI05)                        
+         maddaz.xyz    ACC,VF09,VF21z                               NOP                                               
+         maddw.xyz     VF21,VF10,VF21w                              NOP                                               
+         addz.x        VF22,VF22,VF26z                              NOP                                               
+         mulax.xyz     ACC,VF07,VF20x                               NOP                                               
+         madday.xyz    ACC,VF08,VF20y                               NOP                                               
+         mulq.xyz      VF18,VF18,Q                                  NOP                                               
+         maddaz.xyz    ACC,VF09,VF20z                               rsqrt         Q,VF00w,VF22x                       
+         mul.xyz       VF20,VF21,VF21                               NOP                                               
+         add.xyz       VF18,VF18,VF11                               NOP                                                      ;	STALL_LATENCY ?1
+         addy.x        VF20,VF20,VF20y                              NOP                                                      ;	STALL_LATENCY ?1
+         mul.xyz       VF23,VF18,VF18                               NOP                                                      ;	STALL_LATENCY ?1
+         addz.x        VF20,VF20,VF20z                              NOP                                                      ;	STALL_LATENCY ?1
+         maddw.xyz     VF16,VF10,VF20w                              NOP                                               
+         addy.x        VF23,VF23,VF23y                              NOP                                               
+         mulq.xyz      VF19,VF19,Q                                  NOP                                               
+         mulq.xyz      VF15,VF15,Q                                  rsqrt         Q,VF00w,VF20x                       
+         mul.xyz       VF25,VF16,VF16                               NOP                                               
+         addz.x        VF23,VF23,VF23z                              NOP                                               
+         add.xyz       VF19,VF19,VF11                               NOP                                               
+         mul.xyz       VF20,VF15,VF11                               NOP                                               
          addy.x        VF25,VF25,VF25y                              NOP                                               
-         addw.w        VF17,VF00,VF06w                              NOP                                               
-         maxx.xyz      VF17,VF17,VF00x                              NOP                                                      ;	STALL_LATENCY ?1
-         addz.x        VF26,VF25,VF25z                              NOP                                               
-         ftoi0         VF25,VF17                                    NOP                                                      ;	STALL_LATENCY ?2
-         mul.x         VF17,VF26,VF26                               NOP                                               
-         mul.x         VF17,VF17,VF17                               NOP                                                      ;	STALL_LATENCY ?3
-         mul.x         VF17,VF17,VF17                               NOP                                                      ;	STALL_LATENCY ?3
-         mul.x         VF17,VF17,VF17                               NOP                                                      ;	STALL_LATENCY ?3
-         mul.x         VF17,VF17,VF17                               NOP                                                      ;	STALL_LATENCY ?3
-         mulz.x        VF17,VF17,VF12z                              NOP                                                      ;	STALL_LATENCY ?3
-         maxx.x        VF17,VF17,VF00x                              NOP                                                      ;	STALL_LATENCY ?3
-         miniw.x       VF17,VF17,VF00w                              NOP                                                      ;	STALL_LATENCY ?3
+         mul.xyz       VF22,VF19,VF19                               NOP                                                      ;	STALL_LATENCY ?1
+         addz.x        VF25,VF25,VF25z                              NOP                                                      ;	STALL_LATENCY ?1
+         addy.x        VF22,VF22,VF22y                              NOP                                                      ;	STALL_LATENCY ?1
+         mulq.xyz      VF25,VF21,Q                                  rsqrt         Q,VF00w,VF25x                              ;	STALL_LATENCY_THRUPUT ?1
+         mul.xyz       VF24,VF17,VF17                               NOP                                               
+         addz.x        VF22,VF22,VF22z                              NOP                                               
+         mul.xyz       VF21,VF25,VF11                               NOP                                                      ;	STALL_LATENCY ?1
+         addy.x        VF26,VF24,VF24y                              NOP                                               
+         addy.x        VF24,VF21,VF21y                              NOP                                                      ;	STALL_LATENCY ?2
+         addz.x        VF21,VF26,VF24z                              NOP                                               
+         addz.x        VF24,VF24,VF21z                              NOP                                                      ;	STALL_LATENCY ?2
+         mulq.xyz      VF21,VF16,Q                                  rsqrt         Q,VF00w,VF21x                       
+         maxx.x        VF24,VF24,VF00x                              NOP                                                      ;	STALL_LATENCY ?2
+         mul.xyz       VF16,VF21,VF11                               NOP                                               
+         muly.x        VF24,VF24,VF12y                              NOP                                                      ;	STALL_LATENCY ?2
+         mulq.xyz      VF17,VF17,Q                                  rsqrt         Q,VF00w,VF23x                              ;	STALL_THRUPUT ?5
+         mul.xyz       VF17,VF17,VF25                               NOP                                                      ;	STALL_LATENCY ?3
+         addy.x        VF17,VF17,VF17y                              NOP                                                      ;	STALL_LATENCY ?3
          mulax.xyz     ACC,VF06,VF12x                               NOP                                               
-         maddax.xyz    ACC,VF06,VF16x                               NOP                                               
-         maddx.xyz     VF17,VF06,VF17x                              NOP                                                      ;	STALL_LATENCY ?1
-         miniw.xyz     VF17,VF17,VF06w                              NOP                                                      ;	STALL_LATENCY ?3
-         addw.w        VF17,VF00,VF06w                              NOP                                               
-         maxx.xyz      VF17,VF17,VF00x                              NOP                                                      ;	STALL_LATENCY ?2
-         ftoi4.xyz     VF18,VF18                                    NOP                                               
-         ftoi4.xyz     VF20,VF20                                    NOP                                               
-         ftoi4.xyz     VF22,VF22                                    b             store                               
-         ftoi0         VF26,VF17                                    NOP                                               
+         addw.w        VF15,VF00,VF06w                              NOP                                               
+         addz.x        VF17,VF17,VF17z                              NOP                                                      ;	STALL_LATENCY ?1
+         mulq.xyz      VF18,VF18,Q                                  rsqrt         Q,VF00w,VF22x                       
+         mul.x         VF17,VF17,VF17                               NOP                                                      ;	STALL_LATENCY ?2
+         mul.xyz       VF18,VF18,VF21                               NOP                                               
+         mul.x         VF17,VF17,VF17                               NOP                                                      ;	STALL_LATENCY ?2
+         addy.x        VF21,VF18,VF18y                              NOP                                               
+         addy.x        VF18,VF16,VF16y                              NOP                                               
+         addy.x        VF16,VF20,VF20y                              NOP                                               
+         mul.x         VF20,VF17,VF17                               NOP                                               
+         addz.x        VF21,VF21,VF18z                              NOP                                               
+         mulq.xyz      VF19,VF19,Q                                  waitq                                             
+         addz.x        VF18,VF18,VF16z                              NOP                                               
+         mul.x         VF20,VF20,VF20                               NOP                                               
+         mul.x         VF21,VF21,VF21                               NOP                                               
+         mul.xyz       VF15,VF19,VF15                               NOP                                               
+         addz.x        VF19,VF16,VF20z                              NOP                                               
+         mul.x         VF20,VF20,VF20                               NOP                                               
+         mul.x         VF16,VF21,VF21                               NOP                                               
+         addy.x        VF21,VF15,VF15y                              NOP                                               
+         maxx.x        VF15,VF18,VF00x                              NOP                                               
+         mulz.x        VF20,VF20,VF12z                              NOP                                               
+         mul.x         VF16,VF16,VF16                               NOP                                               
+         addz.x        VF18,VF21,VF15z                              NOP                                               
+         maddax.xyz    ACC,VF06,VF24x                               NOP                                               
+         maxx.x        VF20,VF20,VF00x                              NOP                                               
+         mul.x         VF16,VF16,VF16                               NOP                                               
+         mul.x         VF18,VF18,VF18                               NOP                                               
+         maxx.x        VF19,VF19,VF00x                              NOP                                               
+         miniw.x       VF20,VF20,VF00w                              NOP                                               
+         mul.x         VF16,VF16,VF16                               NOP                                               
+         mul.x         VF18,VF18,VF18                               NOP                                               
+         muly.x        VF15,VF15,VF12y                              NOP                                               
+         maddx.xyz     VF20,VF06,VF20x                              NOP                                               
+         mulz.x        VF16,VF16,VF12z                              NOP                                               
+         mul.x         VF18,VF18,VF18                               NOP                                               
+         mulax.xyz     ACC,VF06,VF12x                               NOP                                               
+         miniw.xyz     VF20,VF20,VF06w                              NOP                                               
+         maxx.x        VF16,VF16,VF00x                              NOP                                               
+         mul.x         VF18,VF18,VF18                               NOP                                               
+         maddax.xyz    ACC,VF06,VF15x                               NOP                                               
+         maxx.xyz      VF15,VF20,VF00x                              NOP                                               
+         miniw.x       VF20,VF16,VF00w                              NOP                                               
+         mul.x         VF16,VF18,VF18                               NOP                                               
+         muly.x        VF18,VF19,VF12y                              NOP                                               
+         ftoi0         VF19,VF15                                    NOP                                               
+         maddx.xyz     VF15,VF06,VF20x                              NOP                                               
+         mulz.x        VF16,VF16,VF12z                              NOP                                               
+         mulax.xyz     ACC,VF06,VF12x                               NOP                                               
+         maddax.xyz    ACC,VF06,VF18x                               NOP                                               
+         miniw.xyz     VF15,VF15,VF06w                              NOP                                               
+         maxx.x        VF18,VF16,VF00x                              NOP                                               
+         addw.w        VF15,VF00,VF06w                              NOP                                               
+         maxx.xyz      VF15,VF15,VF00x                              NOP                                                      ;	STALL_LATENCY ?1
+         miniw.x       VF16,VF18,VF00w                              NOP                                               
+         ftoi0         VF18,VF15                                    NOP                                                      ;	STALL_LATENCY ?2
+         maddx.xyz     VF15,VF06,VF16x                              NOP                                               
+         miniw.xyz     VF15,VF15,VF06w                              NOP                                                      ;	STALL_LATENCY ?3
+         addw.w        VF15,VF00,VF06w                              NOP                                               
+         maxx.xyz      VF15,VF15,VF00x                              NOP                                                      ;	STALL_LATENCY ?2
+         NOP                                                        b             storeNkick                          
+         ftoi0         VF20,VF15                                    NOP                                                      ;	STALL_LATENCY ?2
 culled:
 ; _LNOPT_w=[ normal2 ] 3 [4 0] 3   [culled]
-         max           VF24,VF00,VF00                               isw.w         VI02,2(VI08)                        
-         max           VF25,VF00,VF00                               isw.w         VI02,5(VI08)                        
-         max           VF26,VF00,VF00                               isw.w         VI02,8(VI08)                        
-store:
-; _LNOPT_w=[ normal2 ] 15 [15 0] 15   [store]
-         NOP                                                        sq            VF19,0(VI08)                        
-         NOP                                                        sq            VF21,3(VI08)                        
-         NOP                                                        sq            VF23,6(VI08)                        
-         NOP                                                        sq            VF24,1(VI08)                        
-         NOP                                                        sq            VF25,4(VI08)                        
-         NOP                                                        sq            VF26,7(VI08)                        
-         NOP                                                        sq.xyz        VF18,2(VI08)                        
-         NOP                                                        sq.xyz        VF20,5(VI08)                        
-         NOP                                                        sq.xyz        VF22,8(VI08)                        
+         max           VF18,VF00,VF00                               isw.w         VI02,2(VI08)                        
+         max           VF19,VF00,VF00                               isw.w         VI02,5(VI08)                        
+         max           VF20,VF00,VF00                               isw.w         VI02,8(VI08)                        
+storeNkick:
+; _LNOPT_w=[ normal2 ] 9 [9 0] 9   [storeNkick]
          NOP                                                        isubiu        VI09,VI09,3                         
+         NOP                                                        sq            VF18,1(VI08)                        
+         NOP                                                        sq            VF19,4(VI08)                        
+         NOP                                                        sq            VF20,7(VI08)                        
          NOP                                                        iaddiu        VI04,VI04,0x00000003                
          NOP                                                        iaddiu        VI06,VI06,0x00000003                
          NOP                                                        iaddiu        VI05,VI05,0x00000003                
@@ -258,10 +253,10 @@ store:
          NOP                                                        NOP                                               
 		.align 4
 VU1Draw3DTriangle_CodeEnd:
-;	iCount=232
+;	iCount=227
 ; register stats:
 ;  10 VU User integer
-;  32 VU User floating point
+;  27 VU User floating point
 ;-------------------------
 ;-------------------------
 ;-------------------------

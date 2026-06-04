@@ -40,7 +40,7 @@ Meaning that two tools are required: [VCLPP](https://github.com/glampert/vclppl)
 
 ## Memory Layout (Constants)
 
-The program defines 12 quadword constants, loaded from VU1's `vi00`-relative data memory at program start:
+The program defines 15 quadword constants, loaded from VU1's `vi00`-relative data memory at program start:
 
 | Constant | Address | Purpose |
 |---|---|---|
@@ -49,15 +49,16 @@ The program defines 12 quadword constants, loaded from VU1's `vi00`-relative dat
 | `MvpMatRow2` | 2 | MVP matrix row 2 |
 | `MvpMatRow3` | 3 | MVP matrix row 3 |
 | `Scale` | 4 | Viewport transform (scale + offset) |
-| `RGBALoc` | 5 | Base RGBA color |
+| `RGBALoc` | 5 | Base RGBA color (per vertex, set to 128) |
 | `ModelMatRow0` | 6 | Model matrix row 0 |
 | `ModelMatRow1` | 7 | Model matrix row 1 |
 | `ModelMatRow2` | 8 | Model matrix row 2 |
 | `ModelMatRow3` | 9 | Model matrix row 3 |
 | `LightDirection` | 10 | Light direction vector (world space) |
 | `LightIntensities` | 11 | Ambient (x), Diffuse (y), Specular (z) intensities |
-| `GifTagAd` | 12 | GIF tag specifying the number of GS registers to configure |
-| `GifTexSelect` | 13 | TEX0 GS register configuration |
+| `GifTagAd` | 12 | GIF tag for GS register configuration (texture select) |
+| `GifTexSelect` | 13 | TEX0 GS register value (active texture) |
+| `CameraPos` | 14 | Camera position in world space (xyz, w=0 unused) |
 
 The data following these constants is the **vertex buffer** sent by the EE core via DMA/GIF, starting at the address obtained from `XTOP`.
 
@@ -72,11 +73,12 @@ This project uses a **simple double-buffering scheme**.
 ```
 VU1 DMEM (4 KB = 256 qwords)
 ┌─────────────────────────────────────────────────┐
-│ Constants (12 qwords):                         │
+│ Constants (15 qwords):                         │
 │  MVP matrix (4), Scale (1), RGBA (1),          │
 │  Model matrix (4), Light direction (1),         │
-│  Light intensities (1)                          │
-│  Address: 0 — 11    (updated per chunk)         │
+│  Light intensities (1), GIF tag (1),            │
+│  TEX0 config (1), Camera position (1)           │
+│  Address: 0 — 14    (updated per chunk)         │
 ├─────────────────────────────────────────────────┤
 │ VIF1 Double Buffer 0                           │
 │  Header (2 qwords): vertCount + GIF Tag         │
@@ -90,9 +92,9 @@ VU1 DMEM (4 KB = 256 qwords)
 
 VIF1 is configured with:
 ```cpp
-packet2_utils_vu_add_double_buffer(packet2, 14, (1024 - 14) / 2);
+packet2_utils_vu_add_double_buffer(packet2, 15, (1024 - 15) / 2);
 ```
-This reserves the first **14 qwords** for constants and splits the remaining data memory into **2 buffers** for vertex data. The EE re-uploads the vertex count, MVP, model matrix, light data and texture id to addresses 0–13 at the start of each chunk (since matrices change per model), so the constants are **updated per chunk**, not just at program start. 
+This reserves the first **15 qwords** for constants and splits the remaining data memory into **2 buffers** for vertex data. The EE re-uploads the vertex count, MVP, model matrix, light data, texture id, and camera position to addresses 0–14 at the start of each chunk (since matrices change per model), so the constants are **updated per chunk**, not just at program start. 
 
 ### How the Double-Buffering Works
 
@@ -140,7 +142,7 @@ For subsequent chunks, `MSCNT` (micro-program continue) resumes the VU1 program 
 | **EE-side packets** |  2 (ping-pong packets) |
 | **VIF remapping** | VIF1 double-buffer mode (`TOP` register) |
 | **Buffer size** | ~81 vertices each (≈27 triangles) |
-| **Constants location** | First 12 qwords of DMEM (shared) |
+| **Constants location** | First 15 qwords of DMEM (shared) |
 | **Output buffer** | Same buffer (in-place transform) |
 | **Program restart** | `MSCALL` (initial) / `MSCNT` (subsequent) |
 | **Data flow** | Upload to buffer → XTOP → process → XGKICK |
@@ -177,13 +179,11 @@ This ensures:
 - The vertex count is always divisible by 3 (no partial triangles)
 - Multiple models/meshes can be rendered in a single frame by sending multiple chunks
 
-Note: The exact buffer capacity is determined by the VIF1 double-buffer configuration — the constant area (16 qwords) is excluded from VIF1's address remapping, and the remaining DMEM is split into 2 regions. With 81 vertices per chunk, the input (header + positions + normals + STQ ≈ 245 qwords) and output (GIF tag + 3N qwords ≈ 244 qwords) are stored in the same buffer.
+Note: The exact buffer capacity is determined by the VIF1 double-buffer configuration — the constant area (15 qwords) is excluded from VIF1's address remapping, and the remaining DMEM is split into 2 regions. With 81 vertices per chunk, the input (header + positions + normals + STQ ≈ 245 qwords) and output (GIF tag + 3N qwords ≈ 244 qwords) are stored in the same buffer.
 
-The buffer header for each chunk contains:
-- **Qword 0**: GIF tag for configuring a GS register
-- **Qword 1**: GIF tag to set the GS register TEX0 (set texture as active)
-- **Qword 2**: Vertex count (integer)
-- **Qword 3**: GIF tag defining the primitive type and expected register count
+The buffer header for each chunk sent to VU1's double-buffer area contains:
+- **Qword 0**: Vertex count (integer) — read via `ILW.w`
+- **Qword 1**: GIF tag — defines the primitive type and register count
 
 ---
 
@@ -196,11 +196,14 @@ LQ      matrixMvp[0],      MvpMatRow0(vi00)
 LQ      matrixMvp[1],      MvpMatRow1(vi00)
 ...
 LQ      lightDirectionVec, LightDirection(vi00)
-SUB.xyz lightDirectionVec, vf00, lightDirectionVec   ; Invert direction
+SUB.xyz toLight, vf00, lightDirectionVec           ; Invert direction
 LQ      lightIntensitiesVec, LightIntensities(vi00)
+LQ      gifAdTag,          GifTagAd(vi00)
+LQ      tex0Config,        GifTexSelect(vi00)
 ```
 
-- Loads all 4 rows of the MVP matrix, the viewport scale, RGBA base color, model matrix, light direction (inverted), and light intensity factors into VF registers.
+- Loads all 4 rows of the MVP matrix, the viewport scale, RGBA base color, model matrix, light direction (inverted and stored in `toLight`), and light intensity factors into VF registers.
+- Also loads the two GIF tags (`gifAdTag` for GS register setup, `tex0Config` for texture activation) that will be stored in the output buffer.
 - **`LQ`** (Load Quadword): loads up to 4 fields of a VU FPR from adjacent words in VU data memory. The offset is in doublewords (16-byte units).
 - `FCSET 0x000000` — zeroes the clipping flags register (required before using `CLIPw`).
 - Initializes `dontDraw = 1 + 0x7FFF = 0x8000` — a sentinel value that, when stored in the `w` component of `XYZ2`, sets the **ADC** bit in the GS XYZ2 register, preventing the triangle from being drawn.
@@ -294,9 +297,9 @@ ISW.w      iADC,     offset(destAddress)
 #### d. Perspective Division
 
 ```
-PerformPerspectiveDivision{ vertex0, viewPortTransform, Stq0, modStq0 }
-PerformPerspectiveDivision{ vertex1, viewPortTransform, Stq1, modStq1 }
-PerformPerspectiveDivision{ vertex2, viewPortTransform, Stq2, modStq2 }
+PerformPerspectiveDivision{ vertex0, viewPortTransform, Stq0, Stq0 }
+PerformPerspectiveDivision{ vertex1, viewPortTransform, Stq1, Stq1 }
+PerformPerspectiveDivision{ vertex2, viewPortTransform, Stq2, Stq2 }
 ```
 
 Expands to:
@@ -309,6 +312,7 @@ MADD.xyz vertex, vertex,   viewPortTransform  ; vertex = vertex * scale + scale
 MULQ    outStq, inStq,     q                  ; perspective-correct STQ
 ```
 
+- The perspective-corrected STQ overwrites `StqN` in-place (previously used a separate `modStqN` register).
 - Applies viewport transform: maps NDC `[-1, 1]` to GS screen coordinates
 - Corrects texture coordinates for perspective: `s' = s/w`, `t' = t/w`, `q' = q/w`
 
@@ -316,7 +320,6 @@ MULQ    outStq, inStq,     q                  ; perspective-correct STQ
 
 ```
 ClipSpaceBackfaceCulling{ vertex0, vertex1, vertex2, intRes }
-IBGTZ   intRes, culled
 ```
 
 The macro:
@@ -337,7 +340,7 @@ MTIR    intRes,     cullResult[x]              ; move to integer register
 - Computes the **2D cross product** (signed area) of the triangle in clip space (before perspective divide): `(v1.xy - v0.xy) × (v2.xy - v0.xy)`.
 - The sign of the cross product tells us the triangle's winding direction (CW vs CCW).
 - Since the cross product is performed in clip space, the sign convention matches the clip-space coordinate system: **positive = CW = backface** → culled.
-- **`IBGTZ`** (Integer Branch if Greater Than Zero): `if It > 0, PC += imm` — branches to `culled:` if back-facing.
+- **`IBGTZ`** (Integer Branch if Greater Than Zero): `if It > 0, PC += imm` — branches to `culled:` if back-facing (used after the STQ/XYZ2 stores below).
 
 #### f. Fixed-Point Conversion
 
@@ -350,7 +353,23 @@ FTOI4.xyz vertex2, vertex2
 - **`FTOI4`** (Float To Integer, 4 decimal digits): converts floating-point to `12:4` fixed-point format (16 bits: 12 integer, 4 fractional bits). This is the format the GS expects for screen coordinates.
 - Only `.xy` matters for the GS (which expects `XYZ2` in this format), but `.z` is also converted for the depth buffer.
 
-#### g. Lighting Calculation (Ambient + Diffuse)
+#### f2. Early Store of XYZ2 and STQ
+
+```
+SQ.xyz   vertex0,            2(destAddress)          ; XYZ2 for vertex 0
+SQ.xyz   vertex1,            2+3(destAddress)        ; XYZ2 for vertex 1
+SQ.xyz   vertex2,            2+6(destAddress)        ; XYZ2 for vertex 2
+SQ       Stq0,               0(destAddress)          ; STQ for vertex 0
+SQ       Stq1,               0+3(destAddress)        ; STQ for vertex 1
+SQ       Stq2,               0+6(destAddress)        ; STQ for vertex 2
+```
+
+- The screen-space positions (`XYZ2`) and texture coordinates (`STQ`) are stored to the output buffer **before** the backface culling decision. This ensures the GS always knows the triangle geometry regardless of the culling outcome.
+- If the triangle is later determined to be back-facing, the `ISW.w` instructions in the `culled:` path will overwrite the ADC bits (w component of XYZ2) to prevent the GS from drawing — but the position and texture data remain valid in the buffer.
+
+#### g. Lighting Calculation (Ambient + Diffuse + Specular)
+
+The program uses the **`CalculateLightingSpecular`** macro (defined in `vcl_macros.i`) to compute per-vertex Blinn-Phong lighting. All inner macro calls have been expanded inline because `vclpp` does not support multi-layer macro expansion.
 
 For each of the three vertices:
 
@@ -358,62 +377,75 @@ For each of the three vertices:
 LQ      normal0, 0(normalData)
 LQ      normal1, 1(normalData)
 LQ      normal2, 2(normalData)
+LQ      cameraPos,         CameraPos(vi00)    ; camera position (world space)
+
+CalculateLightingSpecular{ FinalCol0, normal0, baseVertex0, cameraPos, matrixModel, lightIntensitiesVec, rgba, toLight }
+CalculateLightingSpecular{ FinalCol1, normal1, baseVertex1, cameraPos, matrixModel, lightIntensitiesVec, rgba, toLight }
+CalculateLightingSpecular{ FinalCol2, normal2, baseVertex2, cameraPos, matrixModel, lightIntensitiesVec, rgba, toLight }
 ```
 
-Then per vertex:
+The macro takes 8 parameters: `outputColor`, `normal`, `baseVertex`, `cameraPos`, `matrixModel`, `lightIntensitiesVec`, `rgba`, and `toLight`. It performs the following steps internally:
 
+**Step 1 — Normal to world space + normalize:**
 ```
-MatrixMultiplyVertex{ normal, matrixModel, normal }   ; Normal → world space
-VectorNormalize{ normalOut, normal }                  ; Normalize
-VectorDotProduct{ normalOut, normalOut, lightDirectionVec }  ; N·L
-
-MAX.x   normalOut,        normalOut,      vf00[x]    ; clamp to 0+
-MUL.x   normalOut,        normalOut,      lightIntensitiesVec[y]  ; × diffuse intensity
-
-MUL.xyz  acc,             rgba,           lightIntensitiesVec[x]  ; ambient = base × ambientIntensity
-MADD.xyz FinalCol,        rgba,           normalOut[x]            ; + base × (N·L) × diffuseIntensity
-MINI.xyz FinalCol,        FinalCol,       rgba[w]                 ; Cap to 128
-ADD.w    FinalCol,        vf00,           rgba[w]                 ; Alpha = 128
-MAX.xyz  FinalCol,        FinalCol,       vf00[x]                 ; Clamp to 0+
-
-FTOI0    FinalCol,        FinalCol                                ; Convert to 8-bit unsigned
+Normal = matrixModel × Normal      ; MatrixMultiplyVertex (expanded inline)
+Normal = normalize(Normal)         ; VectorNormalize (expanded inline)
 ```
 
-##### Vector Normalize Macro
-
+**Step 2 — Diffuse component:**
 ```
-MUL.xyz   vclsmlftemp, vector,   vector           ; dot = v·v (squared length)
-ADD.x     vclsmlftemp, vclsmlftemp, vclsmlftemp[y]
-ADD.x     vclsmlftemp, vclsmlftemp, vclsmlftemp[z]
-RSQRT     q,           vf00[w],   vclsmlftemp[x]  ; Q = 1.0 / sqrt(length²)
-SUB.w     vecoutput,   vf00,      vf00            ; zero w
-MUL.xyz   vecoutput,   vector,    q               ; normalized = vector * Q
+N·L = dot(Normal, toLight)                                ; VectorDotProduct (expanded inline)
+N·L = max(N·L, 0)                                          ; clamp
+N·L = N·L × lightIntensitiesVec.y                          ; scale by diffuse intensity
 ```
 
-- **`RSQRT Q, ft.e, fs.e`** — `Q <- ft.e / sqrt(fs.e)`. Here: `Q = 1.0 / sqrt(dot)`, giving the normalization factor.
-- The Q register is shared with `DIV`, so the RSQRT result must be consumed before any other Q-dependent instruction.
-
-##### Vector Dot Product Macro
-
+**Step 3 — Specular component (Blinn-Phong half-vector model):**
 ```
-MUL.xyz   dotproduct, vector1, vector2
-ADD.x     dotproduct, dotproduct, dotproduct[y]
-ADD.x     dotproduct, dotproduct, dotproduct[z]
+vecWorld = matrixModel × baseVertex                        ; vertex position → world space
+toCamera = cameraPos - vecWorld                            ; vector from vertex to camera
+toCamera = normalize(toCamera)                             ; normalize
+halfVec  = toCamera + toLight                              ; half-vector
+halfVec  = normalize(halfVec)                              ; normalize
+spec     = dot(halfVec, Normal)                            ; N·H
+spec     = spec³²                                            ; specular power raised via 5 chained MUL.x (squaring each time)
+spec     = spec × lightIntensitiesVec.z                    ; scale by specular intensity
+spec     = max(spec, 0)                                    ; clamp
+spec     = min(spec, 1)                                    ; cap at 1.0
 ```
 
-- Computes `dot = v1.x*v2.x + v1.y*v2.y + v1.z*v2.z` by summing x, y, and z components into x.
+**Step 4 — Combine lighting components:**
+```
+ambient  = rgba × lightIntensitiesVec.x                    ; ambient term
+diffuse  = rgba × N·L                                      ; diffuse term
+specular = rgba × spec                                     ; specular term
+final    = clamp(ambient + diffuse + specular, 0, 128)    ; combine and cap
+alpha    = 128                                             ; constant alpha
+```
 
 ##### Lighting Model
 
-**Ambient + Diffuse only** (no specular):
+**Ambient + Diffuse + Specular** (Blinn-Phong):
 
 | Component | Formula |
 |---|---|
 | **Ambient** | `base_color × ambient_intensity` (always present) |
 | **Diffuse** | `base_color × max(0, N·L) × diffuse_intensity` |
+| **Specular** | `base_color × clamp(max(0, N·H)³², 0, 1) × specular_intensity` |
 | **Alpha** | Constant 128 (0x80) |
 
-- **`MAX`** (Maximum): `fd.field <- max(fs.field, ft.field)` — clamps `normalOut.x` to ≥ 0 (no negative diffuse).
+Where:
+- `N` = surface normal (world space, normalized)
+- `L` = light direction (world space, inverted via `vf00 - lightDirectionVec` = from surface to light)
+- `H` = half-vector `normalize(toCamera + toLight)` — approximates the reflection highlight
+- Specular power = 32 (computed as `x³²` via 5 chained `MUL.x` squaring instructions: `x → x² → x⁴ → x⁸ → x¹⁶ → x³²`)
+
+##### Scratch Registers and Preconditions
+
+The macro uses shared scratch registers (`vclsmlftemp`, `toCamera`, `halfVec`, `vecWorld`, `specComponent`) that must not be used concurrently across macro invocations. All three vertex calls share these registers sequentially (no overlap from VU1's in-order execution).
+
+The `toLight`, `rgba`, `lightIntensitiesVec`, and `matrixModel` registers must be pre-loaded before the macro is called. `cameraPos` is loaded once from constant address 14 before the three macro invocations.
+
+- **`MAX`** (Maximum): `fd.field <- max(fs.field, ft.field)` — clamps to ≥ 0 (no negative values).
 - **`MINI`** (Minimum): `fd.field <- min(fs.field, ft.field)` — caps color at 128 (`rgba[w]`) to prevent oversaturation.
 - **`ADD.w`**: sets alpha to `0 + 128 = 128`.
 - Colors are capped at 128 (not 255) — likely to prevent oversaturation when combined with other effects.
@@ -437,29 +469,21 @@ culled:
 - The GS interprets ADC=1 as "this vertex is adjacent to the previous primitive, skip the drawing kick."
 - The triangle is **silently skipped** — the GS doesn't even know it was a separate primitive.
 - **`MOVE`** is a pseudo-op that copies one VF register to another (zeroing colors for the culled triangle).
-- Execution **falls through** to `store:` — both culled and visible triangles reach the store path.
+- Execution **falls through** to `storeNkick:` — both culled and visible triangles reach the store path.
 
 ---
 
-### 4. `store:` — Write Output Buffer
+### 4. `storeNkick:` — Write Color to Output Buffer
 
 ```
-SQ   modStq0,   0(destAddress)            ; STQ for vertex 0
-SQ   modStq1,   0+3(destAddress)          ; STQ for vertex 1
-SQ   modStq2,   0+6(destAddress)          ; STQ for vertex 2
 SQ   FinalCol0, 1(destAddress)            ; RGBAQ for vertex 0
 SQ   FinalCol1, 1+3(destAddress)          ; RGBAQ for vertex 1
 SQ   FinalCol2, 1+6(destAddress)          ; RGBAQ for vertex 2
-SQ.xyz vertex0, 2(destAddress)            ; XYZ2 for vertex 0
-SQ.xyz vertex1, 2+3(destAddress)          ; XYZ2 for vertex 1
-SQ.xyz vertex2, 2+6(destAddress)          ; XYZ2 for vertex 2
 ```
 
-- **`SQ`** (Store Quadword): stores all 4 fields of a VF register to VU data memory.
-- **`SQ.xyz`**: stores only x, y, z fields — leaving the `w` field intact. This is critical because:
-  - For visible triangles: `vertex[w]` contains the perspective-correct `w` (pass-through from the homogeneous divide).
-  - For culled triangles: `vertex[w]` was overwritten by the `ClipVertex` ADC marker (or the culled path's `ISW.w`).
-- The GS reads the `w` component of `XYZ2` to determine the ADC bit — so this mechanism seamlessly enables or disables drawing per-vertex.
+- **`SQ`** (Store Quadword): stores all 4 fields of a VF register (RGBA) to VU data memory.
+- Only the **color qwords** are stored here. The `XYZ2` positions and `STQ` texture coordinates were already stored earlier (before the culling decision — see section 3.f2).
+- The GS reads the `w` component of `XYZ2` to determine the ADC bit — set by the `ClipVertex` macro or overwritten by the `culled:` path's `ISW.w`.
 - Each vertex outputs **3 quadwords** in the `PACKED` GIF format with register chain `ST → RGBAQ → XYZ2`.
 - The output for each triangle occupies **9 quadwords** (3 vertices × 3 qwords each).
 
@@ -550,7 +574,7 @@ The GIF tag format is `GIF_PACKED` with the register chain: `ST → RGBAQ → XY
 | Clip space culling | ❌ | ✅ (before perspective divide) |
 | ADC handling | Per-vertex via `CLIPw` only | Per-vertex with backface override |
 | Triangle rejection | Not possible — all verts drawn | Possible — `IBGTZ` branch to `culled:` |
-| Lighting | Per-vertex | Per-vertex (same model) |
+| Lighting | Per-vertex (ambient + diffuse only) | Per-vertex (Blinn-Phong: ambient + diffuse + specular) |
 | Performance | Higher vertex throughput (1/loop) | Lower vertex throughput (3/loop), but skips invisible tris |
 
 The primary advantage of the triangle-based approach is that **backface culling happens on VU1 without EE involvement**, saving VU1 processing time for invisible triangles.
@@ -632,16 +656,19 @@ However, this is handled by VCL (Vector Unit Command Line).
 │               │                                                  │
 │               ├── FTOI4 → 12:4 fixed-point (GS format)         │
 │               │                                                  │
-│               ├── Lighting (per vertex):                        │
-│               │   │  MUL + RSQRT + MUL → normalize normal      │
-│               │   │  MUL + ADD → N·L dot product               │
-│               │   │  MAX → clamp diffuse to 0+                 │
-│               │   │  MUL × diffuse intensity                    │
-│               │   │  MUL + MADD → ambient + diffuse color      │
-│               │   │  MINI → cap at 128                         │
-│               │   │  FTOI0 → 8-bit unsigned                    │
+│               ├── SQ XYZ2 + SQ STQ (early store before culling) │
 │               │                                                  │
-│               └── SQ (ST | RGBAQ | XYZ2) × 3 verts → output    │
+│               ├── Lighting (per vertex, Blinn-Phong):           │
+│               │   │  LQ cameraPos from constant (once)         │
+│               │   │  CalculateLightingSpecular macro:           │
+│               │   │   Normal → world space + normalize         │
+│               │   │   N·L → diffuse                            │
+│               │   │   vertex → toCamera → halfVec              │
+│               │   │   N·H³² → specular                          │
+│               │   │   ambient + diffuse + specular → color     │
+│               │   │   Clamp, cap at 128, FTOI0                 │
+│               │                                                  │
+│               └── SQ RGBAQ × 3 verts → output                  │
 │                                                                  │
 │               └──→ IADDI -3, IBNE loop if more tris            │
 │                                                                  │

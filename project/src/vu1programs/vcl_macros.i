@@ -110,3 +110,85 @@
     ftoi0       cullResult,     cullResult
     mtir        intRes,         cullResult[x]
 #endmacro
+
+;////////////////////////////////////////////////////////////////////
+;// --- CalculateLightingSpecular ---
+;////////////////////////////////////////////////////////////////////
+;// Calculate ambient + diffuse + specular lighting for a single vertex.
+;// All inner macros (MatrixMultiplyVertex, VectorNormalize,
+;// VectorDotProduct) have been expanded inline because vclpp does not
+;// support multi-layer macro expansion.
+;//
+;// Parameters:
+;//   outputColor - register to store integer final color (FinalColN)
+;//   normal      - vertex normal, transformed and normalized in-place
+;//   baseVertex  - vertex position in object space
+;//   diffuseOut  - register to store diffuse dot product intermediate
+;//   cameraPos   - camera position (must be pre-loaded)
+;//
+;// Scratch registers used (shared across calls):
+;//   vclsmlftemp, toCamera, halfVec, vecWorld, specComponent
+;//
+;// Preconditions:
+;//   toLight, rgba, lightIntensitiesVec, matrixModel must be loaded.
+;////////////////////////////////////////////////////////////////////
+#macro CalculateLightingSpecular: outputColor, normal, baseVertex, cameraPos, matrixModel, lightIntensitiesVec, rgba, toLight
+
+    mul         acc,           matrixModel[0], normal[x]
+    madd        acc,           matrixModel[1], normal[y]
+    madd        acc,           matrixModel[2], normal[z]
+    madd        normal,        matrixModel[3], normal[w]
+    mul.xyz     vclsmlftemp,   normal,         normal
+    add.x       vclsmlftemp,   vclsmlftemp,    vclsmlftemp[y]
+    add.x       vclsmlftemp,   vclsmlftemp,    vclsmlftemp[z]
+    rsqrt       q,             vf00[w],        vclsmlftemp[x]
+    sub.w       normal,        vf00,           vf00
+    mul.xyz     normal,        normal,         q
+
+    mul.xyz     diffuseOut,    normal,         toLight
+    add.x       diffuseOut,    diffuseOut,     diffuseOut[y]
+    add.x       diffuseOut,    diffuseOut,     diffuseOut[z]
+    max.x       diffuseOut,    diffuseOut,     vf00[x]
+    mul.x       diffuseOut,    diffuseOut,     lightIntensitiesVec[y]
+
+    mul         acc,           matrixModel[0], baseVertex[x]
+    madd        acc,           matrixModel[1], baseVertex[y]
+    madd        acc,           matrixModel[2], baseVertex[z]
+    madd        vecWorld,      matrixModel[3], baseVertex[w]
+
+    sub.xyz     toCamera,      cameraPos,      vecWorld
+    mul.xyz     vclsmlftemp,   toCamera,       toCamera
+    add.x       vclsmlftemp,   vclsmlftemp,    vclsmlftemp[y]
+    add.x       vclsmlftemp,   vclsmlftemp,    vclsmlftemp[z]
+    rsqrt       q,             vf00[w],        vclsmlftemp[x]
+    sub.w       toCamera,      vf00,           vf00
+    mul.xyz     toCamera,      toCamera,       q
+
+    add.xyz     halfVec,       toCamera,       toLight
+    mul.xyz     vclsmlftemp,   halfVec,        halfVec
+    add.x       vclsmlftemp,   vclsmlftemp,    vclsmlftemp[y]
+    add.x       vclsmlftemp,   vclsmlftemp,    vclsmlftemp[z]
+    rsqrt       q,             vf00[w],        vclsmlftemp[x]
+    sub.w       halfVec,       vf00,           vf00
+    mul.xyz     halfVec,       halfVec,        q
+
+    mul.xyz     specComponent, halfVec,        normal
+    add.x       specComponent, specComponent,  specComponent[y]
+    add.x       specComponent, specComponent,  specComponent[z]
+    mul.x       specComponent, specComponent,  specComponent
+    mul.x       specComponent, specComponent,  specComponent
+    mul.x       specComponent, specComponent,  specComponent
+    mul.x       specComponent, specComponent,  specComponent
+    mul.x       specComponent, specComponent,  specComponent
+    mul.x       specComponent, specComponent,  lightIntensitiesVec[z]
+    max.x       specComponent, specComponent,  vf00[x]
+    mini.x      specComponent, specComponent,  vf00[w]
+
+    mul.xyz     acc,           rgba,           lightIntensitiesVec[x]
+    madd.xyz    acc,           rgba,           diffuseOut[x]
+    madd.xyz    outputColor,   rgba,           specComponent[x]
+    mini.xyz    outputColor,   outputColor,    rgba[w]
+    add.w       outputColor,   vf00,           rgba[w]
+    max.xyz     outputColor,   outputColor,    vf00[x]
+    ftoi0       outputColor,   outputColor
+#endmacro

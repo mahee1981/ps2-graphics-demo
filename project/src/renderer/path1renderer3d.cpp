@@ -103,7 +103,7 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
         packet2_add_float(currentVifPacket, cameraPos.x);
         packet2_add_float(currentVifPacket, cameraPos.y);
         packet2_add_float(currentVifPacket, cameraPos.z);
-        packet2_add_float(currentVifPacket, cameraPos.w);
+        packet2_add_float(currentVifPacket, 0.0f);
     }
     packet2_utils_vu_close_unpack(currentVifPacket);
     vifAddedBytes = 0; // zero because now we will use TOP register (double buffer)

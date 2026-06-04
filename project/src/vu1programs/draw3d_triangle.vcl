@@ -92,9 +92,9 @@ begin:
     iadd        vertexCounter,     iBase,        vertCount  ; loop vertCount times
 loop:
 
-    lq          baseVertex0,           0(vertexData)             ; load the vertex position data
-    lq          baseVertex1,           1(vertexData)             ; load the vertex position data
-    lq          baseVertex2,           2(vertexData)             ; load the vertex position data
+    lq          baseVertex0,       0(vertexData)             ; load the vertex position data
+    lq          baseVertex1,       1(vertexData)             ; load the vertex position data
+    lq          baseVertex2,       2(vertexData)             ; load the vertex position data
     lq          Stq0,              0(stqData)                ; load the texture coordinate data
     lq          Stq1,              1(stqData)                ; load the texture coordinate data
     lq          Stq2,              2(stqData)                ; load the texture coordinate data
@@ -106,26 +106,34 @@ loop:
     MatrixMultiplyVertex{ vertex0, matrixMvp, baseVertex0 }
     MatrixMultiplyVertex{ vertex1, matrixMvp, baseVertex1 }
     MatrixMultiplyVertex{ vertex2, matrixMvp, baseVertex2 }
-                                                            ; macro from vcl_macros.i, preprocessed using vclpp
-                                                            ; vclpp is very moody, and pay attention to spaces
-                                                            ; before braces both in invocation and include files
+                                                             ; macro from vcl_macros.i, preprocessed using vclpp
+                                                             ; vclpp is very moody, and pay attention to spaces
+                                                             ; before braces both in invocation and include files
 
     ClipVertex{ vertex0, destAddress, 2,   iADC }
     ClipVertex{ vertex1, destAddress, 2+3, iADC }
     ClipVertex{ vertex2, destAddress, 2+6, iADC }
 
 
-    PerformPerspectiveDivision{ vertex0, viewPortTransform, Stq0, modStq0 }
-    PerformPerspectiveDivision{ vertex1, viewPortTransform, Stq1, modStq1 }
-    PerformPerspectiveDivision{ vertex2, viewPortTransform, Stq2, modStq2 }
+    PerformPerspectiveDivision{ vertex0, viewPortTransform, Stq0, Stq0 }
+    PerformPerspectiveDivision{ vertex1, viewPortTransform, Stq1, Stq1 }
+    PerformPerspectiveDivision{ vertex2, viewPortTransform, Stq2, Stq2 }
 
 
     ClipSpaceBackfaceCulling{ vertex0, vertex1, vertex2, intRes }
-    ibgtz       intRes,             culled                   ; skip lighting calculation if culled
 
     ftoi4.xyz   vertex0,            vertex0                  ; convert x and y to 12:4 fixed point format
     ftoi4.xyz   vertex1,            vertex1                  ; convert x and y to 12:4 fixed point format
     ftoi4.xyz   vertex2,            vertex2                  ; convert x and y to 12:4 fixed point format
+
+    sq.xyz      vertex0,            2(destAddress)           ; XYZ2
+    sq.xyz      vertex1,            2+3(destAddress)         ; XYZ2
+    sq.xyz      vertex2,            2+6(destAddress)         ; XYZ2
+
+    sq          Stq0,               0(destAddress)           ; STQ
+    sq          Stq1,               0+3(destAddress)         ; STQ
+    sq          Stq2,               0+6(destAddress)         ; STQ
+    ibgtz       intRes,             culled                   ; skip lighting calculation if culled
 
     ;////////////////////////////////////////////////////////////
 
@@ -135,103 +143,18 @@ loop:
 
 
     ;////////////////////////////////////////////////////////////
-    ;// --- Calculate lighting (ambient + diffuse) ---
+    ;// --- Calculate lighting (ambient + diffuse + specular) ---
     ;////////////////////////////////////////////////////////////
 
-    MatrixMultiplyVertex{ normal0, matrixModel, normal0 }
-    VectorNormalize{ normal0, normal0 }
-    VectorDotProduct{ normal0Out, normal0, toLight }
-    max.x       normal0Out,        normal0Out,      vf00[x]                ; clamp the diffuseImpact
-    mul.x       normal0Out,        normal0Out,      lightIntensitiesVec[y] ; multiply the diffuse factor by diffuse intensity
+    lq          cameraPos,          CameraPos(vi00)          ; load camera position
 
+    CalculateLightingSpecular{ FinalCol0, normal0, baseVertex0, cameraPos, matrixModel, lightIntensitiesVec, rgba, toLight }
 
-    lq          cameraPos,         CameraPos(vi00)                          ; load camera position
-    MatrixMultiplyVertex{ vecWorld, matrixModel, baseVertex0 }              
-    sub.xyz     toCamera,         cameraPos,       vecWorld                ; get direction vector to cmaera
-    VectorNormalize{ toCamera, toCamera }                                  
-    add.xyz          halfVec, toCamera, toLight                          ; get bisecting vector
-    VectorNormalize{ halfVec, halfVec }
-    VectorDotProduct{ specComponent, halfVec, normal0 }
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   lightIntensitiesVec[z] ; multiply the specular factor by specular intensity
-    max.x       specComponent,     specComponent,   vf00[x]                ; clamp the specular intensity to > 0
-    mini.x      specComponent,     specComponent,   vf00[w]                ; clamp the specular intensity to < 1
+    CalculateLightingSpecular{ FinalCol1, normal1, baseVertex1, cameraPos, matrixModel, lightIntensitiesVec, rgba, toLight }
 
-    mul.xyz     acc,               rgba,            lightIntensitiesVec[x] ; Add the ambient light to final color
-    madd.xyz    acc,               rgba,            normal0Out[x]          ; Add the diffuse lighting to final color
-    madd.xyz    FinalCol0,         rgba,            specComponent[x]       ; Add the specular lighting to final color
-    mini.xyz    FinalCol0,         FinalCol0,       rgba[w]                ; Cap it to 128
-    add.w       FinalCol0,         vf00,            rgba[w]                ; Set the alpha to 128
-    max.xyz     FinalCol0,         FinalCol0,       vf00[x]                ; ensure that we send 0 or positive value
+    CalculateLightingSpecular{ FinalCol2, normal2, baseVertex2, cameraPos, matrixModel, lightIntensitiesVec, rgba, toLight }
 
-    ftoi0       FinalCol0,         FinalCol0                                ; convert to integer since that's the format expected
-
-    MatrixMultiplyVertex{ normal1, matrixModel, normal1 }
-    VectorNormalize{ normal1, normal1 }
-    VectorDotProduct{ normal1Out, normal1, toLight }
-    max.x       normal1Out,        normal1Out,      vf00[x]                ; clamp the diffuseImpact
-    mul.x       normal1Out,        normal1Out,      lightIntensitiesVec[y] ; multiply the diffuse factor by diffuse intensity
-
-    MatrixMultiplyVertex{ vecWorld, matrixModel, baseVertex1 }              
-    sub.xyz     toCamera,         toCamera,       vecWorld                ; get direction vector to cmaera
-    VectorNormalize{ toCamera, toCamera }                                  
-    add.xyz          halfVec, toCamera, toLight                          ; get bisecting vector
-    VectorNormalize{ halfVec, halfVec }
-    VectorDotProduct{ specComponent, halfVec, normal1 }
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   lightIntensitiesVec[z] ; multiply the specular factor by specular intensity
-    max.x       specComponent,     specComponent,   vf00[x]                ; clamp the specular intensity to > 0
-    mini.x      specComponent,     specComponent,   vf00[w]                ; clamp the specular intensity to < 1
-
-
-    mul.xyz     acc,               rgba,            lightIntensitiesVec[x] ; Add the ambient light to final color
-    madd.xyz    acc,               rgba,            normal1Out[x]          ; Add the diffuse lighting to final color
-    madd.xyz    FinalCol1,         rgba,            specComponent[x]       ; Add the specular lighting to final color
-    mini.xyz    FinalCol1,         FinalCol1,       rgba[w]                ; Cap it to 128
-    add.w       FinalCol1,         vf00,            rgba[w]                ; Set the alpha to 128
-    max.xyz     FinalCol1,         FinalCol1,       vf00[x]                ; ensure that we send 0 or positive value
-
-    ftoi0       FinalCol1,         FinalCol1                                ; convert to integer since that's the format expected
-
-    MatrixMultiplyVertex{ normal2, matrixModel, normal2 }
-    VectorNormalize{ normal2, normal2 }
-    VectorDotProduct{ normal2Out, normal2, toLight }
-    max.x       normal2Out,        normal2Out,      vf00[x]                ; clamp the diffuseImpact
-    mul.x       normal2Out,        normal2Out,      lightIntensitiesVec[y] ; multiply the diffuse factor by diffuse intensity
-
-    MatrixMultiplyVertex{ vecWorld, matrixModel, baseVertex2 }              
-    sub.xyz     toCamera,         toCamera,       vecWorld                ; get direction vector to cmaera
-    VectorNormalize{ toCamera, toCamera }                                  
-    add.xyz          halfVec, toCamera, toLight                          ; get bisecting vector
-    VectorNormalize{ halfVec, halfVec }
-    VectorDotProduct{ specComponent, halfVec, normal2 }
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   specComponent 
-    mul.x       specComponent,     specComponent,   lightIntensitiesVec[z] ; multiply the specular factor by specular intensity
-    max.x       specComponent,     specComponent,   vf00[x]                ; clamp the specular intensity to > 0
-    mini.x      specComponent,     specComponent,   vf00[w]                ; clamp the specular intensity to < 1
-
-
-    mul.xyz     acc,               rgba,            lightIntensitiesVec[x] ; Add the ambient light to final color
-    madd.xyz    acc,               rgba,            normal2Out[x]          ; Add the diffuse lighting to final color
-    madd.xyz    FinalCol2,         rgba,            specComponent[x]       ; Add the specular lighting to final color
-    mini.xyz    FinalCol2,         FinalCol2,       rgba[w]                ; Cap it to 128
-    add.w       FinalCol2,         vf00,            rgba[w]                ; Set the alpha to 128
-    max.xyz     FinalCol2,         FinalCol2,       vf00[x]                ; ensure that we send 0 or positive value
-
-    ftoi0       FinalCol2,         FinalCol2                                ; convert to integer since that's the format expected
-    b           store
+    b           storeNkick
     ;////////////////////////////////////////////////////////////
 culled:
     isw.w       dontDraw,          2(destAddress)
@@ -244,16 +167,10 @@ culled:
     ;////////////////////////////////////////////////////////////
     ;// --- Store triangle to output buffer ---
     ;////////////////////////////////////////////////////////////
-store:
-    sq          modStq0,           0(destAddress)             ; STQ
-    sq          modStq1,           0+3(destAddress)           ; STQ
-    sq          modStq2,           0+6(destAddress)           ; STQ
+storeNkick:
     sq          FinalCol0,         1(destAddress)             ; RGBA ; q is grabbed from stq
     sq          FinalCol1,         1+3(destAddress)           ; RGBA ; q is grabbed from stq
     sq          FinalCol2,         1+6(destAddress)           ; RGBA ; q is grabbed from stq
-    sq.xyz      vertex0,           2(destAddress)             ; XYZ2
-    sq.xyz      vertex1,           2+3(destAddress)           ; XYZ2
-    sq.xyz      vertex2,           2+6(destAddress)           ; XYZ2
 
 
     iaddiu      vertexData,        vertexData,       3        ; move the vertex data pointer by one
