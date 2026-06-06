@@ -125,7 +125,7 @@ void render()
     Light::BaseLight mainLight;
     mainLight.SetColor(1.0f, 1.0f, 1.0f);
     mainLight.SetDirection(1.0f, 0.0f, 0.0f);
-    mainLight.SetAmbientIntensity(0.1f);
+    mainLight.SetAmbientIntensity(0.3f);
     mainLight.SetDiffuseIntensity(0.2f);
     mainLight.SetSpecularIntensity(0.5f);
 
