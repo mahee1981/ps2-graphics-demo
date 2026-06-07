@@ -31,7 +31,7 @@ class Path1Renderer3D : public IRenderer3D
     float _screenHeight;
     ps2math::Mat4 _perspectiveMatrix;
     alignas(64) packet2_t *dynamicPacket[2];
-   packet2_t *staticPacket;
+    packet2_t *staticPacket;
     packet2_t *bufferHeader;
     std::size_t context;
     Deltawatch lastDisplayListPrepWatch;

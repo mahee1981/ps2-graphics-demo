@@ -62,7 +62,7 @@ void Path3Renderer3D::ClipVertex(ps2math::Vec4 &vertex)
 void Path3Renderer3D::RenderFrame(const std::vector<Model> &models,
                                   const Light::BaseLight &mainLight,
                                   const ps2math::Mat4 &viewMat,
-                                  [[maybe_unused]]const ps2math::Vec4 &cameraPos)
+                                  [[maybe_unused]] const ps2math::Vec4 &cameraPos)
 {
 
     trianglesRendered = 0;

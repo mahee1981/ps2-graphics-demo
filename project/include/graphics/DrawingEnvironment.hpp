@@ -13,8 +13,8 @@
 #include <memory>
 
 #include "AlphaTest.hpp"
-#include "common/Color.hpp"
 #include "TextureConfig.hpp"
+#include "common/Color.hpp"
 #include "graphics/BufferingConfig.hpp"
 #include "graphics/framebuffer.hpp"
 #include "graphics/zbuffer.hpp"

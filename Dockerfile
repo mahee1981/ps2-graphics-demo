@@ -1,5 +1,6 @@
 FROM debian:bookworm-slim
 
+# create non-root user to avoid permission issues with mounted volumes
 ARG USERNAME=adnan
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -7,6 +8,7 @@ ARG USER_GID=$USER_UID
 RUN groupadd --gid $USER_GID $USERNAME \
 && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
 
+# add 32-bit system support for PS2 development (VCL)
 RUN dpkg --add-architecture i386
 
 RUN apt-get update && apt-get install -y \
@@ -38,7 +40,7 @@ ENV PS2SDK=$PS2DEV/ps2sdk
 ENV GSKIT=$PS2DEV/gsKit
 ENV PATH=$PATH:${PS2DEV}/bin:${PS2DEV}/ee/bin:${PS2DEV}/iop/bin:${PS2DEV}/dvp/bin:${PS2SDK}/bin
 
-#pull latest ps2dev ubuntu image
+# pull latest ps2dev Linux release
 RUN curl -o ps2dev-latest.tar.gz -LC - https://github.com/ps2dev/ps2dev/releases/download/latest/ps2dev-$(if [[ "$OSTYPE" == "darwin"* ]]; then echo macos; else echo ubuntu; fi)-latest.tar.gz
 RUN tar -xf ps2dev-latest.tar.gz --strip-components 1 -C $PS2DEV
 
@@ -59,7 +61,7 @@ RUN cp libstb_image.a ../lib/
 WORKDIR /dependencies
 RUN git clone https://github.com/tinyobjloader/tinyobjloader.git
 WORKDIR /dependencies/tinyobjloader
-# patch the IEE-754 float requirement, PS2 doesn't support that
+# patch the IEEE-754 float requirement, PS2 doesn't support that
 RUN sed -i '/static_assert(std::numeric_limits<float>::is_iec559/,/);/d' tiny_obj_loader.h
 RUN mips64r5900el-ps2-elf-g++ -O2 -G0 -I. -x c++ -c tiny_obj_loader.cc -o tiny_obj_loader.o
 RUN mips64r5900el-ps2-elf-ar cru libtiny_obj_loader.a tiny_obj_loader.o
@@ -72,7 +74,7 @@ RUN mips64r5900el-ps2-elf-g++ -O2 -G0 -I. -x c++ -c lodepng.cpp -o lodepng.o
 RUN mips64r5900el-ps2-elf-ar cru liblodepng.a lodepng.o
 RUN cp liblodepng.a ../lib/
 
-#build tools
+# build tools
 WORKDIR /dependencies
 RUN git clone https://github.com/glampert/vclpp.git
 WORKDIR /dependencies/vclpp

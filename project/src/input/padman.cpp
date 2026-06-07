@@ -171,7 +171,7 @@ PadManager::PadManager(bool resetIop)
     SifInitRpc(0);
 
     // Reinit subsystems after reset
-    if(resetIop)
+    if (resetIop)
     {
         while (!SifIopReset("", 0))
         {

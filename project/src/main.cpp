@@ -116,7 +116,7 @@ void render()
 
     modelList[3].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[3].AddTexture(catTex);
-    PadManager controllerInput{ false };
+    PadManager controllerInput{false};
 
     float angle = 0.0f;
     float moveHorizontal = 0.0f;

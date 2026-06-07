@@ -99,7 +99,7 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
         qword_t textureConfig;
         textureConfig.dw[0] = texture->GetTexGSSettings();
         textureConfig.dw[1] = GS_REG_TEX0_1;
-        packet2_add_u128(currentVifPacket,  textureConfig.qw);
+        packet2_add_u128(currentVifPacket, textureConfig.qw);
         packet2_add_float(currentVifPacket, cameraPos.x);
         packet2_add_float(currentVifPacket, cameraPos.y);
         packet2_add_float(currentVifPacket, cameraPos.z);

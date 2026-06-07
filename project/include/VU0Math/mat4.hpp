@@ -12,10 +12,22 @@ class Mat4
 {
   public:
     Mat4();
-    explicit Mat4(const float m11, const float m12, const float m13, const float m14,
-                  const float m21, const float m22, const float m23, const float m24,
-                  const float m31, const float m32, const float m33, const float m34,
-                  const float m41, const float m42, const float m43, const float m44);
+    explicit Mat4(const float m11,
+                  const float m12,
+                  const float m13,
+                  const float m14,
+                  const float m21,
+                  const float m22,
+                  const float m23,
+                  const float m24,
+                  const float m31,
+                  const float m32,
+                  const float m33,
+                  const float m34,
+                  const float m41,
+                  const float m42,
+                  const float m43,
+                  const float m44);
 
     explicit Mat4(const std::array<float, 16> &values);
 

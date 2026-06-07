@@ -23,6 +23,7 @@ class Deltawatch
         CaptureStartMoment();
         CaptureEndMoment();
     }
+
   private:
     std::chrono::steady_clock::time_point beforePoint;
     std::chrono::steady_clock::time_point afterPoint;

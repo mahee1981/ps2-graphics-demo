@@ -2,5 +2,4 @@
 namespace Renderer
 {
 
-
 } // namespace Renderer
