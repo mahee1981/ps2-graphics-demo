@@ -2,9 +2,11 @@
 #define MESH_HPP
 
 #include "VU0Math/vec4.hpp"
+#include "draw_primitives.h"
 #include "tiny_obj_loader.h"
 #include <debug.h>
 #include <draw_types.h>
+#include <packet2.h>
 #include <vector>
 namespace Renderer
 {

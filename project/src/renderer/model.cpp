@@ -59,9 +59,11 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
     LOG_INFO("Number of shapes: ") << shapes.size();
     // Loop over shapes and store the indices
     //
+    meshList.resize(shapes.size());
     for (size_t s = 0; s < shapes.size(); s++)
     {
-        Mesh newMesh;
+        Mesh &newMesh = meshList[s];
+
         newMesh.Vertices.reserve(shapes[s].mesh.indices.size());
         newMesh.Normals.reserve(shapes[s].mesh.indices.size());
         newMesh.Texels.reserve(shapes[s].mesh.indices.size());
@@ -110,7 +112,7 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
             }
             index_offset += fv;
         }
-        meshList.push_back(newMesh);
+        // newMesh.GenerateRenderPackets();
     }
 }
 

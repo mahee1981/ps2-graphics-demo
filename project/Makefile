@@ -65,6 +65,10 @@ run: $(EE_BIN)
 reset:
 	ps2client reset
 
+format:
+	find ./ -iname '*.hpp' -o -iname '*.cpp' | xargs clang-format -i
+
+
 # Include PS2SDK rules + global cpp rules
 include $(PS2SDK)/samples/Makefile.pref
 include Makefile.eeglobal_cpp

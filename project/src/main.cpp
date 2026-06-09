@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "VU0Math/vec4.hpp"
+#include "components/transform.hpp"
 #include "graphics/DrawingEnvironment.hpp"
 #include "graphics/LodeTextureLoader.hpp"
 #include "graphics/STBITextureLoader.hpp"
@@ -101,8 +102,8 @@ void render()
     std::vector<Model> modelList;
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, -70.0f, 1.0f}});
     modelList.emplace_back(Model{ps2math::Vec4{30.0f, 30.0f, +70.0f, 1.0f}});
-    modelList.emplace_back(Model{ps2math::Vec4{0.0f, -30.0f, 0.0f, 1.0f}});
-    modelList.emplace_back(Model{ps2math::Vec4{0.0f, -90.0f, -70.0f, 1.0f}});
+    modelList.emplace_back(Model{ps2math::Vec4(-30.0f, 90.0f, +50.0f, 1.0f)});
+    modelList.emplace_back(Model{ps2math::Vec4(-60.0f, -90.0f, +50.0f, 1.0f)});
 
     modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
     modelList[0].AddTexture(catTex);
@@ -178,7 +179,7 @@ void render()
             transformComponentRef.SetAngleY(15.0f);
 
             // transformComponentRef.SetAngleY(angle);
-            transformComponentRef.SetTranslate(0.0f,
+            transformComponentRef.SetTranslate(transformComponentRef.GetTranslate().x,
                                                transformComponentRef.GetTranslate().y,
                                                transformComponentRef.GetTranslate().z + moveHorizontal);
 
