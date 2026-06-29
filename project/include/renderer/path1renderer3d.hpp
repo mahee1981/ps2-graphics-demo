@@ -5,6 +5,7 @@
 #include "graphics/Texture.hpp"
 #include "interfaces/IRenderer3D.hpp"
 #include "tools/Deltawatch.hpp"
+#include <array>
 #include <memory>
 
 namespace Renderer
@@ -28,12 +29,13 @@ class Path1Renderer3D : public IRenderer3D
     void SetDoubleBufferSettings();
 
   private:
+    using SmartPacket = std::unique_ptr<packet2_t, decltype(&packet2_free)>;
     float _screenWidth;
     float _screenHeight;
     ps2math::Mat4 _perspectiveMatrix;
-    alignas(64) packet2_t *dynamicPacket[2];
-    packet2_t *staticScaleAndColorPacket;
-    packet2_t *bufferHeader;
+    alignas(64) std::array<SmartPacket, 2> dynamicPacket;
+    SmartPacket staticScaleAndColorPacket;
+    SmartPacket bufferHeader;
     std::size_t context;
     Deltawatch lastDisplayListPrepWatch;
     static prim_t primitiveTypeConfig;

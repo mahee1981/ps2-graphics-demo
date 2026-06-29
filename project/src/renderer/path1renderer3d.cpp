@@ -13,13 +13,13 @@ namespace Renderer
 Path1Renderer3D::Path1Renderer3D(int width, int height)
     : _screenWidth(width), _screenHeight(height),
       _perspectiveMatrix(
-          ps2math::Mat4::perspective(Utils::ToRadians(60.0f), (float)width / (float)height, 1.0f, 2000.0f))
+          ps2math::Mat4::perspective(Utils::ToRadians(60.0f), (float)width / (float)height, 1.0f, 2000.0f)),
+      dynamicPacket{SmartPacket{packet2_create(50, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free},
+                    SmartPacket{packet2_create(50, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free}},
+      staticScaleAndColorPacket(SmartPacket(packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free)),
+      bufferHeader{SmartPacket{packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free}}
 
 {
-    dynamicPacket[0] = packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-    dynamicPacket[1] = packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-    staticScaleAndColorPacket = packet2_create(10, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-    bufferHeader = packet2_create(10, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
 
     _perspectiveMatrix = ps2math::Mat4::SpecializePerspectiveForVU1(_perspectiveMatrix, width, height);
     PrepareScaleAndColorPacket();
@@ -42,15 +42,15 @@ void Path1Renderer3D::UploadVU1MicroProgram(u32 *VU1Draw3D_CodeStart, u32 *VU1Dr
 
 void Path1Renderer3D::PrepareScaleAndColorPacket()
 {
-    packet2_add_float(staticScaleAndColorPacket, 2048.0F); // scale
-    packet2_add_float(staticScaleAndColorPacket, 2048.0F); // scale
+    packet2_add_float(staticScaleAndColorPacket.get(), 2048.0F); // scale
+    packet2_add_float(staticScaleAndColorPacket.get(), 2048.0F); // scale
     float zScale = float(0xFFFFFFFFu) / 32.0F;
     LOG_INFO("z-scale: ") << zScale;
-    packet2_add_float(staticScaleAndColorPacket, zScale); // scale
-    packet2_add_float(staticScaleAndColorPacket, 1.0f);   // scale
-    u8 j = 0;                                             // RGBA
+    packet2_add_float(staticScaleAndColorPacket.get(), zScale); // scale
+    packet2_add_float(staticScaleAndColorPacket.get(), 1.0f);   // scale
+    u8 j = 0;                                                   // RGBA
     for (j = 0; j < 4; j++)
-        packet2_add_float(staticScaleAndColorPacket, 128.0f);
+        packet2_add_float(staticScaleAndColorPacket.get(), 128.0f);
 }
 
 void Path1Renderer3D::SendDynamicModelData(const ps2math::Mat4 &mvp,
@@ -59,7 +59,7 @@ void Path1Renderer3D::SendDynamicModelData(const ps2math::Mat4 &mvp,
                                            const std::shared_ptr<Texture> &texture,
                                            const ps2math::Vec4 &cameraPos)
 {
-    packet2_t *currentVifPacket = dynamicPacket[context];
+    packet2_t *currentVifPacket = dynamicPacket[context].get();
     packet2_reset(currentVifPacket, 0);
     u32 vifAddedBytes = 0;
     packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, (void *)mvp.GetDataPtr(), 4, 0);
@@ -69,9 +69,9 @@ void Path1Renderer3D::SendDynamicModelData(const ps2math::Mat4 &mvp,
     packet2_utils_vu_add_unpack_data(currentVifPacket,
                                      vifAddedBytes, // because of the world Matrix
                                      staticScaleAndColorPacket->base,
-                                     packet2_get_qw_count(staticScaleAndColorPacket),
+                                     packet2_get_qw_count(staticScaleAndColorPacket.get()),
                                      0);
-    vifAddedBytes += packet2_get_qw_count(staticScaleAndColorPacket);
+    vifAddedBytes += packet2_get_qw_count(staticScaleAndColorPacket.get());
 
     packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, (void *)modelMatrix.GetDataPtr(), 4, 0);
     vifAddedBytes += 4;
@@ -110,7 +110,7 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
                                    const Mesh &mesh,
                                    const std::size_t offset)
 {
-    packet2_t *currentVifPacket = dynamicPacket[context];
+    packet2_t *currentVifPacket = dynamicPacket[context].get();
     packet2_reset(currentVifPacket, 0);
 
     u32 vifAddedBytes = 0;
@@ -174,9 +174,9 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
             std::size_t totalVertexCount = mesh.Vertices.size();
             std::size_t numberOfWholeLoopIterations = totalVertexCount / MAX_VERTEXDATA_PER_VIF_PACKET;
             std::size_t remainder = totalVertexCount % MAX_VERTEXDATA_PER_VIF_PACKET;
-            packet2_pad96(bufferHeader, 0);
-            packet2_add_u32(bufferHeader, MAX_VERTEXDATA_PER_VIF_PACKET);
-            packet2_utils_gs_add_prim_giftag(bufferHeader,
+            packet2_pad96(bufferHeader.get(), 0);
+            packet2_add_u32(bufferHeader.get(), MAX_VERTEXDATA_PER_VIF_PACKET);
+            packet2_utils_gs_add_prim_giftag(bufferHeader.get(),
                                              &primitiveTypeConfig,
                                              MAX_VERTEXDATA_PER_VIF_PACKET,
                                              DRAW_STQ2_REGLIST,
@@ -187,27 +187,27 @@ void Path1Renderer3D::RenderFrame(const std::vector<Model> &models,
             // TODO: Clean this up, I don't like the convoluted calling
             while (offset < numberOfWholeLoopIterations * MAX_VERTEXDATA_PER_VIF_PACKET)
             {
-                RenderChunck(bufferHeader, MAX_VERTEXDATA_PER_VIF_PACKET, mesh, offset);
+                RenderChunck(bufferHeader.get(), MAX_VERTEXDATA_PER_VIF_PACKET, mesh, offset);
 
                 offset += MAX_VERTEXDATA_PER_VIF_PACKET;
                 trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
             }
             if (remainder != 0)
             {
-                packet2_reset(bufferHeader, 0);
-                packet2_pad96(bufferHeader, 0);
-                packet2_add_u32(bufferHeader, remainder);
-                packet2_utils_gs_add_prim_giftag(bufferHeader,
+                packet2_reset(bufferHeader.get(), 0);
+                packet2_pad96(bufferHeader.get(), 0);
+                packet2_add_u32(bufferHeader.get(), remainder);
+                packet2_utils_gs_add_prim_giftag(bufferHeader.get(),
                                                  &primitiveTypeConfig,
                                                  remainder,
                                                  DRAW_STQ2_REGLIST,
                                                  3,
                                                  0);
-                RenderChunck(bufferHeader, remainder, mesh, offset);
+                RenderChunck(bufferHeader.get(), remainder, mesh, offset);
 
                 trianglesRendered += remainder / 3;
             }
-            packet2_reset(bufferHeader, 0);
+            packet2_reset(bufferHeader.get(), 0);
         }
     }
     lastDisplayListPrepWatch.CaptureEndMoment();
@@ -236,11 +236,6 @@ void Path1Renderer3D::ToggleDebugPrint()
 
 Path1Renderer3D::~Path1Renderer3D()
 {
-    for (auto &packet : dynamicPacket)
-    {
-        packet2_free(packet);
-    }
-    packet2_free(staticScaleAndColorPacket);
 }
 prim_t Path1Renderer3D::primitiveTypeConfig{.type = PRIM_TRIANGLE,
                                             .shading = PRIM_SHADE_GOURAUD,
