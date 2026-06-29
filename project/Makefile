@@ -35,6 +35,7 @@ output-dirs:
 	@mkdir -p $(BIN_DIR)/resources
 	@mkdir -p $(BIN_DIR)/VU0Math
 	@mkdir -p $(BIN_DIR)/renderer
+	@mkdir -p $(BIN_DIR)/vu1programs
 	@mkdir -p $(BIN_DIR)/external
 	@mkdir -p $(BIN_DIR)/common
 	@mkdir -p $(BIN_DIR)/light
@@ -63,6 +64,10 @@ run: $(EE_BIN)
 
 reset:
 	ps2client reset
+
+format:
+	find ./ -iname '*.hpp' -o -iname '*.cpp' | xargs clang-format -i
+
 
 # Include PS2SDK rules + global cpp rules
 include $(PS2SDK)/samples/Makefile.pref

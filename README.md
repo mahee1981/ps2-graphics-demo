@@ -42,15 +42,18 @@ Before starting, ensure your system has the following installed:
 You have two options to set up and build this project:
 
 1. **Using the Dev Containers Extension in VS Code (Recommended)**  
-2. **Building PS2SDK from Source on Linux**
+2. **Building PS2SDK and Tools from Source on Linux**
 
 ---
 
-## **Important: External Libraries Requirement**
+## **Important: External Libraries and Tools Requirements**
 
 This project depends on external libraries whose headers are included in the `external/` directory. These libraries (such as lodepng, stb_image, and tiny_obj_loader) **must be built and packaged as static libraries** for the project to compile successfully.
 
-The static library files (.a) need to be built manually and placed in the appropriate build directories before attempting to compile this project. The Makefile will then link these static libraries during the compilation process.
+
+Two tools are also required: [VCLPP](https://github.com/glampert/vclppl) and [VCL - Vector Unit Command Line](https://ps2linux.no-ip.info/playstation2-linux.com/projects/vcl.html) for compiling the full binary. The apps need to be available in your path and be named vclpp and vcl, respectively. 
+
+**If you would like to avoid building the external libraries and tools yourself, I suggest using the dev container, since it does that for you automatically.**
 
 ### **Building External Libraries**
 
@@ -234,7 +237,7 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 ### **What’s in the Dev Container?**
 
 The `devcontainer.json` file is configured to:
-- Install `ps2env` image using the `ps2dev/ps2dev:latest` as the base.
+- Install `ps2tools` image using the `debian:bookworm-slim` as the base.
 - Set up an environment with all necessary tools for building and running the project.
 - Provide consistent and isolated builds across systems.
 

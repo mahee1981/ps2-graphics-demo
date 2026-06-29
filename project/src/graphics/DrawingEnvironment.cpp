@@ -1,5 +1,7 @@
 #include "graphics/DrawingEnvironment.hpp"
 #include "BlendingConfig.hpp"
+#include "logging/log.hpp"
+#include "packet2.h"
 
 DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, BufferingConfig config)
     : width(width), height(height), config(config), xOffset(2048.0f - float(width >> 1)),
@@ -8,7 +10,8 @@ DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, 
                 AlphaTestMethod::NOT_EQUAL,
                 0x00,
                 AlphaTestOnFail::FB_UPDATE_ONLY), // TODO: Update via config, for now hardcoded
-      flipPacket(packet2_create(4, P2_TYPE_UNCACHED, P2_MODE_NORMAL, 0))
+      flipPacket(SmartPacket(packet2_create(4, P2_TYPE_UNCACHED, P2_MODE_NORMAL, 0), &packet2_free)),
+      clearScreenPacket(SmartPacket(packet2_create(40, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0), &packet2_free))
 {
     ConfigureBuffers();
 }
@@ -52,12 +55,12 @@ void DrawingEnvironment::SwapBuffers()
 
     framebuffer_t sdkFB;
     framebuffer[context]->ToSDKFramebuffer(&sdkFB);
-    packet2_reset(flipPacket, false);
-    packet2_update(flipPacket, draw_framebuffer(flipPacket->next, 0, &sdkFB));
-    packet2_update(flipPacket, draw_finish(flipPacket->next));
+    packet2_reset(flipPacket.get(), false);
+    packet2_update(flipPacket.get(), draw_framebuffer(flipPacket->next, 0, &sdkFB));
+    packet2_update(flipPacket.get(), draw_finish(flipPacket->next));
 
     dma_wait_fast();
-    dma_channel_send_packet2(flipPacket, DMA_CHANNEL_GIF, 0);
+    dma_channel_send_packet2(flipPacket.get(), DMA_CHANNEL_GIF, 0);
 
     draw_wait_finish();
 }
@@ -82,8 +85,8 @@ void DrawingEnvironment::ConfigureOutput()
 
 void DrawingEnvironment::SetupGSRegisters(unsigned int context) const
 {
-    packet2_t *packet = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
-
+    LOG_INFO("Configuring GS registers");
+    SmartPacket packet = SmartPacket(packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0), &packet2_free);
     /*
     initialzies the GS based on the framebuffer and zbuffer settings
     We are sending the data in packed mode, which means that the upper part
@@ -96,112 +99,118 @@ void DrawingEnvironment::SetupGSRegisters(unsigned int context) const
     qword_t qword;
     qword.dw[0] = (u64)GIF_SET_TAG(numOfRegistersToSet, true, false, 0, GIF_FLG_PACKED, 1);
     qword.dw[1] = (u64)GIF_REG_AD;
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // configure Framebuffer
     qword.dw[0] = framebuffer[0]->GetBufferSettings();
     qword.dw[1] = u64(GS_REG_FRAME + context);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // configure Zbuffer
     qword.dw[0] = zbuffer->GetBufferSettings();
     qword.dw[1] = u64(GS_REG_ZBUF + context);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // set global primitve attributes and disable manual override
     qword.dw[0] = u64(false & 0x01);
     qword.dw[1] = u64(GS_REG_PRMODECONT);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // Enable gouraud shading and alpha blending
     qword.dw[0] = u64(1) << 6 | u64(0x01) << 3;
     qword.dw[1] = u64(GS_REG_PRMODE);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     qword.dw[0] = this->GetXYOffsetSettings();
     qword.dw[1] = u64(GS_REG_XYOFFSET + context);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     qword.dw[0] = this->GetScissoringAreaSettings();
     qword.dw[1] = u64(GS_REG_SCISSOR + context);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     qword.dw[0] = this->GetAlphaAndDepthTestSettings();
     qword.dw[1] = u64(GS_REG_TEST);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // Distant fog color is set to black. I have no idea what I am doing here
     qword.dw[0] = this->GetFogColorSettings(0, 0, 0);
     qword.dw[1] = u64(GS_REG_FOGCOL);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // disable per pixel alpha blending by default
     qword.dw[0] = u64(false);
     qword.dw[1] = u64(GS_REG_PABE);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // set default alpha blending Color_source * Alpha_source + Color_destination(0x80 - Alpha_source)
     //  TODO: add configurable alpha blending settings
     qword.dw[0] = this->GetDefaultAlphaBlendingSettings();
     qword.dw[1] = u64(GS_REG_ALPHA + context);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // dithering settings, I know how it works, but I don't know where they got this matrix from
     // anyway it's disabled because I am using 24-bit and 32-bit colors, so it doesn't matter?
     qword.dw[0] = 0;
     qword.dw[1] = u64(GS_REG_DTHE);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // i will not set the DIMX and die peacefully on this hill
 
     // color clamping (colors do not wrap around)
     qword.dw[0] = u64(true) & 0x01;
     qword.dw[1] = u64(GS_REG_COLCLAMP);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // we don't need alpha value correction, since we are using 32-bit colors
     qword.dw[0] = u64(false) & 0x01;
     qword.dw[1] = u64(GS_REG_FBA + context);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // texture wrapping
     qword.dw[0] = this->GetTextureWrappingSettings(TextureWrappingOptions::REPEAT);
     qword.dw[1] = u64(GS_REG_CLAMP);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // texture alpha value settings
     qword.dw[0] = u64(0x80 & 0xFF) << 32 | (u64(false) & 0x01) << 15 | u64(0x80 & 0xFF);
     qword.dw[1] = u64(GS_REG_TEXA);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // set the finish event to equal true
     qword.dw[0] = u64(1);
     qword.dw[1] = u64(GS_REG_FINISH);
-    packet2_add_u128(packet, qword.qw);
+    packet2_add_u128(packet.get(), qword.qw);
 
     // Now send the packet, no need to wait since it's the first.
-    dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, 0);
+    dma_channel_send_packet2(packet.get(), DMA_CHANNEL_GIF, 0);
 
     dma_wait_fast();
-
-    packet2_free(packet);
 }
 
-void DrawingEnvironment::ClearScreen(packet2_t *packet) const
+void DrawingEnvironment::ClearScreen() const
+{
+    dma_wait_fast();
+    dma_channel_send_packet2(clearScreenPacket.get(), DMA_CHANNEL_GIF, 0);
+    draw_wait_finish();
+}
+
+void DrawingEnvironment::PrepareClearScreenPacket()
 {
     using namespace Colors;
+    LOG_INFO("Preparing clear screen packet");
     qword_t qword;
+    packet2_reset(clearScreenPacket.get(), 0);
 
-    qword.dw[0] = (u64)GIF_SET_TAG(1, false, false, 0, GIF_FLG_PACKED, 1);
-    qword.dw[1] = (u64)GIF_REG_AD;
-    packet2_add_u128(packet, qword.qw);
-
+    qword.dw[0] = static_cast<u64>(GIF_SET_TAG(1, false, false, 0, GIF_FLG_PACKED, 1));
+    qword.dw[1] = static_cast<u64>(GIF_REG_AD);
+    packet2_add_u128(clearScreenPacket.get(), qword.qw);
     qword.dw[0] = this->GetDisabledAlphaAndDepthTestSettings();
-    qword.dw[1] = u64(GS_REG_TEST);
-    packet2_add_u128(packet, qword.qw);
+    qword.dw[1] = static_cast<u64>(GS_REG_TEST);
+    packet2_add_u128(clearScreenPacket.get(), qword.qw);
 
-    packet2_update(packet,
-                   draw_clear(packet->next,
+    packet2_update(clearScreenPacket.get(),
+                   draw_clear(clearScreenPacket->next,
                               0,
                               xOffset,
                               yOffset,
@@ -211,13 +220,15 @@ void DrawingEnvironment::ClearScreen(packet2_t *packet) const
                               clearScreenColor.b,
                               clearScreenColor.g));
 
-    qword.dw[0] = (u64)GIF_SET_TAG(1, false, false, 0, GIF_FLG_PACKED, 1);
-    qword.dw[1] = (u64)GIF_REG_AD;
-    packet2_add_u128(packet, qword.qw);
+    qword.dw[0] = static_cast<u64>(GIF_SET_TAG(1, false, false, 0, GIF_FLG_PACKED, 1));
+    qword.dw[1] = static_cast<u64>(GIF_REG_AD);
+    packet2_add_u128(clearScreenPacket.get(), qword.qw);
 
     qword.dw[0] = this->GetAlphaAndDepthTestSettings();
-    qword.dw[1] = u64(GS_REG_TEST);
-    packet2_add_u128(packet, qword.qw);
+    qword.dw[1] = static_cast<u64>(GS_REG_TEST);
+    packet2_add_u128(clearScreenPacket.get(), qword.qw);
+
+    packet2_update(clearScreenPacket.get(), draw_finish(clearScreenPacket->next));
 }
 
 void DrawingEnvironment::SetClearScreenColor(u8 r, u8 g, u8 b)
@@ -226,6 +237,7 @@ void DrawingEnvironment::SetClearScreenColor(u8 r, u8 g, u8 b)
     this->clearScreenColor.g = g;
     this->clearScreenColor.b = b;
     this->clearScreenColor.a = 0x80;
+    PrepareClearScreenPacket();
 }
 
 u64 DrawingEnvironment::GetXYOffsetSettings() const

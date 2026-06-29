@@ -1,9 +1,11 @@
 #ifndef PATH1_RENDERER_3D
 #define PATH1_RENDERER_3D
 
+#include "VU0Math/vec4.hpp"
 #include "graphics/Texture.hpp"
 #include "interfaces/IRenderer3D.hpp"
 #include "tools/Deltawatch.hpp"
+#include <array>
 #include <memory>
 
 namespace Renderer
@@ -27,25 +29,26 @@ class Path1Renderer3D : public IRenderer3D
     void SetDoubleBufferSettings();
 
   private:
+    using SmartPacket = std::unique_ptr<packet2_t, decltype(&packet2_free)>;
     float _screenWidth;
     float _screenHeight;
     ps2math::Mat4 _perspectiveMatrix;
-    alignas(64) packet2_t *dynamicPacket[2];
-   packet2_t *staticPacket;
-    packet2_t *bufferHeader;
+    alignas(64) std::array<SmartPacket, 2> dynamicPacket;
+    SmartPacket staticScaleAndColorPacket;
+    SmartPacket bufferHeader;
     std::size_t context;
     Deltawatch lastDisplayListPrepWatch;
     static prim_t primitiveTypeConfig;
+    void SendDynamicModelData(const ps2math::Mat4 &mvp,
+                              const ps2math::Mat4 &modelMatrix,
+                              const Light::BaseLight &light,
+                              const std::shared_ptr<Texture> &texture,
+                              const ps2math::Vec4 &cameraPos);
     void RenderChunck(packet2_t *bufferHeader,
                       const std::size_t vertexCount,
-                      const ps2math::Mat4 &mvp,
-                      const ps2math::Mat4 &modelMatrix,
                       const Mesh &mesh,
-                      const std::size_t offset,
-                      const Light::BaseLight &light,
-                      const std::shared_ptr<Texture> &texture,
-                      const ps2math::Vec4 &cameraPos);
-    void PrepareStaticPacket();
+                      const std::size_t offset);
+    void PrepareScaleAndColorPacket();
     bool isDebuggingEnabled;
 };
 

@@ -13,20 +13,22 @@
 #include <memory>
 
 #include "AlphaTest.hpp"
-#include "common/Color.hpp"
 #include "TextureConfig.hpp"
+#include "common/Color.hpp"
 #include "graphics/BufferingConfig.hpp"
 #include "graphics/framebuffer.hpp"
 #include "graphics/zbuffer.hpp"
+#include "packet2_types.h"
 
 using namespace Buffers;
 
 class DrawingEnvironment
 {
+    using SmartPacket = std::unique_ptr<packet2_t, decltype(&packet2_free)>;
 
   public:
     DrawingEnvironment(unsigned int width, unsigned int height, BufferingConfig config);
-    void ClearScreen(packet2_t *packet) const;
+    void ClearScreen() const;
     void SetClearScreenColor(u8 r, u8 g, u8 b);
     void InitializeEnvironment();
     void SwapBuffers();
@@ -43,7 +45,8 @@ class DrawingEnvironment
     std::unique_ptr<ZBuffer> zbuffer;
     AlphaTest alphaTest;
     Colors::Color clearScreenColor;
-    packet2_t *flipPacket;
+    SmartPacket flipPacket;
+    SmartPacket clearScreenPacket;
 
     // TODO: move this to a config class
     u64 GetXYOffsetSettings() const;
@@ -61,6 +64,7 @@ class DrawingEnvironment
     void ConfigureOutput();
     void ConfigureBuffers();
     void AllocateBuffers();
+    void PrepareClearScreenPacket();
     void SetupGSRegisters(unsigned int context) const;
 };
 

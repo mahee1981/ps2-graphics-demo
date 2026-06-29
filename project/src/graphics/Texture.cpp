@@ -71,9 +71,8 @@ void Texture::TransferTextureToGS()
     int remainingData = qwordCount % MAX_TRANSFER_SIZE;
 
     // Transfer stuff
-    using Packet2Deleter = void (*)(packet2_t *);
-    std::unique_ptr<packet2_t, Packet2Deleter> chain_packet{packet2_create(100, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1),
-                                                            [](packet2_t *packet) { packet2_free(packet); }};
+    using SmartPacket = std::unique_ptr<packet2_t, decltype(&packet2_free)>;
+    SmartPacket chain_packet{packet2_create(100, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free};
 
     // Setup the transfer
     qword_t qword;
@@ -149,7 +148,7 @@ void Texture::SetTextureAsActive()
 {
     using Packet2Deleter = void (*)(packet2_t *);
     std::unique_ptr<packet2_t, Packet2Deleter> normal_packet{packet2_create(10, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0),
-                                                             [](packet2_t *packet) { packet2_free(packet); }};
+                                                             &packet2_free};
 
     qword_t qword;
 
@@ -171,7 +170,7 @@ void Texture::SetTexSamplingMethodInGS()
 {
     using Packet2Deleter = void (*)(packet2_t *);
     std::unique_ptr<packet2_t, Packet2Deleter> normal_packet{packet2_create(5, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0),
-                                                             [](packet2_t *packet) { packet2_free(packet); }};
+                                                             &packet2_free};
     lod_t lod;
 
     lod.calculation = LOD_USE_K;

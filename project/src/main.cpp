@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "VU0Math/vec4.hpp"
+#include "components/transform.hpp"
 #include "graphics/DrawingEnvironment.hpp"
 #include "graphics/LodeTextureLoader.hpp"
 #include "graphics/STBITextureLoader.hpp"
@@ -31,12 +32,6 @@ constexpr int height = 448;
 extern u32 VU1Draw3DTriangle_CodeStart __attribute__((section(".vudata")));
 extern u32 VU1Draw3DTriangle_CodeEnd __attribute__((section(".vudata")));
 
-void InitializeDMAC()
-{
-    dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
-    dma_channel_fast_waits(DMA_CHANNEL_GIF);
-}
-
 Camera SetupCamera()
 {
     ps2math::Vec4 startPositon{0.0f, 0.0f, 0.0f, 1.0f};
@@ -51,9 +46,8 @@ Camera SetupCamera()
 
 void render()
 {
-    packet2_t *clearScreenPacket = packet2_create(30, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
-
-    InitializeDMAC();
+    dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
+    dma_channel_fast_waits(DMA_CHANNEL_GIF);
 
     LOG_INFO("Starting to init GS and draw environment");
 
@@ -75,12 +69,7 @@ void render()
 
     drawEnv.SetClearScreenColor(0, 0, 0);
 
-    drawEnv.ClearScreen(clearScreenPacket);
-
-    packet2_update(clearScreenPacket, draw_finish(clearScreenPacket->next));
-
-    dma_wait_fast();
-    dma_channel_send_packet2(clearScreenPacket, DMA_CHANNEL_GIF, 0);
+    drawEnv.ClearScreen();
 
     auto textureLoader = std::make_shared<graphics::STBITextureLoader>();
     std::shared_ptr<graphics::Texture> catTex = std::make_shared<graphics::Texture>("CAT/TEX_CAT.PNG");
@@ -101,8 +90,8 @@ void render()
     std::vector<Model> modelList;
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, -70.0f, 1.0f}});
     modelList.emplace_back(Model{ps2math::Vec4{30.0f, 30.0f, +70.0f, 1.0f}});
-    modelList.emplace_back(Model{ps2math::Vec4{0.0f, -30.0f, 0.0f, 1.0f}});
-    modelList.emplace_back(Model{ps2math::Vec4{0.0f, -90.0f, -70.0f, 1.0f}});
+    modelList.emplace_back(Model{ps2math::Vec4(-30.0f, 90.0f, +50.0f, 1.0f)});
+    modelList.emplace_back(Model{ps2math::Vec4(-60.0f, -90.0f, +50.0f, 1.0f)});
 
     modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
     modelList[0].AddTexture(catTex);
@@ -116,7 +105,7 @@ void render()
 
     modelList[3].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[3].AddTexture(catTex);
-    PadManager controllerInput{ false };
+    PadManager controllerInput{false};
 
     float angle = 0.0f;
     float moveHorizontal = 0.0f;
@@ -125,7 +114,7 @@ void render()
     Light::BaseLight mainLight;
     mainLight.SetColor(1.0f, 1.0f, 1.0f);
     mainLight.SetDirection(1.0f, 0.0f, 0.0f);
-    mainLight.SetAmbientIntensity(0.1f);
+    mainLight.SetAmbientIntensity(0.3f);
     mainLight.SetDiffuseIntensity(0.2f);
     mainLight.SetSpecularIntensity(0.5f);
 
@@ -168,9 +157,7 @@ void render()
 
         myCamera.MotionControl(controllerInput.getLeftJoyPad(), deltaMs);
         myCamera.RotationControl(controllerInput.getRightJoyPad(), deltaMs);
-        dma_wait_fast();
-        dma_channel_send_packet2(clearScreenPacket, DMA_CHANNEL_GIF, 0);
-        draw_wait_finish();
+        drawEnv.ClearScreen();
         for (auto &model : modelList)
         {
             Components::Transform &transformComponentRef = model.GetTransformComponent();
@@ -178,7 +165,7 @@ void render()
             transformComponentRef.SetAngleY(15.0f);
 
             // transformComponentRef.SetAngleY(angle);
-            transformComponentRef.SetTranslate(0.0f,
+            transformComponentRef.SetTranslate(transformComponentRef.GetTranslate().x,
                                                transformComponentRef.GetTranslate().y,
                                                transformComponentRef.GetTranslate().z + moveHorizontal);
 
