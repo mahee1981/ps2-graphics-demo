@@ -6,6 +6,7 @@
 #include "components/transform.hpp"
 #include "graphics/Texture.hpp"
 #include "mesh.hpp"
+#include "renderer/packetedmesh.hpp"
 #include <memory>
 #include <packet2.h>
 #include <vector>
@@ -22,6 +23,7 @@ class Model
   public:
     Model(const ps2math::Vec4 &position);
     void LoadModel(const char *fileName, const char *materialPath = nullptr);
+    void LoadModelPackets(const char *fileName);
     void Render();
     void Update();
 
@@ -46,6 +48,11 @@ class Model
         return meshList;
     }
 
+    inline const std::vector<PacketedMesh> &GetPacketedMeshList() const
+    {
+        return packetedMeshList;
+    }
+
     // TODO: add bounds checking maybe?
     inline const std::shared_ptr<Texture> &GetTextureById(int id) const
     {
@@ -59,6 +66,7 @@ class Model
 
   private:
     std::vector<Mesh> meshList;
+    std::vector<PacketedMesh> packetedMeshList;
     std::vector<std::shared_ptr<Texture>> _textureList;
     ps2math::Mat4 _worldMatrix;
     Components::Transform _transformComponent;

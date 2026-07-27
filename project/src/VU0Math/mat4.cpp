@@ -94,6 +94,24 @@ ps2math::Mat4 &ps2math::Mat4::operator=(const Mat4 &rhs)
     return *this;
 }
 
+ps2math::Mat4::Mat4(const ps2math::Mat4 &rhs) : Mat4()
+{
+    if (this == &rhs)
+        return;
+
+    asm volatile("lqc2		$vf1, 0x00(%1)	\n"
+                 "lqc2		$vf2, 0x10(%1)	\n"
+                 "lqc2		$vf3, 0x20(%1)	\n"
+                 "lqc2		$vf4, 0x30(%1)	\n"
+                 "sqc2		$vf1, 0x00(%0)	\n"
+                 "sqc2		$vf2, 0x10(%0)	\n"
+                 "sqc2		$vf3, 0x20(%0)	\n"
+                 "sqc2		$vf4, 0x30(%0)	\n"
+                 :
+                 : "r"(this->GetDataPtr()), "r"(rhs.GetDataPtr())
+                 : "memory");
+}
+
 ps2math::Mat4::~Mat4()
 {
 }
@@ -222,7 +240,7 @@ ps2math::Mat4 ps2math::Mat4::perspective(float fieldOfViewRadians, float aspectR
 {
     Mat4 perspective = zero();
 
-    float scale = 1.0f / std::tanf(fieldOfViewRadians * 0.5);
+    float scale = 1.0f / tanf(fieldOfViewRadians * 0.5);
 
     perspective.data[0] = scale / aspectRatio;
     perspective.data[5] = -scale;

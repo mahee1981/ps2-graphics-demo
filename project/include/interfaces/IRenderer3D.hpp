@@ -23,6 +23,7 @@ class IRenderer3D
                              const ps2math::Mat4 &viewProjMatrix,
                              const ps2math::Vec4 &cameraPosition) = 0;
     virtual void ToggleDebugPrint() = 0;
+    virtual ~IRenderer3D() = default;
 };
 
 } // namespace Renderer

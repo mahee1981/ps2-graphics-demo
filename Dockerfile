@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
     git \
     nano \
     make \
+    bear \
+    clang \
+    clangd \
     libmpc-dev \
     libmpfr-dev \
     libgmp-dev \
