@@ -1,15 +1,13 @@
+#include <packet2_utils.h>
+#include <debug.h>
+
+#include <memory>
+
 #include "renderer/vu1renderer3dbase.hpp"
 #include "VU0Math/vec4.hpp"
-#include "debug.h"
 #include "graphics/Texture.hpp"
 #include "logging/log.hpp"
-#include "packet2.h"
-#include "packet2_chain.h"
-#include "packet2_utils.h"
-#include "packet2_vif.h"
 #include "utils.hpp"
-#include <cstdio>
-#include <memory>
 
 namespace Renderer
 {
@@ -55,10 +53,10 @@ void VU1Renderer3DBase::PrepareScaleAndColorPacket()
 }
 
 void VU1Renderer3DBase::SendDynamicModelData(const ps2math::Mat4 &mvp,
-                                           const ps2math::Mat4 &modelMatrix,
-                                           const Light::BaseLight &light,
-                                           const std::shared_ptr<Texture> &texture,
-                                           const ps2math::Vec4 &cameraPos)
+                                             const ps2math::Mat4 &modelMatrix,
+                                             const Light::BaseLight &light,
+                                             const std::shared_ptr<Texture> &texture,
+                                             const ps2math::Vec4 &cameraPos)
 {
     packet2_t *currentVifPacket = dynamicPacket[context].get();
     packet2_reset(currentVifPacket, 0);
@@ -115,11 +113,10 @@ void VU1Renderer3DBase::SendDynamicModelData(const ps2math::Mat4 &mvp,
     context = !context;
 }
 
-
 void VU1Renderer3DBase::RenderFrame(const std::vector<Model> &models,
-                                  const Light::BaseLight &mainLight,
-                                  const ps2math::Mat4 &viewProjMatrix,
-                                  const ps2math::Vec4 &cameraPos)
+                                    const Light::BaseLight &mainLight,
+                                    const ps2math::Mat4 &viewProjMatrix,
+                                    const ps2math::Vec4 &cameraPos)
 {
     lastDisplayListPrepWatch.CaptureStartMoment();
     const float timeToPrepLastDisplayList = lastDisplayListPrepWatch.GetDeltaMs();
@@ -138,8 +135,9 @@ void VU1Renderer3DBase::RenderFrame(const std::vector<Model> &models,
 }
 void VU1Renderer3DBase::SetDoubleBufferSettings()
 {
+    constexpr u8 NUM_OF_MODEL_CONSTANTS = 15;
     packet2_t *packet2 = packet2_create(1, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-    packet2_utils_vu_add_double_buffer(packet2, 15, (1024 - 15) / 2);
+    packet2_utils_vu_add_double_buffer(packet2, NUM_OF_MODEL_CONSTANTS, (1024 - NUM_OF_MODEL_CONSTANTS) / 2);
     packet2_utils_vu_add_end_tag(packet2);
     dma_channel_send_packet2(packet2, DMA_CHANNEL_VIF1, 1);
     dma_channel_wait(DMA_CHANNEL_VIF1, 0);
@@ -155,7 +153,5 @@ void VU1Renderer3DBase::PrintDebugInfo()
 {
     scr_printf("%s", logStream.str().c_str());
 }
-
-
 
 } // namespace Renderer

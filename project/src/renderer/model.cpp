@@ -1,6 +1,5 @@
 #include "renderer/model.hpp"
 #include "logging/log.hpp"
-#include "renderer/packetedmesh.hpp"
 #include "utils.hpp"
 #include <iostream>
 
@@ -117,23 +116,4 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
     }
 }
 
-void Model::LoadModelPackets(const char *fileName)
-{
-    // for(const auto &mesh : meshList)
-    // {
-    //     packetedMeshList.emplace_back(PacketedMesh(mesh.Vertices, mesh.Normals, mesh.Texels));
-    // }
-    while (!meshList.empty())
-    {
-        auto mesh = std::move(meshList.back());
-
-        packetedMeshList.emplace_back(
-            std::move(mesh.Vertices),
-            std::move(mesh.Normals),
-            std::move(mesh.Texels)
-        );
-
-        meshList.pop_back();
-    }
-}
 } // namespace Renderer

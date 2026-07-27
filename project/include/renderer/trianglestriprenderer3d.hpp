@@ -2,14 +2,11 @@
 #define TRISTRIP_RENDERER_3D
 
 #include "VU0Math/vec4.hpp"
-#include "graphics/Texture.hpp"
 #include "renderer/vu1renderer3dbase.hpp"
-#include "tools/Deltawatch.hpp"
-#include <array>
-#include <memory>
 
 namespace Renderer
 {
+// NOT READY
 class TriangleStripRenderer3D : public VU1Renderer3DBase
 {
   public:
@@ -20,9 +17,10 @@ class TriangleStripRenderer3D : public VU1Renderer3DBase
         return _perspectiveMatrix;
     }
     void DoRenderFrame(const std::vector<Model> &models,
-                     const Light::BaseLight &mainLight,
-                     const ps2math::Mat4 &viewProjMatrix,
-                     const ps2math::Vec4 &cameraPos) override;
+                       const Light::BaseLight &mainLight,
+                       const ps2math::Mat4 &viewProjMatrix,
+                       const ps2math::Vec4 &cameraPos) override;
+
   private:
     static prim_t primitiveTypeConfig;
     SmartPacket bufferHeader;

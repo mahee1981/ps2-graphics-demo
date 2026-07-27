@@ -18,7 +18,6 @@
 #include "light/BaseLight.hpp"
 #include "logging/log.hpp"
 #include "renderer/Camera.hpp"
-#include "renderer/trianglestriprenderer3d.hpp"
 #include "renderer/model.hpp"
 #include "renderer/path1renderer3d.hpp"
 #include "tools/Deltawatch.hpp"
@@ -72,10 +71,10 @@ void render()
     drawEnv.ClearScreen();
 
     auto textureLoader = std::make_shared<graphics::STBITextureLoader>();
-    std::shared_ptr<graphics::Texture> catTex = std::make_shared<graphics::Texture>("CAT/TEX_CAT.PNG");
-    // std::shared_ptr<graphics::Texture> airplaneTex = std::make_shared<graphics::Texture>("AIRPLANE/AIRPLANE_TEX2.PNG");
-    std::shared_ptr<graphics::Texture> bigCatTex = std::make_shared<graphics::Texture>("HIDEFCAT/Cat_diffuse.jpg");
-    // std::shared_ptr<graphics::Texture> brickTex = std::make_shared<graphics::Texture>("brick_wall_128.png");
+    auto catTex = std::make_shared<graphics::Texture>("CAT/TEX_CAT.PNG");
+    // auto airplaneTex = std::make_shared<graphics::Texture>("AIRPLANE/AIRPLANE_TEX2.PNG");
+    auto bigCatTex = std::make_shared<graphics::Texture>("HIDEFCAT/Cat_diffuse.jpg");
+    // auto brickTex = std::make_shared<graphics::Texture>("brick_wall_128.png");
 
     catTex->LoadTexture(textureLoader);
     catTex->AllocateVram();
@@ -90,21 +89,18 @@ void render()
 
     std::vector<Model> modelList;
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, -70.0f, 1.0f}});
-    modelList.emplace_back(Model{ps2math::Vec4(-60.0f, -90.0f, +50.0f, 1.0f)});
+    // modelList.emplace_back(Model{ps2math::Vec4(-60.0f, -90.0f, +50.0f, 1.0f)});
 
     // modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
     modelList[0].LoadModel("HIDEFCAT/CAT.obj");
-    modelList[1] = modelList[0];
+    // modelList[1] = modelList[0];
     // modelList[0].LoadModel("FLOOR/FLOOR.OBJ");
-    // modelList[0].LoadModel("GTR/GTR.obj");
     modelList[0].GetTransformComponent().RotateXBy(90);
-    modelList[1].GetTransformComponent().RotateXBy(90);
+    // modelList[1].GetTransformComponent().RotateXBy(90);
     modelList[0].AddTexture(bigCatTex);
-    modelList[1].AddTexture(bigCatTex);
-    modelList[1].GetTransformComponent().SetTranslate(-60.0f, -90.0f, 50.0f);
-    // modelList[0].LoadModelPackets("const char *fileName");
+    // modelList[1].AddTexture(bigCatTex);
+    // modelList[1].GetTransformComponent().SetTranslate(-60.0f, -90.0f, 50.0f);
 
-    // modelList[0].LoadModel("FLOOR/FLOOR.OBJ");
     // modelList[1].AddTexture(catTex);
     PadManager controllerInput{false};
 

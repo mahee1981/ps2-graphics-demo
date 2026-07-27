@@ -1,23 +1,15 @@
-#include "renderer/path1renderer3d.hpp"
-#include "VU0Math/vec4.hpp"
-#include "graphics/Texture.hpp"
-#include "logging/log.hpp"
-#include "packet2.h"
-#include "packet2_chain.h"
-#include "packet2_utils.h"
-#include "packet2_vif.h"
-#include "renderer/vu1renderer3dbase.hpp"
-#include "utils.hpp"
-#include <cstddef>
-#include <cstdio>
+#include <packet2_utils.h>
+
 #include <memory>
+
+#include "renderer/path1renderer3d.hpp"
+#include "dma.h"
 
 namespace Renderer
 {
 Path1Renderer3D::Path1Renderer3D(int width, int height)
     : VU1Renderer3DBase(width, height),
       bufferHeader{SmartPacket{packet2_create(10, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free}}
-
 
 {
 }
@@ -64,39 +56,32 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
     if (offset == 0)
     {
         packet2_chain_open_cnt(currentVifPacket, 0, 0, 0);
-        // packet2_vif_pad96(currentVifPacket);
-        // packet2_vif_flush(currentVifPacket, 0);
         packet2_vif_nop(currentVifPacket, 0);
-
         packet2_vif_mscal(currentVifPacket, 0, 0);
         packet2_chain_close_tag(currentVifPacket);
     }
     else
-    {   
+    {
         packet2_chain_open_cnt(currentVifPacket, 0, 0, 0);
-        // packet2_vif_pad96(currentVifPacket);
         packet2_vif_nop(currentVifPacket, 0);
-        // packet2_vif_flush(currentVifPacket, 0);
-
         packet2_vif_mscnt(currentVifPacket, 0);
         packet2_chain_close_tag(currentVifPacket);
     }
     isPacketFlushed = false;
-    if(isPacketReadyToFlush)
+    if (isPacketReadyToFlush)
     {
         isPacketFlushed = true;
         packet2_utils_vu_add_end_tag(currentVifPacket);
         dma_channel_wait(DMA_CHANNEL_VIF1, 0);
-        dma_channel_wait(DMA_CHANNEL_GIF, 0);
         dma_channel_send_packet2(currentVifPacket, DMA_CHANNEL_VIF1, 1);
         // Switch packet, so we can proceed during DMA transfer
         context = !context;
     }
 }
 void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
-                                  const Light::BaseLight &mainLight,
-                                  const ps2math::Mat4 &viewMat,
-                                  const ps2math::Vec4 &cameraPos)
+                                    const Light::BaseLight &mainLight,
+                                    const ps2math::Mat4 &viewMat,
+                                    const ps2math::Vec4 &cameraPos)
 {
     unsigned long long trianglesRendered = 0;
     const auto viewProjMat = viewMat * _perspectiveMatrix;
@@ -117,12 +102,16 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
 
             for (std::size_t i = 0; i < numberOfWholeLoopIterations; i++)
             {
-                bool isPacketReadyToFlush = i == numberOfWholeLoopIterations - 1 || numOfEnqueuedChuncks == 8;
-                if(isPacketReadyToFlush)
+                bool isPacketReadyToFlush = i == numberOfWholeLoopIterations - 1 || numOfEnqueuedChuncks == 16;
+                if (isPacketReadyToFlush)
                 {
                     numOfEnqueuedChuncks = 0;
                 }
-                RenderChunck(MAX_CHUNCK_HEADER.get(), MAX_VERTEXDATA_PER_VIF_PACKET, mesh, offset, isPacketReadyToFlush);
+                RenderChunck(MAX_CHUNCK_HEADER.get(),
+                             MAX_VERTEXDATA_PER_VIF_PACKET,
+                             mesh,
+                             offset,
+                             isPacketReadyToFlush);
 
                 offset += MAX_VERTEXDATA_PER_VIF_PACKET;
                 trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
@@ -146,30 +135,23 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
             packet2_reset(bufferHeader.get(), 0);
         }
     }
-    if(isDebuggingEnabled)
+    if (isDebuggingEnabled)
     {
         std::sprintf(trianglesRenderedMessageBuff, "Triangles rendered: %lld", trianglesRendered);
         AppendScreenPrintLine(trianglesRenderedMessageBuff);
     }
 }
 
-const std::shared_ptr<packet2_t> Path1Renderer3D::MAX_CHUNCK_HEADER {Path1Renderer3D::MakeChunckHeaderPacket(81)};
+const std::shared_ptr<packet2_t> Path1Renderer3D::MAX_CHUNCK_HEADER{Path1Renderer3D::MakeChunckHeaderPacket(81)};
 
 const std::shared_ptr<packet2_t> Path1Renderer3D::MakeChunckHeaderPacket(u32 numOfVertices)
 {
-    std::shared_ptr<packet2_t> bufferHeader = std::shared_ptr<packet2_t>(packet2_create(5, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free);
+    std::shared_ptr<packet2_t> bufferHeader =
+        std::shared_ptr<packet2_t>(packet2_create(5, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free);
 
-    
-        packet2_pad96(bufferHeader.get(), 0);
-        packet2_add_u32(bufferHeader.get(), numOfVertices);
-        packet2_utils_gs_add_prim_giftag(bufferHeader.get(),
-                                            &primitiveTypeConfig,
-                                            numOfVertices,
-                                            DRAW_STQ2_REGLIST,
-                                            3,
-                                            0);
-    
-
+    packet2_pad96(bufferHeader.get(), 0);
+    packet2_add_u32(bufferHeader.get(), numOfVertices);
+    packet2_utils_gs_add_prim_giftag(bufferHeader.get(), &primitiveTypeConfig, numOfVertices, DRAW_STQ2_REGLIST, 3, 0);
 
     return bufferHeader;
 }

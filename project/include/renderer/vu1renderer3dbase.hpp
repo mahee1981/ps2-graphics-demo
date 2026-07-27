@@ -5,9 +5,10 @@
 #include "graphics/Texture.hpp"
 #include "interfaces/IRenderer3D.hpp"
 #include "tools/Deltawatch.hpp"
+
 #include <array>
-#include <sstream>
 #include <memory>
+#include <sstream>
 
 namespace Renderer
 {
@@ -52,13 +53,14 @@ class VU1Renderer3DBase : public IRenderer3D
                       const std::size_t offset);
     void PrepareScaleAndColorPacket();
     virtual void DoRenderFrame(const std::vector<Model> &models,
-                     const Light::BaseLight &mainLight,
-                     const ps2math::Mat4 &viewProjMatrix,
-                     const ps2math::Vec4 &cameraPos) = 0;
+                               const Light::BaseLight &mainLight,
+                               const ps2math::Mat4 &viewProjMatrix,
+                               const ps2math::Vec4 &cameraPos) = 0;
     inline void AppendScreenPrintLine(const std::string &line)
     {
         logStream << line << "\n";
     }
+
   private:
     void PrintDebugInfo();
     std::stringstream logStream;
