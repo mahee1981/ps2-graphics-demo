@@ -1,35 +1,114 @@
+#include "graphics/TextureCache.hpp"
+#include "logging/log.hpp"
 #include "graphics/Texture.hpp"
 #include "graphics/GSBufferConfig.hpp"
+
+#include <cstdio>
+#include <graph_vram.h>
+
 
 namespace graphics
 {
 
-Texture::Texture(const char *pathToImg)
-    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr)
+Texture::Texture(const char *pathToImg, Buffers::GSPixelStorageMethod psm)
+    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), pixelStorageMethod(psm),
+    vramAddress(0), resident(false), residencyOwner(nullptr)
 {
 }
 
-Texture::Texture(std::string pathToImg)
-    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr)
+Texture::Texture(std::string pathToImg, Buffers::GSPixelStorageMethod psm)
+    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), pixelStorageMethod(psm),
+    vramAddress(0), resident(false), residencyOwner(nullptr)
 {
 }
 
 Texture::~Texture()
 {
+    if (residencyOwner != nullptr)
+    {
+        residencyOwner->Release(*this);
+    }
 }
 
 int Texture::AllocateVram()
 {
-    gsTextureBuffer = std::make_unique<Buffers::GSTextureBuffer>(this->width, this->height, Buffers::PSM_24);
-    gsTextureBuffer->AllocateVRAMForBuffer();
-    return this->gsTextureBuffer->GetVramAddress();
+    const int address = graph_vram_allocate(width, height, static_cast<int>(pixelStorageMethod), GRAPH_ALIGN_BLOCK);
+
+    if (address < 0)
+    {
+        LOG_ERROR("Texture: graph_vram_allocate failed for ") << imgPath;
+        return address;
+    }
+    
+    vramAddress = static_cast<u32>(address);
+    resident = false;
+    return address;
+}
+
+u32 Texture::GetVramSizeWords() const
+{
+    const int size = graph_vram_size(width, height, static_cast<int>(pixelStorageMethod), GRAPH_ALIGN_BLOCK);
+    return size > 0 ? static_cast<u32>(size) : 0u;
+}
+
+void Texture::SetVramAddress(u32 addressWords, TextureCache *owner)
+{
+    vramAddress = addressWords;
+    residencyOwner = owner;
+    resident = false;
+}
+
+void Texture::OnEvicted()
+{
+    vramAddress = 0;
+    resident = false;
+    residencyOwner = nullptr;
+}
+
+u32 Texture::GetTransferBitsPerPixel() const
+{
+    switch(pixelStorageMethod)
+    {
+        case Buffers::PSM_32:
+        case Buffers::PSMZ_32:
+            return 32;
+        case Buffers::PSM_24:
+        case Buffers::PSMZ_24:
+            return 32;
+        case Buffers::PSM_16:
+        case Buffers::PSM_16S:
+        case Buffers::PSMZ_16:
+        case Buffers::PSMZ_16S:
+            return 16;
+        case Buffers::PSM_8:
+        case Buffers::PSM_8H:
+            return 8;
+        case Buffers::PSM_4:
+        case Buffers::PSM_4HL:
+        case Buffers::PSM_4HH:
+            return 4;
+        default:
+            LOG_ERROR("Texture unsupported PSM ") << static_cast<u32>(pixelStorageMethod);
+            return 32;
+        
+    }
+}
+
+u32 Texture::GetTransferQwordCount() const 
+{
+    const u32 bits = static_cast<u32>(width) * static_cast<u32>(height) * GetTransferBitsPerPixel();
+    return (bits + 127u) / 128u;
 }
 
 void Texture::TransferTextureToGS()
 {
-    u64 destBufBasePtr = (this->gsTextureBuffer->GetVramAddress() >> 6) & 0x3FFF;
-    u64 destBufWidth = (this->width >> 6) & 0x3F;
-    u64 psm = (Buffers::GSPixelStorageMethod::PSM_24) & 0x3F;
+    if (!HasPixelData())
+    {
+        LOG_ERROR("Texture: TransferTextureToGs before LoadTexture for ") << imgPath;
+    }
+    u64 destBufBasePtr = (vramAddress >> 6) & 0x3FFF;
+    u64 destBufWidth = (width >> 6) & 0x3F;
+    u64 psm = u64(pixelStorageMethod) & 0x3F;
 
     // BITBLTBUF - setting for transmission between the buffers
     // Transfering from EE to GS does not require a source buffer information
@@ -142,6 +221,7 @@ void Texture::TransferTextureToGS()
     dma_channel_send_packet2(chain_packet.get(), DMA_CHANNEL_GIF, 1);
 
     dma_wait_fast();
+    resident = true;
 }
 
 void Texture::SetTextureAsActive()
@@ -193,8 +273,8 @@ void Texture::LoadTexture(std::shared_ptr<ITextureLoader> textureLoader)
 
 u64 Texture::GetTexGSSettings() const
 {
-    return ((u64(this->gsTextureBuffer->GetVramAddress()) >> 6) & 0x3fff) | (((u64(width) >> 6) & 0x3f) << 14) |
-           ((u64(Buffers::GSPixelStorageMethod::PSM_24) & 0x3f) << 20) | ((u64(draw_log2(width)) & 0xf) << 26) |
+    return ((u64(vramAddress) >> 6) & 0x3fff) | (((u64(width) >> 6) & 0x3f) << 14) |
+           ((u64(pixelStorageMethod) & 0x3f) << 20) | ((u64(draw_log2(width)) & 0xf) << 26) |
            ((u64(draw_log2(height)) & 0xf) << 30) | ((u64(1) & 0x1) << 34) | // RGB or RGBA
            ((u64(0) & 0x3) << 35) | 0;
 }

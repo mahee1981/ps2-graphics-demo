@@ -1,3 +1,5 @@
+#include <cstddef>
+#include <cstdio>
 #include <packet2_utils.h>
 #include <debug.h>
 
@@ -6,6 +8,8 @@
 #include "renderer/vu1renderer3dbase.hpp"
 #include "VU0Math/vec4.hpp"
 #include "graphics/Texture.hpp"
+#include "graphics/TextureCache.hpp"
+#include "graphics/VramManager.hpp"
 #include "logging/log.hpp"
 #include "utils.hpp"
 
@@ -17,7 +21,8 @@ VU1Renderer3DBase::VU1Renderer3DBase(int width, int height)
           ps2math::Mat4::perspective(Utils::ToRadians(60.0f), (float)width / (float)height, 1.0f, 2000.0f)),
       dynamicPacket{SmartPacket{packet2_create(250, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free},
                     SmartPacket{packet2_create(250, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free}},
-      staticScaleAndColorPacket(SmartPacket(packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free))
+      staticScaleAndColorPacket(SmartPacket(packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free)),
+      context(0), isDebuggingEnabled(true), textureCache(nullptr)
 {
 
     _perspectiveMatrix = ps2math::Mat4::SpecializePerspectiveForVU1(_perspectiveMatrix, width, height);
@@ -52,12 +57,19 @@ void VU1Renderer3DBase::PrepareScaleAndColorPacket()
         packet2_add_float(staticScaleAndColorPacket.get(), 128.0f);
 }
 
-void VU1Renderer3DBase::SendDynamicModelData(const ps2math::Mat4 &mvp,
+bool VU1Renderer3DBase::SendDynamicModelData(const ps2math::Mat4 &mvp,
                                              const ps2math::Mat4 &modelMatrix,
                                              const Light::BaseLight &light,
                                              const std::shared_ptr<Texture> &texture,
                                              const ps2math::Vec4 &cameraPos)
 {
+    // Bind before anything else: eviction can move a texture betwen frames, so
+    // the Tex0 value written further down ahs to be built form the address the
+    // cache just confirmed. skip the model entirely if it will not fit, rather
+    // than pointing TEX0 at VRAM that now belongs to something else
+    if (textureCache != nullptr && textureCache->Bind(*texture) == graphics::VramManager::INVALID)
+        return false;
+
     packet2_t *currentVifPacket = dynamicPacket[context].get();
     packet2_reset(currentVifPacket, 0);
 
@@ -111,6 +123,8 @@ void VU1Renderer3DBase::SendDynamicModelData(const ps2math::Mat4 &mvp,
     dma_channel_wait(DMA_CHANNEL_GIF, 0);
     dma_channel_send_packet2(currentVifPacket, DMA_CHANNEL_VIF1, 1);
     context = !context;
+
+    return true;
 }
 
 void VU1Renderer3DBase::RenderFrame(const std::vector<Model> &models,
@@ -128,10 +142,31 @@ void VU1Renderer3DBase::RenderFrame(const std::vector<Model> &models,
         scr_setXY(0, 0);
         std::sprintf(processTimeMessageBuff, "Time to process display list: %f [ms]", timeToPrepLastDisplayList);
         AppendScreenPrintLine(processTimeMessageBuff);
+
+        if (textureCache != nullptr)
+        {
+            const graphics::TextureCache::Stats &stats = textureCache->GetStats();
+            std::sprintf(textureCacheMessageBuff,
+                    "Tex: %u resident, %u bind, %u uploads, %u evicted, %u KB free",
+                    textureCache->GetResidentCount(),
+                    stats.binds,
+                    stats.uploads,
+                    stats.evictions,
+                    textureCache->GetVramManager().TotalFree() * 4 / 1024);
+            AppendScreenPrintLine(textureCacheMessageBuff);
+        }
         PrintDebugInfo();
         logStream.str(std::string());
         logStream.clear();
     }
+
+    if (textureCache != nullptr)
+        textureCache->NextFrame();
+}
+
+void VU1Renderer3DBase::SetTextureCache(graphics::TextureCache *cache)
+{
+    textureCache = cache;
 }
 void VU1Renderer3DBase::SetDoubleBufferSettings()
 {
