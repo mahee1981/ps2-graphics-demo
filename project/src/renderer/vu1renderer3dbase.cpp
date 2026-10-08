@@ -17,7 +17,8 @@ VU1Renderer3DBase::VU1Renderer3DBase(int width, int height)
           ps2math::Mat4::perspective(Utils::ToRadians(60.0f), (float)width / (float)height, 1.0f, 2000.0f)),
       dynamicPacket{SmartPacket{packet2_create(250, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free},
                     SmartPacket{packet2_create(250, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free}},
-      staticScaleAndColorPacket(SmartPacket(packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free))
+      staticScaleAndColorPacket(SmartPacket(packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free)),
+      context(0), isDebuggingEnabled(false)
 {
 
     _perspectiveMatrix = ps2math::Mat4::SpecializePerspectiveForVU1(_perspectiveMatrix, width, height);
