@@ -14,7 +14,6 @@
 #include "graphics/LodeTextureLoader.hpp"
 #include "graphics/STBITextureLoader.hpp"
 #include "graphics/Texture.hpp"
-#include "graphics/TextureCache.hpp"
 #include "input/padman.hpp"
 #include "light/BaseLight.hpp"
 #include "logging/log.hpp"
@@ -67,12 +66,6 @@ void render()
 
     LOG_INFO("Done init");
 
-    // must come after InitializeEnvironment(): that is where the fbuf
-    // and zbuf are allocated out of ps2sdk VRAM bump pointer, and the
-    // cache claims everything else above them.
-    graphics::TextureCache textureCache;
-    renderer3d->SetTextureCache(&textureCache);
-
     drawEnv.SetClearScreenColor(0, 0, 0);
 
     drawEnv.ClearScreen();
@@ -84,13 +77,13 @@ void render()
     // auto brickTex = std::make_shared<graphics::Texture>("brick_wall_128.png");
 
     catTex->LoadTexture(textureLoader);
-    // catTex->AllocateVram();
-    // catTex->TransferTextureToGS();
-    // catTex->SetTexSamplingMethodInGS();
+    catTex->AllocateVram();
+    catTex->TransferTextureToGS();
+    catTex->SetTexSamplingMethodInGS();
 
     bigCatTex->LoadTexture(textureLoader);
-    // bigCatTex->AllocateVram();
-    // bigCatTex->TransferTextureToGS();
+    bigCatTex->AllocateVram();
+    bigCatTex->TransferTextureToGS();
     bigCatTex->SetTexSamplingMethodInGS();
     // Goal: Use path3 only for upload
 

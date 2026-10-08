@@ -2,15 +2,9 @@
 #define IRENDERER_3D
 
 #include "VU0Math/vec4.hpp"
-#include "graphics/TextureCache.hpp"
 #include "light/BaseLight.hpp"
 #include "renderer/model.hpp"
 #include <vector>
-
-namespace graphics 
-{
-    class TextureCache;
-}
 namespace Renderer
 {
 
@@ -29,9 +23,6 @@ class IRenderer3D
                              const ps2math::Mat4 &viewProjMatrix,
                              const ps2math::Vec4 &cameraPosition) = 0;
     virtual void ToggleDebugPrint() = 0;
-    virtual void SetTextureCache([[maybe_unused]]graphics::TextureCache *cache)
-    {
-    }
     virtual ~IRenderer3D() = default;
 };
 

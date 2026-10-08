@@ -91,10 +91,7 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
     {
         ps2math::Mat4 modelMatrix = model.GetWorldMatrix();
         ps2math::Mat4 mvp = model.GetWorldMatrix() * viewProjMat;
-        if (!SendDynamicModelData(mvp, modelMatrix, mainLight, model.GetTextureById(0), cameraPos))
-        {
-            continue;
-        }
+        SendDynamicModelData(mvp, modelMatrix, mainLight, model.GetTextureById(0), cameraPos);
         for (const auto &mesh : model.GetMeshList())
         {
             std::size_t totalVertexCount = mesh.Vertices.size();

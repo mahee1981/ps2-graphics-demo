@@ -3,7 +3,6 @@
 
 #include "VU0Math/vec4.hpp"
 #include "graphics/Texture.hpp"
-#include "graphics/TextureCache.hpp"
 #include "interfaces/IRenderer3D.hpp"
 #include "tools/Deltawatch.hpp"
 
@@ -28,7 +27,6 @@ class VU1Renderer3DBase : public IRenderer3D
                      const ps2math::Mat4 &viewProjMatrix,
                      const ps2math::Vec4 &cameraPos) override;
     void ToggleDebugPrint() override;
-    void SetTextureCache(graphics::TextureCache *cache) override;
     void UploadVU1MicroProgram(u32 *VU1Draw3D_CodeStart, u32 *VU1Draw3D_CodeEnd);
     void SetDoubleBufferSettings();
 
@@ -43,9 +41,8 @@ class VU1Renderer3DBase : public IRenderer3D
     std::size_t context;
     Deltawatch lastDisplayListPrepWatch;
     bool isDebuggingEnabled;
-    graphics::TextureCache *textureCache;
 
-    bool SendDynamicModelData(const ps2math::Mat4 &mvp,
+    void SendDynamicModelData(const ps2math::Mat4 &mvp,
                               const ps2math::Mat4 &modelMatrix,
                               const Light::BaseLight &light,
                               const std::shared_ptr<Texture> &texture,
@@ -59,7 +56,6 @@ class VU1Renderer3DBase : public IRenderer3D
                                const Light::BaseLight &mainLight,
                                const ps2math::Mat4 &viewProjMatrix,
                                const ps2math::Vec4 &cameraPos) = 0;
-    
     inline void AppendScreenPrintLine(const std::string &line)
     {
         logStream << line << "\n";
@@ -69,7 +65,6 @@ class VU1Renderer3DBase : public IRenderer3D
     void PrintDebugInfo();
     std::stringstream logStream;
     char processTimeMessageBuff[70];
-    char textureCacheMessageBuff[100];
 };
 
 } // namespace Renderer
