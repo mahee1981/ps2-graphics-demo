@@ -44,7 +44,7 @@ void VU1Renderer3DBase::PrepareScaleAndColorPacket()
 {
     packet2_add_float(staticScaleAndColorPacket.get(), 2048.0F); // scale
     packet2_add_float(staticScaleAndColorPacket.get(), 2048.0F); // scale
-    float zScale = float(0xFFFFFFFFu) / 32.0F;
+    float zScale = float(0xFFFFFFu) / 32.0F;
     LOG_INFO("z-scale: ") << zScale;
     packet2_add_float(staticScaleAndColorPacket.get(), zScale); // scale
     packet2_add_float(staticScaleAndColorPacket.get(), 1.0f);   // scale

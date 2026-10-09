@@ -24,7 +24,7 @@ void DrawingEnvironment::ConfigureBuffers()
                                         0,
                                         true,
                                         Buffers::ZbufferTestMethod::GREATER_EQUAL,
-                                        Buffers::GSZbufferStorageMethodEnum::ZBUF_32);
+                                        Buffers::GSZbufferStorageMethodEnum::ZBUF_24);
 
     if (config == BufferingConfig::DOUBLE_BUFFER)
     {
