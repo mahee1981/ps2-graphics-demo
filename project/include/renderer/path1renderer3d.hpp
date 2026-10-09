@@ -3,6 +3,7 @@
 
 #include "VU0Math/vec4.hpp"
 #include "renderer/vu1renderer3dbase.hpp"
+#include "graphics/TextureCache.hpp"
 #include <memory>
 
 namespace Renderer
@@ -28,6 +29,7 @@ class Path1Renderer3D : public VU1Renderer3DBase
 
     SmartPacket bufferHeader;
     char trianglesRenderedMessageBuff[70];
+    TextureCache textureCache;
 
     void RenderChunck(packet2_t *bufferHeader,
                       const std::size_t vertexCount,

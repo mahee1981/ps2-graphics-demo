@@ -1,35 +1,41 @@
 #include "graphics/Texture.hpp"
+#include "graph_vram.h"
 #include "graphics/GSBufferConfig.hpp"
 
 namespace graphics
 {
 
 Texture::Texture(const char *pathToImg)
-    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr)
+    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), vramAddress(0),
+      pixelStorageMethod(Buffers::PSM_24), resident(false), residencyOwner(nullptr)
 {
 }
 
 Texture::Texture(std::string pathToImg)
-    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr)
+    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), vramAddress(0),
+      pixelStorageMethod(Buffers::PSM_24), resident(false), residencyOwner(nullptr)
 {
 }
 
 Texture::~Texture()
 {
+    if (vramAddress != 0)
+    {
+        graph_vram_free(vramAddress);
+    }
 }
 
 int Texture::AllocateVram()
 {
-    gsTextureBuffer = std::make_unique<Buffers::GSTextureBuffer>(this->width, this->height, Buffers::PSM_24);
-    gsTextureBuffer->AllocateVRAMForBuffer();
-    return this->gsTextureBuffer->GetVramAddress();
+    vramAddress = graph_vram_allocate(width, height, pixelStorageMethod, GRAPH_ALIGN_BLOCK);
+    return vramAddress;
 }
 
 void Texture::TransferTextureToGS()
 {
-    u64 destBufBasePtr = (this->gsTextureBuffer->GetVramAddress() >> 6) & 0x3FFF;
-    u64 destBufWidth = (this->width >> 6) & 0x3F;
-    u64 psm = (Buffers::GSPixelStorageMethod::PSM_24) & 0x3F;
+    u64 destBufBasePtr = (vramAddress >> 6) & 0x3FFF;
+    u64 destBufWidth = (width >> 6) & 0x3F;
+    u64 psm = pixelStorageMethod & 0x3F;
 
     // BITBLTBUF - setting for transmission between the buffers
     // Transfering from EE to GS does not require a source buffer information
@@ -141,29 +147,10 @@ void Texture::TransferTextureToGS()
     packet2_update(chain_packet.get(), draw_texture_flush(chain_packet->next));
     dma_channel_send_packet2(chain_packet.get(), DMA_CHANNEL_GIF, 1);
 
-    dma_wait_fast();
+    dma_channel_wait(DMA_CHANNEL_GIF, 0);
+    resident = true;
 }
 
-void Texture::SetTextureAsActive()
-{
-    using Packet2Deleter = void (*)(packet2_t *);
-    std::unique_ptr<packet2_t, Packet2Deleter> normal_packet{packet2_create(10, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0),
-                                                             &packet2_free};
-
-    qword_t qword;
-
-    qword.dw[0] = u64(GIF_SET_TAG(1, 0, 0, 0, GIF_FLG_PACKED, 1));
-    qword.dw[1] = u64(GIF_REG_AD);
-    packet2_add_u128(normal_packet.get(), qword.qw);
-
-    qword.dw[0] = GetTexGSSettings();
-    qword.dw[1] = GS_REG_TEX0_1;
-    packet2_add_u128(normal_packet.get(), qword.qw);
-
-    dma_wait_fast();
-    dma_channel_send_packet2(normal_packet.get(), DMA_CHANNEL_GIF, 0);
-    dma_wait_fast();
-}
 
 // FOR NOW HARDCODED
 void Texture::SetTexSamplingMethodInGS()
@@ -193,9 +180,26 @@ void Texture::LoadTexture(std::shared_ptr<ITextureLoader> textureLoader)
 
 u64 Texture::GetTexGSSettings() const
 {
-    return ((u64(this->gsTextureBuffer->GetVramAddress()) >> 6) & 0x3fff) | (((u64(width) >> 6) & 0x3f) << 14) |
+    return ((u64(vramAddress) >> 6) & 0x3fff) | (((u64(width) >> 6) & 0x3f) << 14) |
            ((u64(Buffers::GSPixelStorageMethod::PSM_24) & 0x3f) << 20) | ((u64(draw_log2(width)) & 0xf) << 26) |
            ((u64(draw_log2(height)) & 0xf) << 30) | ((u64(1) & 0x1) << 34) | // RGB or RGBA
            ((u64(0) & 0x3) << 35) | 0;
+}
+
+void Texture::SetVramAddress(u32 vramAddress)
+{
+    this->vramAddress = vramAddress;
+    resident = false;
+}
+// also hardcoded for now
+u32 Texture::GetVramSizeWords() const
+{
+    return width * height;
+}
+
+void Texture::OnEvicted()
+{
+    vramAddress = 0;
+    resident = false;
 }
 } // namespace graphics

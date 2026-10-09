@@ -4,12 +4,14 @@
 
 #include "renderer/path1renderer3d.hpp"
 #include "dma.h"
+#include "graphics/TextureCache.hpp"
 
 namespace Renderer
 {
 Path1Renderer3D::Path1Renderer3D(int width, int height)
     : VU1Renderer3DBase(width, height),
-      bufferHeader{SmartPacket{packet2_create(10, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free}}
+      bufferHeader{SmartPacket{packet2_create(10, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free}},
+      textureCache()
 
 {
 }
