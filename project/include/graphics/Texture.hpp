@@ -22,10 +22,10 @@ class TextureCache;
 class Texture
 {
   public:
-    Texture(const char *pathToImg);
-    Texture(std::string pathToImg);
+    Texture(const char *pathToImg, unsigned int id);
+    Texture(std::string pathToImg, unsigned int id);
     ~Texture();
-    void LoadTexture(std::shared_ptr<ITextureLoader> textureLoader);
+    void LoadTexture(const ITextureLoader* textureLoader);
     // using legacy PS2SDK allocator
     int AllocateVram();
     void TransferTextureToGS();
@@ -41,7 +41,7 @@ class Texture
     {
         return nrChannels;
     }
-    void SetTexSamplingMethodInGS();
+    static void SetTexSamplingMethodInGS();
     u64 GetTexGSSettings() const;
 
     inline unsigned int GetVramAddress() const
@@ -66,6 +66,12 @@ class Texture
         residencyOwner = owner;
     }
 
+    inline std::shared_ptr<packet2_t> GetDMAPacket() const 
+    {
+        return uploadBuffer;
+    }
+
+
   private:
     std::string imgPath;
     std::shared_ptr<unsigned char> imageData;
@@ -74,8 +80,12 @@ class Texture
     Buffers::GSPixelStorageMethod pixelStorageMethod;
     bool resident;
     TextureCache* residencyOwner;
+    unsigned int textureID;
 
     std::shared_ptr<ITextureLoader> textureLoader;
+    std::shared_ptr<packet2_t> uploadBuffer;
+
+    std::shared_ptr<packet2_t> GenerateUploadBuffer(bool partOfCallChain = false);
 };
 } // namespace graphics
 #endif

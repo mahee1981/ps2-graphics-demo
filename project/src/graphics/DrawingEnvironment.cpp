@@ -192,7 +192,7 @@ void DrawingEnvironment::ClearScreen() const
 {
     dma_wait_fast();
     dma_channel_send_packet2(clearScreenPacket.get(), DMA_CHANNEL_GIF, 0);
-    draw_wait_finish();
+    // draw_wait_finish();
 }
 
 void DrawingEnvironment::PrepareClearScreenPacket()

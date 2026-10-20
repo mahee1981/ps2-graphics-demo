@@ -103,7 +103,6 @@ void Path3Renderer3D::RenderFrame(const std::vector<Model> &models,
     packet2_reset(drawBuffer[context], false);
 
     lastDisplayListPrepWatch.CaptureEndMoment();
-    draw_wait_finish();
     graph_wait_vsync();
 
     if (isDebuggingEnabled)

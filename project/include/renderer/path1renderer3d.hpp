@@ -2,6 +2,7 @@
 #define PATH1_RENDERER_3D
 
 #include "VU0Math/vec4.hpp"
+#include "renderer/PassManager.hpp"
 #include "renderer/vu1renderer3dbase.hpp"
 #include "graphics/TextureCache.hpp"
 #include <memory>
@@ -23,13 +24,15 @@ class Path1Renderer3D : public VU1Renderer3DBase
                        const ps2math::Vec4 &cameraPos) override;
 
   private:
+    // must be divisble by 3 so you avoid atrifacts between batches dumass
+    static constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 78;
     static prim_t primitiveTypeConfig;
     static const std::shared_ptr<packet2_t> MAX_CHUNCK_HEADER;
     static const std::shared_ptr<packet2_t> MakeChunckHeaderPacket(u32 numOfVertices);
 
     SmartPacket bufferHeader;
     char trianglesRenderedMessageBuff[70];
-    TextureCache textureCache;
+    PassManager passManager;
 
     void RenderChunck(packet2_t *bufferHeader,
                       const std::size_t vertexCount,

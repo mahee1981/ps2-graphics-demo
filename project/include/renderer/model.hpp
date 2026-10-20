@@ -25,7 +25,6 @@ class Model
     Model(const ps2math::Vec4 &position);
     void LoadModel(const char *fileName, const char *materialPath = nullptr);
     void LoadModelPackets(const char *fileName);
-    void Render();
     void Update();
 
     std::vector<ps2math::Vec4> TransformVertices(const ps2math::Mat4 &mvp,

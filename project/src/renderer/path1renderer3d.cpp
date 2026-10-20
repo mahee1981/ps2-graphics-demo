@@ -4,14 +4,14 @@
 
 #include "renderer/path1renderer3d.hpp"
 #include "dma.h"
-#include "graphics/TextureCache.hpp"
+#include "draw.h"
 
 namespace Renderer
 {
 Path1Renderer3D::Path1Renderer3D(int width, int height)
     : VU1Renderer3DBase(width, height),
       bufferHeader{SmartPacket{packet2_create(10, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free}},
-      textureCache()
+      passManager()
 
 {
 }
@@ -87,55 +87,75 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
 {
     unsigned long long trianglesRendered = 0;
     const auto viewProjMat = viewMat * _perspectiveMatrix;
-    // must be divisble by 3 so you avoid atrifacts between batches dumass
-    constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 81;
-    for (const Model &model : models)
+
+    // generate rendering passes
+    // Begin Frame(Prefetch pass 1 textures)
+    // for each pass
+    // wait on path3
+    // kick off path 1
+    // kick off path 3
+    // repeat
+    passManager.GenerateRenderingPasses(models);
+
+    passManager.BeginFrame();
+
+    for (u32 passCnt = 0; passCnt < passManager.GetPassCount(); ++passCnt)
     {
-        ps2math::Mat4 modelMatrix = model.GetWorldMatrix();
-        ps2math::Mat4 mvp = model.GetWorldMatrix() * viewProjMat;
-        SendDynamicModelData(mvp, modelMatrix, mainLight, model.GetTextureById(0), cameraPos);
-        for (const auto &mesh : model.GetMeshList())
+
+        SinglePass currentPass = passManager.GetCurrentPass();
+        passManager.WaitFence();
+
+        for (const Model &model : currentPass.models)
         {
-            std::size_t totalVertexCount = mesh.Vertices.size();
-            std::size_t numberOfWholeLoopIterations = totalVertexCount / MAX_VERTEXDATA_PER_VIF_PACKET;
-            std::size_t remainder = totalVertexCount % MAX_VERTEXDATA_PER_VIF_PACKET;
-            std::size_t offset = 0;
-            int numOfEnqueuedChuncks = 0;
-
-            for (std::size_t i = 0; i < numberOfWholeLoopIterations; i++)
+            ps2math::Mat4 modelMatrix = model.GetWorldMatrix();
+            ps2math::Mat4 mvp = model.GetWorldMatrix() * viewProjMat;
+            SendDynamicModelData(mvp, modelMatrix, mainLight, model.GetTextureById(0), cameraPos);
+            for (const auto &mesh : model.GetMeshList())
             {
-                bool isPacketReadyToFlush = i == numberOfWholeLoopIterations - 1 || numOfEnqueuedChuncks == 16;
-                if (isPacketReadyToFlush)
+                std::size_t totalVertexCount = mesh.Vertices.size();
+                std::size_t numberOfWholeLoopIterations = totalVertexCount / MAX_VERTEXDATA_PER_VIF_PACKET;
+                std::size_t remainder = totalVertexCount % MAX_VERTEXDATA_PER_VIF_PACKET;
+                std::size_t offset = 0;
+                int numOfEnqueuedChuncks = 0;
+
+                for (std::size_t i = 0; i < numberOfWholeLoopIterations; i++)
                 {
-                    numOfEnqueuedChuncks = 0;
+                    bool isPacketReadyToFlush = i == numberOfWholeLoopIterations - 1 || numOfEnqueuedChuncks == 32;
+                    if (isPacketReadyToFlush)
+                    {
+                        numOfEnqueuedChuncks = 0;
+                    }
+                    RenderChunck(MAX_CHUNCK_HEADER.get(),
+                                 MAX_VERTEXDATA_PER_VIF_PACKET,
+                                 mesh,
+                                 offset,
+                                 isPacketReadyToFlush);
+
+                    offset += MAX_VERTEXDATA_PER_VIF_PACKET;
+                    trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
+                    numOfEnqueuedChuncks++;
                 }
-                RenderChunck(MAX_CHUNCK_HEADER.get(),
-                             MAX_VERTEXDATA_PER_VIF_PACKET,
-                             mesh,
-                             offset,
-                             isPacketReadyToFlush);
+                if (remainder != 0)
+                {
+                    packet2_reset(bufferHeader.get(), 0);
+                    packet2_pad96(bufferHeader.get(), 0);
+                    packet2_add_u32(bufferHeader.get(), remainder);
+                    packet2_utils_gs_add_prim_giftag(bufferHeader.get(),
+                                                     &primitiveTypeConfig,
+                                                     remainder,
+                                                     DRAW_STQ2_REGLIST,
+                                                     3,
+                                                     0);
+                    RenderChunck(bufferHeader.get(), remainder, mesh, offset, true);
 
-                offset += MAX_VERTEXDATA_PER_VIF_PACKET;
-                trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
-                numOfEnqueuedChuncks++;
+                    trianglesRendered += remainder / 3;
+                }
             }
-            if (remainder != 0)
-            {
-                packet2_reset(bufferHeader.get(), 0);
-                packet2_pad96(bufferHeader.get(), 0);
-                packet2_add_u32(bufferHeader.get(), remainder);
-                packet2_utils_gs_add_prim_giftag(bufferHeader.get(),
-                                                 &primitiveTypeConfig,
-                                                 remainder,
-                                                 DRAW_STQ2_REGLIST,
-                                                 3,
-                                                 0);
-                RenderChunck(bufferHeader.get(), remainder, mesh, offset, true);
-
-                trianglesRendered += remainder / 3;
-            }
-            packet2_reset(bufferHeader.get(), 0);
         }
+
+        passManager.PrefetchNextPassTextures();
+        passManager.EndPass();
+        passManager.DebugDump();
     }
     if (isDebuggingEnabled)
     {
@@ -144,7 +164,7 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
     }
 }
 
-const std::shared_ptr<packet2_t> Path1Renderer3D::MAX_CHUNCK_HEADER{Path1Renderer3D::MakeChunckHeaderPacket(81)};
+const std::shared_ptr<packet2_t> Path1Renderer3D::MAX_CHUNCK_HEADER{Path1Renderer3D::MakeChunckHeaderPacket(MAX_VERTEXDATA_PER_VIF_PACKET)};
 
 const std::shared_ptr<packet2_t> Path1Renderer3D::MakeChunckHeaderPacket(u32 numOfVertices)
 {
