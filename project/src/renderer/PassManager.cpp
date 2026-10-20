@@ -65,7 +65,7 @@ bool PassManager::GenerateRenderingPasses(const std::vector<Model> &models)
         newPasses.push_back(currentPass);
     }
 
-    LOG_INFO("planned ") << newPasses.size() << " pass(es)";
+    // LOG_INFO("planned ") << newPasses.size() << " pass(es)";
     newPasses.swap(passCollection);
 
     return true;

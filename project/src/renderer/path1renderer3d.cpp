@@ -155,7 +155,7 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
 
         passManager.PrefetchNextPassTextures();
         passManager.EndPass();
-        passManager.DebugDump();
+        // passManager.DebugDump();
     }
     if (isDebuggingEnabled)
     {

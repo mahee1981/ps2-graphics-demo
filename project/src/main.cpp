@@ -100,7 +100,7 @@ void render()
 
     modelList[1].LoadModel("CAT/MESH_CAT.OBJ");
     modelList[1].AddTexture(catTex);
-    modelList[0].LoadModel("HIDEFCAT/CAT.obj");
+    modelList[0].LoadModel("HIDEFCAT/CAT.OBJ");
     // modelList[1] = modelList[0];
     // modelList[1].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[0].GetTransformComponent().RotateXBy(90);
@@ -120,7 +120,7 @@ void render()
     // modelList[1].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[3].GetTransformComponent().SetScaleFactor(0.01f);
     // modelList[1].GetTransformComponent().RotateXBy(90);
-    modelList[3].AddTexture(airplaneTex);
+    modelList[3].AddTexture(airplaneTex2);
 
     // modelList[1].AddTexture(catTex);
     PadManager controllerInput{false};
