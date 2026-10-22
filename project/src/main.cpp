@@ -55,7 +55,8 @@ void render()
 
     drawEnv.InitializeEnvironment();
 
-    std::unique_ptr<IRenderer3D> renderer3d = std::make_unique<Path1Renderer3D>(width, height);
+    std::shared_ptr<ITextureLoader> textureLoader = std::make_shared<graphics::STBITextureLoader>();
+    std::unique_ptr<IRenderer3D> renderer3d = std::make_unique<Path1Renderer3D>(width, height, textureLoader);
 
     if (auto path1Renderer = dynamic_cast<Path1Renderer3D *>(renderer3d.get()); path1Renderer != nullptr)
     {
@@ -72,9 +73,9 @@ void render()
 
     drawEnv.ClearScreen();
 
-    std::shared_ptr<ITextureLoader> textureLoader = std::make_shared<graphics::STBITextureLoader>();
     std::vector<std::string> texturePaths{"test.png", "HIDEFCAT/Cat_diffuse.jpg", "AIRPLANE/AIRPLANE_TEX2.PNG", "AIRPLANE/AIRPLANE_TEX2.PNG"};
-    auto textureList = textureLoader->LoadTexturesToRAM(texturePaths);
+    textureLoader->LoadTexturesToRAM(texturePaths);
+    auto textureList = textureLoader->GetTextures();
     
     auto textureItr = textureList.begin();
     auto catTex = *textureItr;

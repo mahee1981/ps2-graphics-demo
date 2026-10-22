@@ -20,19 +20,16 @@ constexpr u64 CSR_FINISH = u64(1) << 1;
 constexpr u32 MAX_FENCE_SPINS = 50000000u;
 
 } // namespace
-bool PassManager::GenerateRenderingPasses(const std::vector<Model> &models)
+
+bool PassManager::GenerateRenderingPasses(const std::vector<std::shared_ptr<Texture>> &textures,
+                                          const std::vector<Model> &models)
 {
     auto newPasses = std::vector<SinglePass>();
-
     const u32 halfCapacity = vramHeap.GetHalfCapacity();
     SinglePass currentPass;
 
-    for (const Model &model : models)
+    for (const std::shared_ptr<Texture> &texturePtr : textures)
     {
-        // TODO: add multi texture support
-        std::shared_ptr<Texture> texturePtr = model.GetTextureById(0);
-
-        // TODO: handle the following to ifs with grace!
         if (texturePtr == nullptr)
             return false;
 
@@ -41,7 +38,6 @@ bool PassManager::GenerateRenderingPasses(const std::vector<Model> &models)
             LOG_ERROR("Plan on a texture with no pixel data");
             return false;
         }
-        
         const u32 words = texturePtr->GetVramSizeWords();
         if (words == 0 || words > halfCapacity)
         {
@@ -51,12 +47,13 @@ bool PassManager::GenerateRenderingPasses(const std::vector<Model> &models)
 
         if (currentPass.GetTotalVramFootprint() + words > halfCapacity)
         {
-            // LOG_INFO("Plan: texture needs ") <<  words << " words, remaining capacity is " << halfCapacity - currentPass.GetTotalVramFootprint();
+            // LOG_INFO("Plan: texture needs ") <<  words << " words, remaining capacity is " << halfCapacity -
+            // currentPass.GetTotalVramFootprint();
+            // TODO: add all models
             newPasses.push_back(std::move(currentPass));
             currentPass = SinglePass();
         }
-
-        currentPass.AddModelToPass(model, words);
+        currentPass.AddTextureToPass(texturePtr);
     }
 
     if (currentPass.GetTotalVramFootprint() != 0U)
@@ -67,10 +64,7 @@ bool PassManager::GenerateRenderingPasses(const std::vector<Model> &models)
 
     // LOG_INFO("planned ") << newPasses.size() << " pass(es)";
     newPasses.swap(passCollection);
-
     return true;
-
-
 }
 
 bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
@@ -93,21 +87,19 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
         if (halfLoaded[half] >= 0)
         {
             SinglePass &oldPass = passCollection[static_cast<u32>(halfLoaded[half])];
-            for (const Model& model : oldPass.models)
+            for (VramTexture &vramTexture : oldPass.GetVramTextures())
             {
-                auto texPtr = model.GetTextureById(0);
-                if (texPtr->IsResident())
+                if (vramTexture.IsResident())
                     ++stats.evictions;
-                texPtr->OnEvicted();
+                vramTexture.OnEvicted();
             }
         }
 
         vramHeap.Reset(half);
 
-        for (const Model &model : pass.models)
+        for (VramTexture &vramTexture : pass.GetVramTextures())
         {
-            auto tex = model.GetTextureById(0);
-            const u32 address = vramHeap.Alloc(half, tex->GetVramSizeWords());
+            const u32 address = vramHeap.Alloc(half, vramTexture.GetVramSizeWords());
             if (address == VramHeap::INVALID)
             {
                 // Plan() guarantees the pass fits, so this is a bookkeeping bug
@@ -115,7 +107,7 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
                 halfLoaded[half] = -1;
                 return false;
             }
-            tex->SetVramAddress(address);
+            vramTexture.SetVramAddress(address);
         }
 
         halfLoaded[half] = static_cast<int>(passIndex);
@@ -124,23 +116,22 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
     // Upload whatever is not in VRAM yet.
     // TODO: consider preallocating dma buffers
     pass.DMABuffer = {packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free};
-    
-    for (const Model& model : pass.models)
+
+    for (VramTexture &vramTexture : pass.GetVramTextures())
     {
-        // TODO: don't forget to enable generation of return tag instead of end
-        auto &texturePtr = model.GetTextureById(0);
         // TODO: this if is buggy, even if it's resident, it can be removed
-        if (!texturePtr->IsResident())
+        if (!vramTexture.IsResident())
         {
-            auto textureDisplayList = model.GetTextureById(0)->GetDMAPacket();
+            auto textureDisplayList = vramTexture.GetDMAPacket();
             packet2_chain_call(pass.DMABuffer.get(), (const void *)(textureDisplayList.get()->base), 0, 0, 0);
             packet2_chain_close_tag(pass.DMABuffer.get());
             ++stats.uploads;
-            stats.uploadedWords += texturePtr->GetVramSizeWords();
+            stats.uploadedWords += vramTexture.GetVramSizeWords();
+            vramTexture.SetResident();
         }
     }
     // Generate FINISH event on texture upload
-    packet2_chain_open_end(pass.DMABuffer.get(), 0,  0);
+    packet2_chain_open_end(pass.DMABuffer.get(), 0, 0);
     packet2_update(pass.DMABuffer.get(), draw_finish(pass.DMABuffer->next));
     packet2_chain_close_tag(pass.DMABuffer.get());
 
@@ -149,7 +140,6 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
     fencePending = true;
 
     return true;
-
 }
 
 void PassManager::BeginFrame()
@@ -203,23 +193,14 @@ void PassManager::WaitFence()
     fencePending = false;
 }
 
-void SinglePass::AddModelToPass(const Model& model, u32 textureSize)
-{
-    models.push_back(model);
-    sizeWords += textureSize;
-
-    // TODO: generate display list also
-}
-
-
 PassManager::PassManager(u32 baseWords, u32 sizeWords)
     : vramHeap(baseWords, sizeWords), stats(), currentPassIdx(0), fencePending(false)
 {
     halfLoaded[0] = -1;
     halfLoaded[1] = -1;
 
-    LOG_INFO("Cache base=") << vramHeap.GetBase() << " words, 2 halves of " << vramHeap.GetHalfCapacity()
-                                    << " words (" << (vramHeap.GetHalfCapacity() * 4 / 1024) << " KB) each";
+    LOG_INFO("Cache base=") << vramHeap.GetBase() << " words, 2 halves of " << vramHeap.GetHalfCapacity() << " words ("
+                            << (vramHeap.GetHalfCapacity() * 4 / 1024) << " KB) each";
 }
 
 PassManager::PassManager() : PassManager(ProbeVramBase(), GRAPH_VRAM_MAX_WORDS - ProbeVramBase())
@@ -228,11 +209,11 @@ PassManager::PassManager() : PassManager(ProbeVramBase(), GRAPH_VRAM_MAX_WORDS -
 
 PassManager::~PassManager()
 {
-    for (const SinglePass &pass : passCollection)
+    for (SinglePass &pass : passCollection)
     {
-        for (const Model &model : pass.models)
+        for (VramTexture &vramTexture : pass.GetVramTextures())
         {
-            model.GetTextureById(0)->OnEvicted();
+            vramTexture.OnEvicted();
         }
     }
 }
@@ -241,18 +222,19 @@ u32 PassManager::ProbeVramBase()
 {
     const int base = graph_vram_allocate(0, 0, GS_PSM_32, GRAPH_ALIGN_BLOCK);
     LOG_INFO("GRAPH VRAM ALLOC returned ") << base;
-    if (base < 0) LOG_INFO("Something went wrong during probing");
+    if (base < 0)
+        LOG_INFO("Something went wrong during probing");
     return base > 0 ? static_cast<u32>(base) : 0u;
 }
 
 void PassManager::ClearPlan()
 {
 
-    for (auto &pass : passCollection)
+    for (SinglePass &pass : passCollection)
     {
-        for (const Model &model : pass.models)
+        for (VramTexture &vramTexture : pass.GetVramTextures())
         {
-            model.GetTextureById(0)->OnEvicted();
+            vramTexture.OnEvicted();
         }
     }
 
@@ -268,9 +250,9 @@ u32 PassManager::GetResidentCount() const
     u32 count = 0;
     for (const SinglePass &pass : passCollection)
     {
-        for (const Model &model : pass.models)
+        for (const VramTexture &vramTexture : pass.GetVramTextures())
         {
-            if (model.GetTextureById(0)->IsResident())
+            if (vramTexture.IsResident())
                 ++count;
         }
     }
@@ -281,10 +263,10 @@ void PassManager::DebugDump() const
 {
     vramHeap.DebugDump();
 
-    LOG_INFO("passes=") << passCollection.size() << " current=" << currentPassIdx << " resident="
-                                     << GetResidentCount() << " uploads=" << stats.uploads
-                                     << " evictions=" << stats.evictions << " fences=" << stats.fences
-                                     << " stalls=" << stats.fenceStalls << " spins=" << stats.fenceSpins;
+    LOG_INFO("passes=") << passCollection.size() << " current=" << currentPassIdx << " resident=" << GetResidentCount()
+                        << " uploads=" << stats.uploads << " evictions=" << stats.evictions
+                        << " fences=" << stats.fences << " stalls=" << stats.fenceStalls
+                        << " spins=" << stats.fenceSpins;
 
     // for (size_t p = 0; p < passes.size(); ++p)
     // {

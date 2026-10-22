@@ -11,22 +11,23 @@ std::shared_ptr<unsigned char> STBITextureLoader::GetBytes(const char *image_pat
                                                            int &nrChannels) const
 {
     stbi_set_flip_vertically_on_load(true);
-    return {stbi_load(image_path, &width, &height, &nrChannels, 3), [](unsigned char *data) { stbi_image_free(data); }};
+    return {stbi_load(image_path, &width, &height, &nrChannels, 3), &stbi_image_free};
 }
 
-std::list<std::shared_ptr<Texture>> STBITextureLoader::LoadTexturesToRAM(const std::vector<std::string> &texturePaths)
+void STBITextureLoader::LoadTexturesToRAM(const std::vector<std::string> &texturePaths)
 {
-    std::list<std::shared_ptr<Texture>> loadedTextures;
-
     for (auto &&texturePath : texturePaths)
     {
-        auto currTexture = std::make_shared<graphics::Texture>(texturePath, idKey++);
+        int width, height,nrChannels;
+        std::shared_ptr<u8> bytes = GetBytes(texturePath.c_str(), width, height, nrChannels);
+        auto currTexture = std::make_shared<graphics::Texture>(idKey++,
+                                                               bytes,
+                                                               static_cast<u32>(width),
+                                                               static_cast<u32>(height),
+                                                               static_cast<u32>(nrChannels));
 
-        currTexture->LoadTexture(this);
-        loadedTextures.push_back(currTexture);
+        textures.push_back(currTexture);
     }
-
-    return loadedTextures;
 }
 
 } // namespace graphics

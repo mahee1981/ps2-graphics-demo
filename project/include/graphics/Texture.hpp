@@ -12,43 +12,34 @@
 #include <string>
 
 #include "graphics/GSBufferConfig.hpp"
-#include "graphics/TextureLoader.hpp"
 
 namespace graphics
 {
 
-class TextureCache;
-
 class Texture
 {
   public:
-    Texture(const char *pathToImg, unsigned int id);
-    Texture(std::string pathToImg, unsigned int id);
+    Texture(u32 id, std::shared_ptr<u8> bytes, u32 width, u32 height, u32 nrChannels);
     ~Texture();
-    void LoadTexture(const ITextureLoader* textureLoader);
-    // using legacy PS2SDK allocator
-    int AllocateVram();
     void TransferTextureToGS();
-    inline int GetWidth() const
+    inline u32 GetWidth() const
     {
         return width;
     }
-    inline int GetHeight() const
+    inline u32 GetHeight() const
     {
         return height;
     }
-    inline int GetNrChannels() const
+    inline u32 GetNrChannels() const
     {
         return nrChannels;
     }
-    static void SetTexSamplingMethodInGS();
-    u64 GetTexGSSettings() const;
-
-    inline unsigned int GetVramAddress() const
+    inline u32 GetId() const
     {
-        return vramAddress;
+        return textureID;
     }
-    void SetVramAddress(u32 vramAddress);
+    static void SetTexSamplingMethodInGS();
+    u64 GetTexGSSettings(u32 vramAddress) const;
 
     // This is the size of the texture in number of 32 bit words
     // Since PSM_24 is actually RGBA -> 32 Bits -> 1 pixel, then
@@ -56,36 +47,18 @@ class Texture
     // TODO: fix for other texture types
     u32 GetVramSizeWords() const;
 
-    inline bool IsResident() const { return resident; }
     inline bool HasPixelData() const { return imageData != nullptr; }
 
-    void OnEvicted();
-
-    inline void SetResidencyOwner(TextureCache *owner)
-    {
-        residencyOwner = owner;
-    }
-
-    inline std::shared_ptr<packet2_t> GetDMAPacket() const 
-    {
-        return uploadBuffer;
-    }
-
+    std::shared_ptr<packet2_t> GenerateUploadBuffer(u32 vramAddres, bool partOfCallChain = false) const;
 
   private:
     std::string imgPath;
     std::shared_ptr<unsigned char> imageData;
     int width, height, nrChannels;
-    unsigned int vramAddress;
     Buffers::GSPixelStorageMethod pixelStorageMethod;
-    bool resident;
-    TextureCache* residencyOwner;
-    unsigned int textureID;
+    u32 textureID;
 
-    std::shared_ptr<ITextureLoader> textureLoader;
-    std::shared_ptr<packet2_t> uploadBuffer;
 
-    std::shared_ptr<packet2_t> GenerateUploadBuffer(bool partOfCallChain = false);
 };
 } // namespace graphics
 #endif

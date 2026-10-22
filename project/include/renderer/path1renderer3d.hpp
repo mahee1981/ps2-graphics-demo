@@ -2,15 +2,17 @@
 #define PATH1_RENDERER_3D
 
 #include "VU0Math/vec4.hpp"
+#include "graphics/TextureLoader.hpp"
 #include "renderer/PassManager.hpp"
 #include "renderer/vu1renderer3dbase.hpp"
+#include <memory>
 
 namespace Renderer
 {
 class Path1Renderer3D : public VU1Renderer3DBase
 {
   public:
-    Path1Renderer3D(int width, int height);
+    Path1Renderer3D(int width, int height, std::shared_ptr<ITextureLoader> textureLoader);
     ~Path1Renderer3D() = default;
     const ps2math::Mat4 &GetPerspectiveMatrix() const override
     {
@@ -29,6 +31,7 @@ class Path1Renderer3D : public VU1Renderer3DBase
     char trianglesRenderedMessageBuff[70];
     PassManager passManager;
     bool isStartOfNewChain;
+    std::shared_ptr<ITextureLoader> textureLoader;
 
     void RenderChunck(const std::size_t vertexCount, const Mesh &mesh, const Material &material, std::size_t offset);
     // Adds vertex count and GIF tag to outgoing VU1 packet

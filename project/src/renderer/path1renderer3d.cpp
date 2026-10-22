@@ -1,16 +1,16 @@
+#include <memory>
 #include <packet2_utils.h>
 
 
 #include "renderer/path1renderer3d.hpp"
 #include "dma.h"
 #include "draw.h"
-#include "logging/log.hpp"
 
 namespace Renderer
 {
-Path1Renderer3D::Path1Renderer3D(int width, int height)
+Path1Renderer3D::Path1Renderer3D(int width, int height, std::shared_ptr<ITextureLoader> textureLoader)
     : VU1Renderer3DBase(width, height),
-      passManager(), isStartOfNewChain(true)
+      passManager(), isStartOfNewChain(true), textureLoader(textureLoader)
 
 {
 }
@@ -118,7 +118,7 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
     // kick off path 1
     // kick off path 3
     // repeat
-    passManager.GenerateRenderingPasses(models);
+    passManager.GenerateRenderingPasses(textureLoader->GetTextures(), models);
 
     passManager.BeginFrame();
 
@@ -128,7 +128,7 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
         // TODO: maybe this isn't the best place to wait for the draw_finish
         passManager.WaitFence();
 
-        for (const Model &model : currentPass.models)
+        for (const Model &model : currentPass.GetModelsInPass())
         {
             ps2math::Mat4 modelMatrix = model.GetWorldMatrix();
             ps2math::Mat4 mvp = model.GetWorldMatrix() * viewProjMat;

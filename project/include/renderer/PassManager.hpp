@@ -2,34 +2,16 @@
 #define SINGLE_PASS_COLLECTION
 
 #include "graphics/VramHeap.hpp"
-#include <functional>
 #include <memory>
 #include <renderer/model.hpp>
+#include "renderer/SinglePass.hpp"
 
 namespace Renderer {
-
-class SinglePass
-{
-  private:
-    std::vector<std::shared_ptr<Texture>> textures;
-    u32 sizeWords = 0U;
-
-
-  public:
-    std::vector<std::reference_wrapper<const Model>> models;
-    std::shared_ptr<packet2_t> DMABuffer;
-
-    inline u32 GetTotalVramFootprint() const { return sizeWords; }
-
-    void AddModelToPass(const Model &model, u32 textureSize);
-
-    SinglePass() = default;
-};
 
 class PassManager
 {
   public:
-    bool GenerateRenderingPasses(const std::vector<Model> &models);
+    bool GenerateRenderingPasses(const std::vector<std::shared_ptr<Texture>> &textures, const std::vector<Model> &models);
     // Statistics for one frame, mirroring the measurements in section 6.
     struct Stats
     {

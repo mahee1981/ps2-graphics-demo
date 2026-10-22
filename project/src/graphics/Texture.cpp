@@ -1,49 +1,15 @@
 #include "graphics/Texture.hpp"
-#include "graph_vram.h"
 #include "graphics/GSBufferConfig.hpp"
 #include "packet2_types.h"
 
 namespace graphics
 {
 
-Texture::Texture(const char *pathToImg, unsigned int id)
-    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), vramAddress(0),
-      pixelStorageMethod(Buffers::PSM_24), resident(false), residencyOwner(nullptr), textureID(id),
-      uploadBuffer(nullptr)
+Texture::Texture(u32 id, std::shared_ptr<u8> bytes, u32 width, u32 height, u32 nrChannels)
+    : imageData(bytes), width(width), height(height), nrChannels(nrChannels),
+      pixelStorageMethod(Buffers::PSM_24), textureID(id)
 {
 }
-
-Texture::Texture(std::string pathToImg, unsigned int id)
-    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), vramAddress(0),
-      pixelStorageMethod(Buffers::PSM_24), resident(false), residencyOwner(nullptr), textureID(id),
-      uploadBuffer(nullptr)
-
-{
-}
-
-Texture::~Texture()
-{
-    if (vramAddress != 0 && resident)
-    {
-        graph_vram_free(vramAddress);
-    }
-}
-
-int Texture::AllocateVram()
-{
-    vramAddress = graph_vram_allocate(width, height, pixelStorageMethod, GRAPH_ALIGN_BLOCK);
-    uploadBuffer = GenerateUploadBuffer();
-    return vramAddress;
-}
-
-void Texture::TransferTextureToGS()
-{
-    dma_channel_send_packet2(uploadBuffer.get(), DMA_CHANNEL_GIF, 1);
-
-    dma_channel_wait(DMA_CHANNEL_GIF, 0);
-    resident = true;
-}
-
 
 // FOR NOW HARDCODED
 void Texture::SetTexSamplingMethodInGS()
@@ -66,12 +32,7 @@ void Texture::SetTexSamplingMethodInGS()
     dma_wait_fast();
 }
 
-void Texture::LoadTexture(const ITextureLoader* textureLoader)
-{
-    imageData = textureLoader->GetBytes(imgPath.c_str(), width, height, nrChannels);
-}
-
-u64 Texture::GetTexGSSettings() const
+u64 Texture::GetTexGSSettings(u32 vramAddress) const
 {
     return ((u64(vramAddress) >> 6) & 0x3fff) | (((u64(width) >> 6) & 0x3f) << 14) |
            ((u64(Buffers::GSPixelStorageMethod::PSM_24) & 0x3f) << 20) | ((u64(draw_log2(width)) & 0xf) << 26) |
@@ -79,25 +40,13 @@ u64 Texture::GetTexGSSettings() const
            ((u64(0) & 0x3) << 35) | 0;
 }
 
-void Texture::SetVramAddress(u32 vramAddress)
-{
-    this->vramAddress = vramAddress;
-    uploadBuffer = GenerateUploadBuffer(true);
-    resident = false;
-}
 // also hardcoded for now
 u32 Texture::GetVramSizeWords() const
 {
     return width * height;
 }
 
-void Texture::OnEvicted()
-{
-    vramAddress = 0;
-    resident = false;
-}
-
-std::shared_ptr<packet2_t> Texture::GenerateUploadBuffer(bool isPartOfCallChain) 
+std::shared_ptr<packet2_t> Texture::GenerateUploadBuffer(u32 vramAddress, bool isPartOfCallChain) const
 {
     u64 destBufBasePtr = (vramAddress >> 6) & 0x3FFF;
     u64 destBufWidth = (width >> 6) & 0x3F;
@@ -125,7 +74,7 @@ std::shared_ptr<packet2_t> Texture::GenerateUploadBuffer(bool isPartOfCallChain)
                                 (yCoordinateDest) << 48 | (direction << 59);
 
     // TRXREG - width and heigh of texture to be transfered
-    u64 trxRegValue = u64(this->width & 0xFFF) | (u64(this->height & 0xFFF) << 32);
+    u64 trxRegValue = u64(width & 0xFFF) | (u64(height & 0xFFF) << 32);
 
     // TRXDIR - direction of the transmission
     //  00  Host -> Local Transmission
