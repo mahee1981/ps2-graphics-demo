@@ -5,6 +5,7 @@
 #include "renderer/path1renderer3d.hpp"
 #include "dma.h"
 #include "draw.h"
+#include "logging/log.hpp"
 
 namespace Renderer
 {
@@ -110,45 +111,53 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
             ps2math::Mat4 modelMatrix = model.GetWorldMatrix();
             ps2math::Mat4 mvp = model.GetWorldMatrix() * viewProjMat;
             SendDynamicModelData(mvp, modelMatrix, mainLight, model.GetTextureById(0), cameraPos);
-            for (const auto &mesh : model.GetMeshList())
+            for (const auto &materialMesh : model.GetMeshList())
             {
-                std::size_t totalVertexCount = mesh.Vertices.size();
-                std::size_t numberOfWholeLoopIterations = totalVertexCount / MAX_VERTEXDATA_PER_VIF_PACKET;
-                std::size_t remainder = totalVertexCount % MAX_VERTEXDATA_PER_VIF_PACKET;
-                std::size_t offset = 0;
-                int numOfEnqueuedChuncks = 0;
-
-                for (std::size_t i = 0; i < numberOfWholeLoopIterations; i++)
+                for (const auto &kv : materialMesh)
                 {
-                    bool isPacketReadyToFlush = i == numberOfWholeLoopIterations - 1 || numOfEnqueuedChuncks == 32;
-                    if (isPacketReadyToFlush)
+                    // TODO: Move packet sending logic out of loop
+                    Mesh mesh = kv.second;
+                    // LOG_INFO("Material mesh size: ") << mesh.Vertices.size();
+
+                    std::size_t totalVertexCount = mesh.Vertices.size();
+                    
+                    std::size_t numberOfWholeLoopIterations = totalVertexCount / MAX_VERTEXDATA_PER_VIF_PACKET;
+                    std::size_t remainder = totalVertexCount % MAX_VERTEXDATA_PER_VIF_PACKET;
+                    std::size_t offset = 0;
+                    int numOfEnqueuedChuncks = 0;
+
+                    for (std::size_t i = 0; i < numberOfWholeLoopIterations; i++)
                     {
-                        numOfEnqueuedChuncks = 0;
+                        bool isPacketReadyToFlush = i == numberOfWholeLoopIterations - 1 || numOfEnqueuedChuncks == 32;
+                        if (isPacketReadyToFlush)
+                        {
+                            numOfEnqueuedChuncks = 0;
+                        }
+                        RenderChunck(MAX_CHUNCK_HEADER.get(),
+                                     MAX_VERTEXDATA_PER_VIF_PACKET,
+                                     mesh,
+                                     offset,
+                                     isPacketReadyToFlush);
+
+                        offset += MAX_VERTEXDATA_PER_VIF_PACKET;
+                        trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
+                        numOfEnqueuedChuncks++;
                     }
-                    RenderChunck(MAX_CHUNCK_HEADER.get(),
-                                 MAX_VERTEXDATA_PER_VIF_PACKET,
-                                 mesh,
-                                 offset,
-                                 isPacketReadyToFlush);
+                    if (remainder != 0)
+                    {
+                        packet2_reset(bufferHeader.get(), 0);
+                        packet2_pad96(bufferHeader.get(), 0);
+                        packet2_add_u32(bufferHeader.get(), remainder);
+                        packet2_utils_gs_add_prim_giftag(bufferHeader.get(),
+                                                         &primitiveTypeConfig,
+                                                         remainder,
+                                                         DRAW_STQ2_REGLIST,
+                                                         3,
+                                                         0);
+                        RenderChunck(bufferHeader.get(), remainder, mesh, offset, true);
 
-                    offset += MAX_VERTEXDATA_PER_VIF_PACKET;
-                    trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
-                    numOfEnqueuedChuncks++;
-                }
-                if (remainder != 0)
-                {
-                    packet2_reset(bufferHeader.get(), 0);
-                    packet2_pad96(bufferHeader.get(), 0);
-                    packet2_add_u32(bufferHeader.get(), remainder);
-                    packet2_utils_gs_add_prim_giftag(bufferHeader.get(),
-                                                     &primitiveTypeConfig,
-                                                     remainder,
-                                                     DRAW_STQ2_REGLIST,
-                                                     3,
-                                                     0);
-                    RenderChunck(bufferHeader.get(), remainder, mesh, offset, true);
-
-                    trianglesRendered += remainder / 3;
+                        trianglesRendered += remainder / 3;
+                    }
                 }
             }
         }

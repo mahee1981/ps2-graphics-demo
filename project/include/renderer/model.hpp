@@ -4,6 +4,7 @@
 #include <packet2.h>
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include "VU0Math/mat4.hpp"
@@ -11,9 +12,11 @@
 #include "components/transform.hpp"
 #include "graphics/Texture.hpp"
 #include "mesh.hpp"
+#include "renderer/material.hpp"
 
 namespace Renderer
 {
+
 
 using namespace graphics;
 class Model
@@ -43,7 +46,7 @@ class Model
         return _worldMatrix;
     }
 
-    inline const std::vector<Mesh> &GetMeshList() const
+    inline const std::vector<MaterialMesh> &GetMeshList() const
     {
         return meshList;
     }
@@ -60,10 +63,16 @@ class Model
     }
 
   private:
-    std::vector<Mesh> meshList;
+    std::vector<MaterialMesh> meshList;
     std::vector<std::shared_ptr<Texture>> _textureList;
     ps2math::Mat4 _worldMatrix;
     Components::Transform _transformComponent;
+    using MaterialIndex = int;
+    std::vector<Material> materialLUT;
+
+
+    using NumberOfVertices = std::size_t;
+    std::unordered_map<MaterialIndex, NumberOfVertices> CountVerticesPerMaterial(const std::vector<int> &materialIds);
 };
 } // namespace Renderer
 #endif
