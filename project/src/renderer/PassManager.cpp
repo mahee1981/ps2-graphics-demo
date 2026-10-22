@@ -111,7 +111,7 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
             if (address == VramHeap::INVALID)
             {
                 // Plan() guarantees the pass fits, so this is a bookkeeping bug
-                LOG_ERROR("TextureCache: pass ") << passIndex << " does not fit in its half";
+                LOG_ERROR("pass ") << passIndex << " does not fit in its half";
                 halfLoaded[half] = -1;
                 return false;
             }
@@ -187,7 +187,7 @@ void PassManager::WaitFence()
     {
         if (++spins >= MAX_FENCE_SPINS)
         {
-            LOG_ERROR("TextureCache: gave up waiting for GS FINISH, the fence emitter may not reach the GS");
+            LOG_ERROR("gave up waiting for GS FINISH, the fence emitter may not reach the GS");
             break;
         }
     }
@@ -218,7 +218,7 @@ PassManager::PassManager(u32 baseWords, u32 sizeWords)
     halfLoaded[0] = -1;
     halfLoaded[1] = -1;
 
-    LOG_INFO("Texture cache base=") << vramHeap.GetBase() << " words, 2 halves of " << vramHeap.GetHalfCapacity()
+    LOG_INFO("Cache base=") << vramHeap.GetBase() << " words, 2 halves of " << vramHeap.GetHalfCapacity()
                                     << " words (" << (vramHeap.GetHalfCapacity() * 4 / 1024) << " KB) each";
 }
 

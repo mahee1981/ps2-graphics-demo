@@ -4,8 +4,6 @@
 #include "VU0Math/vec4.hpp"
 #include "renderer/PassManager.hpp"
 #include "renderer/vu1renderer3dbase.hpp"
-#include "graphics/TextureCache.hpp"
-#include <memory>
 
 namespace Renderer
 {
@@ -25,20 +23,20 @@ class Path1Renderer3D : public VU1Renderer3DBase
 
   private:
     // must be divisble by 3 so you avoid atrifacts between batches dumass
-    static constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 78;
+    static constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 81;
     static prim_t primitiveTypeConfig;
-    static const std::shared_ptr<packet2_t> MAX_CHUNCK_HEADER;
-    static const std::shared_ptr<packet2_t> MakeChunckHeaderPacket(u32 numOfVertices);
 
-    SmartPacket bufferHeader;
     char trianglesRenderedMessageBuff[70];
     PassManager passManager;
+    bool isStartOfNewChain;
 
-    void RenderChunck(packet2_t *bufferHeader,
-                      const std::size_t vertexCount,
-                      const Mesh &mesh,
-                      const std::size_t offset,
-                      bool isTimeToFlush);
+    void RenderChunck(const std::size_t vertexCount, const Mesh &mesh, const Material &material, std::size_t offset);
+    // Adds vertex count and GIF tag to outgoing VU1 packet
+    inline void AddVertCountGIFTagAndMaterial(packet2_t *vu1Packet, u32 numOfVertices, const Material &material, u32 &vifAddedBytes);
+    inline void AddProgramStartCode(packet2_t *vu1Packet);
+    inline void AddProgramContinueCode(packet2_t *vu1Packet);
+    inline void SendPacketAndChangeContext(packet2_t *vu1Packet);
+    void RenderMeshes(unsigned long long &trianglesRendered, const Model &model);
 };
 
 } // namespace Renderer

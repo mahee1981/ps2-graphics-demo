@@ -68,6 +68,7 @@ begin:
     xtop        iBase
 
     lq          primTag,           1(iBase)                  ; GIF tag - tell GS how much data we will send
+    lq.xyz      colorDiff,         0(iBase)
 
     iaddiu      vertexData,        iBase,            2      ; pointer to vertex data
     ilw.w       vertCount,         0(iBase)                 ; load vert count from scale vector
@@ -145,7 +146,8 @@ loop:
     ;////////////////////////////////////////////////////////////
     ;// --- Calculate lighting (ambient + diffuse + specular) ---
     ;////////////////////////////////////////////////////////////
-    move        FinalCol0,   rgba
+    move.xyz        FinalCol0,   colorDiff
+    move.w      FinalCol0,   rgba
     ftoi0       FinalCol0,   FinalCol0
 
     b           storeNkick

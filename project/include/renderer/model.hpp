@@ -57,6 +57,13 @@ class Model
         return _textureList.at(id);
     }
 
+    inline const Material &GetMaterialById(int id) const
+    {
+        // TODO: materail ID might be -1 so need to handle that with default
+        return materialLUT[id];
+
+    }
+
     inline void AddTexture(std::shared_ptr<Texture> texPtr)
     {
         _textureList.push_back(texPtr);

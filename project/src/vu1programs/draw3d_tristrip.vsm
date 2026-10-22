@@ -18,18 +18,19 @@ setup:
          NOP                                                        lq            VF04,3(VI00)                        
          NOP                                                        lq.xyz        VF05,4(VI00)                        
          NOP                                                        iaddiu        VI02,VI00,0x00000001                
-         NOP                                                        lq            VF06,5(VI00)                        
+         NOP                                                        lq.w          VF06,5(VI00)                        
          NOP                                                        lq            VF07,12(VI00)                       
          NOP                                                        lq            VF08,13(VI00)                       
          NOP                                                        fcset         0                                   
          NOP                                                        iaddiu        VI02,VI02,0x00007fff                
 begin:
-; _LNOPT_w=[ normal2 ] 12 [12 0] 13   [begin]
+; _LNOPT_w=[ normal2 ] 13 [13 0] 13   [begin]
          NOP                                                        xtop          VI03                                
          NOP                                                        ilw.w         VI08,0(VI03)                        
-         NOP                                                        lq            VF09,1(VI03)                        
          NOP                                                        iaddiu        VI04,VI03,0x00000002                
-         NOP                                                        iadd          VI05,VI04,VI08                             ;	STALL_LATENCY ?1
+         NOP                                                        lq            VF09,1(VI03)                        
+         NOP                                                        lq.xyz        VF06,0(VI03)                        
+         NOP                                                        iadd          VI05,VI04,VI08                      
          NOP                                                        iadd          VI05,VI05,VI08                      
          NOP                                                        iadd          VI07,VI05,VI08                      
          NOP                                                        sqi           VF07,(VI07++)                       
@@ -84,8 +85,9 @@ loop:
          NOP                                                        NOP                                               
          NOP                                                        ibgtz         VI01,culled                         
          NOP                                                        sq.xyz        VF09,8(VI07)                        
-; _LNOPT_w=[ normal2 ] 3 [5 0] 5   [__v_src_vu1programs_draw3d_tristrip_vsm_pp_7]
-         max           VF09,VF06,VF06                               NOP                                               
+; _LNOPT_w=[ normal2 ] 4 [5 0] 6   [__v_src_vu1programs_draw3d_tristrip_vsm_pp_7]
+         max.xyz       VF09,VF06,VF06                               NOP                                               
+         max.w         VF09,VF06,VF06                               NOP                                               
          NOP                                                        b             storeNkick                          
          ftoi0         VF09,VF09                                    NOP                                                      ;	STALL_LATENCY ?2
 culled:
@@ -113,7 +115,7 @@ storeNkick:
          NOP                                                        NOP                                               
 		.align 4
 VU1Draw3DTriStrip_CodeEnd:
-;	iCount=87
+;	iCount=89
 ; register stats:
 ;   9 VU User integer
 ;  15 VU User floating point

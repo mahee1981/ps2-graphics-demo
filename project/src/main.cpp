@@ -73,7 +73,7 @@ void render()
     drawEnv.ClearScreen();
 
     std::shared_ptr<ITextureLoader> textureLoader = std::make_shared<graphics::STBITextureLoader>();
-    std::vector<std::string> texturePaths{"CAT/TEX_CAT.PNG", "HIDEFCAT/Cat_diffuse.jpg", "AIRPLANE/AIRPLANE_TEX2.PNG", "AIRPLANE/AIRPLANE_TEX2.PNG"};
+    std::vector<std::string> texturePaths{"test.png", "HIDEFCAT/Cat_diffuse.jpg", "AIRPLANE/AIRPLANE_TEX2.PNG", "AIRPLANE/AIRPLANE_TEX2.PNG"};
     auto textureList = textureLoader->LoadTexturesToRAM(texturePaths);
     
     auto textureItr = textureList.begin();
@@ -98,7 +98,7 @@ void render()
     modelList.emplace_back(Model{ps2math::Vec4{60.0f, 32.0f, -70.0f, 1.0f}});
     modelList.emplace_back(Model{ps2math::Vec4{60.0f, -32.0f, -70.0f, 1.0f}});
 
-    modelList[1].LoadModel("CAT/MESH_CAT.OBJ");
+    modelList[1].LoadModel("F1/F1.OBJ");
     modelList[1].AddTexture(catTex);
     modelList[0].LoadModel("HIDEFCAT/CAT.OBJ");
     // modelList[1] = modelList[0];
@@ -112,6 +112,7 @@ void render()
     // modelList[1] = modelList[0];
     // modelList[1].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[2].GetTransformComponent().SetScaleFactor(0.01f);
+    modelList[1].GetTransformComponent().SetScaleFactor(10.01f);
     // modelList[1].GetTransformComponent().RotateXBy(90);
     modelList[2].AddTexture(airplaneTex);
 

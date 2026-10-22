@@ -1,6 +1,5 @@
 #include <packet2_utils.h>
 
-#include <memory>
 
 #include "renderer/path1renderer3d.hpp"
 #include "dma.h"
@@ -11,29 +10,25 @@ namespace Renderer
 {
 Path1Renderer3D::Path1Renderer3D(int width, int height)
     : VU1Renderer3DBase(width, height),
-      bufferHeader{SmartPacket{packet2_create(10, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free}},
-      passManager()
+      passManager(), isStartOfNewChain(true)
 
 {
 }
 
-void Path1Renderer3D::RenderChunck(packet2_t *header,
-                                   const std::size_t vertexCount,
+void Path1Renderer3D::RenderChunck(const std::size_t vertexCount,
                                    const Mesh &mesh,
-                                   const std::size_t offset,
-                                   bool isPacketReadyToFlush)
+                                   const Material &material,
+                                   const std::size_t offset)
 {
-    static bool isPacketFlushed = true;
     packet2_t *currentVifPacket = dynamicPacket[context].get();
-    if (isPacketFlushed == true)
+    if (isStartOfNewChain == true)
     {
         packet2_reset(currentVifPacket, 0);
     }
 
     u32 vifAddedBytes = 0;
 
-    packet2_utils_vu_add_unpack_data(currentVifPacket, vifAddedBytes, header->base, packet2_get_qw_count(header), 1);
-    vifAddedBytes += packet2_get_qw_count(header);
+    AddVertCountGIFTagAndMaterial(currentVifPacket, vertexCount, material, vifAddedBytes);
     // Add vertices
     packet2_utils_vu_add_unpack_data(currentVifPacket,
                                      vifAddedBytes,
@@ -56,29 +51,56 @@ void Path1Renderer3D::RenderChunck(packet2_t *header,
                                      vertexCount,
                                      1);
     vifAddedBytes += vertexCount;
+
     if (offset == 0)
     {
-        packet2_chain_open_cnt(currentVifPacket, 0, 0, 0);
-        packet2_vif_nop(currentVifPacket, 0);
-        packet2_vif_mscal(currentVifPacket, 0, 0);
-        packet2_chain_close_tag(currentVifPacket);
+        AddProgramStartCode(currentVifPacket);
     }
     else
     {
-        packet2_chain_open_cnt(currentVifPacket, 0, 0, 0);
-        packet2_vif_nop(currentVifPacket, 0);
-        packet2_vif_mscnt(currentVifPacket, 0);
-        packet2_chain_close_tag(currentVifPacket);
+        AddProgramContinueCode(currentVifPacket);
     }
-    isPacketFlushed = false;
-    if (isPacketReadyToFlush)
+
+    isStartOfNewChain = false;
+}
+
+void Path1Renderer3D::RenderMeshes(unsigned long long &trianglesRendered, const Model &model)
+{
+    for (const auto &materialMesh : model.GetMeshList())
     {
-        isPacketFlushed = true;
-        packet2_utils_vu_add_end_tag(currentVifPacket);
-        dma_channel_wait(DMA_CHANNEL_VIF1, 0);
-        dma_channel_send_packet2(currentVifPacket, DMA_CHANNEL_VIF1, 1);
-        // Switch packet, so we can proceed during DMA transfer
-        context = !context;
+        int numOfEnqueuedChuncks = 0;
+        for (const auto &[materialIdx, mesh] : materialMesh)
+        {
+            const Material &material = model.GetMaterialById(materialIdx);
+
+            std::size_t totalVertexCount = mesh.Vertices.size();
+            std::size_t numberOfWholeLoopIterations = totalVertexCount / MAX_VERTEXDATA_PER_VIF_PACKET;
+            std::size_t remainder = totalVertexCount % MAX_VERTEXDATA_PER_VIF_PACKET;
+            std::size_t offset = 0;
+
+            for (std::size_t i = 0; i < numberOfWholeLoopIterations; i++)
+            {
+                bool isPacketReadyToFlush = numOfEnqueuedChuncks == 32;
+                if (isPacketReadyToFlush)
+                {
+                    numOfEnqueuedChuncks = 0;
+                    SendPacketAndChangeContext(dynamicPacket[context].get());
+                }
+                RenderChunck(MAX_VERTEXDATA_PER_VIF_PACKET, mesh, material, offset);
+
+                offset += MAX_VERTEXDATA_PER_VIF_PACKET;
+                trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
+                numOfEnqueuedChuncks++;
+            }
+            if (remainder != 0)
+            {
+                RenderChunck(remainder, mesh, material, offset);
+                numOfEnqueuedChuncks++;
+                trianglesRendered += remainder / 3;
+            }
+        }
+        if (numOfEnqueuedChuncks != 0)
+            SendPacketAndChangeContext(dynamicPacket[context].get());
     }
 }
 void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
@@ -102,64 +124,17 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
 
     for (u32 passCnt = 0; passCnt < passManager.GetPassCount(); ++passCnt)
     {
-
         SinglePass currentPass = passManager.GetCurrentPass();
+        // TODO: maybe this isn't the best place to wait for the draw_finish
         passManager.WaitFence();
 
         for (const Model &model : currentPass.models)
         {
             ps2math::Mat4 modelMatrix = model.GetWorldMatrix();
             ps2math::Mat4 mvp = model.GetWorldMatrix() * viewProjMat;
+            // TODO: move texture out of model and look up per material
             SendDynamicModelData(mvp, modelMatrix, mainLight, model.GetTextureById(0), cameraPos);
-            for (const auto &materialMesh : model.GetMeshList())
-            {
-                for (const auto &kv : materialMesh)
-                {
-                    // TODO: Move packet sending logic out of loop
-                    Mesh mesh = kv.second;
-                    // LOG_INFO("Material mesh size: ") << mesh.Vertices.size();
-
-                    std::size_t totalVertexCount = mesh.Vertices.size();
-                    
-                    std::size_t numberOfWholeLoopIterations = totalVertexCount / MAX_VERTEXDATA_PER_VIF_PACKET;
-                    std::size_t remainder = totalVertexCount % MAX_VERTEXDATA_PER_VIF_PACKET;
-                    std::size_t offset = 0;
-                    int numOfEnqueuedChuncks = 0;
-
-                    for (std::size_t i = 0; i < numberOfWholeLoopIterations; i++)
-                    {
-                        bool isPacketReadyToFlush = i == numberOfWholeLoopIterations - 1 || numOfEnqueuedChuncks == 32;
-                        if (isPacketReadyToFlush)
-                        {
-                            numOfEnqueuedChuncks = 0;
-                        }
-                        RenderChunck(MAX_CHUNCK_HEADER.get(),
-                                     MAX_VERTEXDATA_PER_VIF_PACKET,
-                                     mesh,
-                                     offset,
-                                     isPacketReadyToFlush);
-
-                        offset += MAX_VERTEXDATA_PER_VIF_PACKET;
-                        trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
-                        numOfEnqueuedChuncks++;
-                    }
-                    if (remainder != 0)
-                    {
-                        packet2_reset(bufferHeader.get(), 0);
-                        packet2_pad96(bufferHeader.get(), 0);
-                        packet2_add_u32(bufferHeader.get(), remainder);
-                        packet2_utils_gs_add_prim_giftag(bufferHeader.get(),
-                                                         &primitiveTypeConfig,
-                                                         remainder,
-                                                         DRAW_STQ2_REGLIST,
-                                                         3,
-                                                         0);
-                        RenderChunck(bufferHeader.get(), remainder, mesh, offset, true);
-
-                        trianglesRendered += remainder / 3;
-                    }
-                }
-            }
+            RenderMeshes(trianglesRendered, model);
         }
 
         passManager.PrefetchNextPassTextures();
@@ -173,18 +148,49 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
     }
 }
 
-const std::shared_ptr<packet2_t> Path1Renderer3D::MAX_CHUNCK_HEADER{Path1Renderer3D::MakeChunckHeaderPacket(MAX_VERTEXDATA_PER_VIF_PACKET)};
-
-const std::shared_ptr<packet2_t> Path1Renderer3D::MakeChunckHeaderPacket(u32 numOfVertices)
+void Path1Renderer3D::AddVertCountGIFTagAndMaterial(packet2_t *vu1Packet, u32 numOfVertices, const Material &material, u32 &vifAddedBytes)
 {
-    std::shared_ptr<packet2_t> bufferHeader =
-        std::shared_ptr<packet2_t>(packet2_create(5, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free);
+    packet2_utils_vu_open_unpack(vu1Packet, vifAddedBytes, 1);
+    {
+        auto &diffuseColor = material.GetDiffuseColor();
+        packet2_add_float(vu1Packet, 128 * diffuseColor.r);
+        packet2_add_float(vu1Packet, 128 * diffuseColor.g);
+        packet2_add_float(vu1Packet, 128 * diffuseColor.b);
+        packet2_add_u32(vu1Packet, numOfVertices);
+        packet2_utils_gs_add_prim_giftag(vu1Packet,
+                                         &primitiveTypeConfig,
+                                         numOfVertices,
+                                         DRAW_STQ2_REGLIST,
+                                         3,
+                                         0);
+    }
+    packet2_utils_vu_close_unpack(vu1Packet); 
+    vifAddedBytes += 2;
+}
 
-    packet2_pad96(bufferHeader.get(), 0);
-    packet2_add_u32(bufferHeader.get(), numOfVertices);
-    packet2_utils_gs_add_prim_giftag(bufferHeader.get(), &primitiveTypeConfig, numOfVertices, DRAW_STQ2_REGLIST, 3, 0);
+void Path1Renderer3D::AddProgramStartCode(packet2_t *vu1Packet)
+{
+    packet2_chain_open_cnt(vu1Packet, 0, 0, 0);
+    packet2_vif_nop(vu1Packet, 0);
+    packet2_vif_mscal(vu1Packet, 0, 0);
+    packet2_chain_close_tag(vu1Packet);
+}
 
-    return bufferHeader;
+void Path1Renderer3D::AddProgramContinueCode(packet2_t *vu1Packet)
+{
+    packet2_chain_open_cnt(vu1Packet, 0, 0, 0);
+    packet2_vif_nop(vu1Packet, 0);
+    packet2_vif_mscnt(vu1Packet, 0);
+    packet2_chain_close_tag(vu1Packet);
+}
+void Path1Renderer3D::SendPacketAndChangeContext(packet2_t *currentVifPacket)
+{
+    isStartOfNewChain = true;
+    packet2_utils_vu_add_end_tag(currentVifPacket);
+    dma_channel_wait(DMA_CHANNEL_VIF1, 0);
+    dma_channel_send_packet2(currentVifPacket, DMA_CHANNEL_VIF1, 1);
+    // Switch packet, so we can proceed during DMA transfer
+    context = !context;
 }
 
 prim_t Path1Renderer3D::primitiveTypeConfig{.type = PRIM_TRIANGLE,
