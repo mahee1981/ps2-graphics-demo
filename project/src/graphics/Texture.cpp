@@ -7,7 +7,7 @@ namespace graphics
 
 Texture::Texture(u32 id, std::shared_ptr<u8> bytes, u32 width, u32 height, u32 nrChannels)
     : imageData(bytes), width(width), height(height), nrChannels(nrChannels),
-      pixelStorageMethod(Buffers::PSM_24), textureID(id)
+      pixelStorageMethod(Buffers::GSPixelStorageMethod::PSM_24), textureID(id)
 {
 }
 
@@ -35,7 +35,7 @@ void Texture::SetTexSamplingMethodInGS()
 u64 Texture::GetTexGSSettings(u32 vramAddress) const
 {
     return ((u64(vramAddress) >> 6) & 0x3fff) | (((u64(width) >> 6) & 0x3f) << 14) |
-           ((u64(Buffers::GSPixelStorageMethod::PSM_24) & 0x3f) << 20) | ((u64(draw_log2(width)) & 0xf) << 26) |
+           ((u64(pixelStorageMethod) & 0x3f) << 20) | ((u64(draw_log2(width)) & 0xf) << 26) |
            ((u64(draw_log2(height)) & 0xf) << 30) | ((u64(1) & 0x1) << 34) | // RGB or RGBA
            ((u64(0) & 0x3) << 35) | 0;
 }

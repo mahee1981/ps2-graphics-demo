@@ -16,8 +16,7 @@
 ;not used
 #define LightColor       12
 #define GifTagAd         12
-#define GifTexSelect     13
-#define CameraPos        14
+#define CameraPos        13
 
 
 .syntax new
@@ -53,7 +52,6 @@ setup:
     lq          lightIntensitiesVec, LightIntensities(vi00) ; load the ambient, diffuse and specular intensity
 
     lq          gifAdTag,          GifTagAd(vi00)           ; load gif tag for selecting the texture;
-    lq          tex0Config,        GifTexSelect(vi00)       ; load gif tag for selecting the texture;
 
     fcset       0x000000                                     ; VCL won't let us use CLIP without first zeroing
                                                             ; the clip flags
@@ -69,8 +67,9 @@ begin:
 
     lq          primTag,           1(iBase)                  ; GIF tag - tell GS how much data we will send
     lq.xyz      colorDiff,         0(iBase)
+    lq          tex0Config,        2(iBase)                 ; load gif tag for selecting the texture;
 
-    iaddiu      vertexData,        iBase,            2      ; pointer to vertex data
+    iaddiu      vertexData,        iBase,            3      ; pointer to vertex data
     ilw.w       vertCount,         0(iBase)                 ; load vert count from scale vector
     iadd        normalData,        vertexData, vertCount    ; pointer to normal data
     iadd        stqData,           normalData,   vertCount  ; pointer to stq

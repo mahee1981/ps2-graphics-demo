@@ -94,12 +94,8 @@ void VU1Renderer3DBase::SendDynamicModelData(const ps2math::Mat4 &mvp,
     // Add Texture Id GIF Tag and Camera position
     packet2_utils_vu_open_unpack(currentVifPacket, vifAddedBytes, 0);
     {
-        packet2_utils_gif_add_set(currentVifPacket, 1);
-        qword_t textureConfig;
-        textureConfig.dw[0] = texture->GetTexGSSettings();
-        textureConfig.dw[1] = GS_REG_TEX0_1;
-        packet2_add_u128(currentVifPacket, textureConfig.qw);
 
+        packet2_utils_gif_add_set(currentVifPacket, 1);
         packet2_add_float(currentVifPacket, cameraPos.x);
         packet2_add_float(currentVifPacket, cameraPos.y);
         packet2_add_float(currentVifPacket, cameraPos.z);
@@ -136,7 +132,7 @@ void VU1Renderer3DBase::RenderFrame(const std::vector<Model> &models,
 }
 void VU1Renderer3DBase::SetDoubleBufferSettings()
 {
-    constexpr u8 NUM_OF_MODEL_CONSTANTS = 15;
+    constexpr u8 NUM_OF_MODEL_CONSTANTS = 14;
     packet2_t *packet2 = packet2_create(1, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
     packet2_utils_vu_add_double_buffer(packet2, NUM_OF_MODEL_CONSTANTS, (1024 - NUM_OF_MODEL_CONSTANTS) / 2);
     packet2_utils_vu_add_end_tag(packet2);

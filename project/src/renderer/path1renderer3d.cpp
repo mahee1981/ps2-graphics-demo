@@ -18,6 +18,7 @@ Path1Renderer3D::Path1Renderer3D(int width, int height, std::shared_ptr<ITexture
 void Path1Renderer3D::RenderChunck(const std::size_t vertexCount,
                                    const Mesh &mesh,
                                    const Material &material,
+                                   const u64 texBindSettings,
                                    const std::size_t offset)
 {
     packet2_t *currentVifPacket = dynamicPacket[context].get();
@@ -28,7 +29,7 @@ void Path1Renderer3D::RenderChunck(const std::size_t vertexCount,
 
     u32 vifAddedBytes = 0;
 
-    AddVertCountGIFTagAndMaterial(currentVifPacket, vertexCount, material, vifAddedBytes);
+    AddVertCountGIFTagAndMaterial(currentVifPacket, vertexCount, material, texBindSettings, vifAddedBytes);
     // Add vertices
     packet2_utils_vu_add_unpack_data(currentVifPacket,
                                      vifAddedBytes,
@@ -64,7 +65,9 @@ void Path1Renderer3D::RenderChunck(const std::size_t vertexCount,
     isStartOfNewChain = false;
 }
 
-void Path1Renderer3D::RenderMeshes(unsigned long long &trianglesRendered, const Model &model)
+void Path1Renderer3D::RenderMeshes(unsigned long long &trianglesRendered,
+                                   const Model &model,
+                                   const u64 modelTextureBindSettings)
 {
     for (const auto &materialMesh : model.GetMeshList())
     {
@@ -86,7 +89,7 @@ void Path1Renderer3D::RenderMeshes(unsigned long long &trianglesRendered, const 
                     numOfEnqueuedChuncks = 0;
                     SendPacketAndChangeContext(dynamicPacket[context].get());
                 }
-                RenderChunck(MAX_VERTEXDATA_PER_VIF_PACKET, mesh, material, offset);
+                RenderChunck(MAX_VERTEXDATA_PER_VIF_PACKET, mesh, material, modelTextureBindSettings, offset);
 
                 offset += MAX_VERTEXDATA_PER_VIF_PACKET;
                 trianglesRendered += MAX_VERTEXDATA_PER_VIF_PACKET / 3;
@@ -94,7 +97,7 @@ void Path1Renderer3D::RenderMeshes(unsigned long long &trianglesRendered, const 
             }
             if (remainder != 0)
             {
-                RenderChunck(remainder, mesh, material, offset);
+                RenderChunck(remainder, mesh, material, modelTextureBindSettings, offset);
                 numOfEnqueuedChuncks++;
                 trianglesRendered += remainder / 3;
             }
@@ -133,8 +136,9 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
             ps2math::Mat4 modelMatrix = model.GetWorldMatrix();
             ps2math::Mat4 mvp = model.GetWorldMatrix() * viewProjMat;
             // TODO: move texture out of model and look up per material
+            const u64 modelTextureBindData = currentPass.GetModelTextureBindSettings(model);
             SendDynamicModelData(mvp, modelMatrix, mainLight, model.GetTextureById(0), cameraPos);
-            RenderMeshes(trianglesRendered, model);
+            RenderMeshes(trianglesRendered, model, modelTextureBindData);
         }
 
         passManager.PrefetchNextPassTextures();
@@ -148,7 +152,11 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
     }
 }
 
-void Path1Renderer3D::AddVertCountGIFTagAndMaterial(packet2_t *vu1Packet, u32 numOfVertices, const Material &material, u32 &vifAddedBytes)
+void Path1Renderer3D::AddVertCountGIFTagAndMaterial(packet2_t *vu1Packet,
+                                                    u32 numOfVertices,
+                                                    const Material &material,
+                                                    const u64 texBindSettings,
+                                                    u32 &vifAddedBytes)
 {
     packet2_utils_vu_open_unpack(vu1Packet, vifAddedBytes, 1);
     {
@@ -163,6 +171,11 @@ void Path1Renderer3D::AddVertCountGIFTagAndMaterial(packet2_t *vu1Packet, u32 nu
                                          DRAW_STQ2_REGLIST,
                                          3,
                                          0);
+
+        qword_t textureConfig;
+        textureConfig.dw[0] = texBindSettings;
+        textureConfig.dw[1] = GS_REG_TEX0_1;
+        packet2_add_u128(vu1Packet, textureConfig.qw);
     }
     packet2_utils_vu_close_unpack(vu1Packet); 
     vifAddedBytes += 2;

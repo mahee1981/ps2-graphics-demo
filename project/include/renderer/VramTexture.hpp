@@ -40,6 +40,11 @@ class VramTexture
         return texturePtr->GetId();
     }
 
+    inline u64 GetTextureActiveSettings() const
+    {
+        return texturePtr->GetTexGSSettings(vramAddress);
+    }
+
     // also hardcoded for now
     inline u32 GetVramSizeWords() const
     {

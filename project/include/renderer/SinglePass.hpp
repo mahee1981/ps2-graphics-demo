@@ -46,6 +46,8 @@ class SinglePass
         return models;
     }
 
+    u64 GetModelTextureBindSettings(const Model &model) const;
+
     SinglePass() = default;
 };
 } // namespace Renderer

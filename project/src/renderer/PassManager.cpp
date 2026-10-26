@@ -47,9 +47,10 @@ bool PassManager::GenerateRenderingPasses(const std::vector<std::shared_ptr<Text
 
         if (currentPass.GetTotalVramFootprint() + words > halfCapacity)
         {
-            // LOG_INFO("Plan: texture needs ") <<  words << " words, remaining capacity is " << halfCapacity -
+            LOG_INFO("Adding texture to pass and creating new one");
             // currentPass.GetTotalVramFootprint();
             // TODO: add all models
+            currentPass.SetModelsForPass(models);
             newPasses.push_back(std::move(currentPass));
             currentPass = SinglePass();
         }
@@ -58,26 +59,23 @@ bool PassManager::GenerateRenderingPasses(const std::vector<std::shared_ptr<Text
 
     if (currentPass.GetTotalVramFootprint() != 0U)
     {
-        // LOG_INFO("LMAO");
-        newPasses.push_back(currentPass);
+        LOG_INFO("LMAO");
+        currentPass.SetModelsForPass(models);
+        newPasses.push_back(std::move(currentPass));
     }
 
-    // LOG_INFO("planned ") << newPasses.size() << " pass(es)";
+    LOG_INFO("planned ") << newPasses.size() << " pass(es)";
     newPasses.swap(passCollection);
     return true;
 }
 
 bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
 {
+    LOG_INFO("UPLOADING TEXTURES FROM PASS: ") << passIndex;
     if (passIndex >= passCollection.size())
         return false;
 
     const u32 half = passIndex & 1u;
-
-    // The half may still be sampled by draws a pass ago. Nothing is written
-    // into it until the GS has said it is finished.
-    // if (fencePending && fenceHalf == half)
-    //     WaitFence();
 
     SinglePass &pass = passCollection[passIndex];
 
@@ -112,9 +110,10 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
 
         halfLoaded[half] = static_cast<int>(passIndex);
     }
+    this->DebugDump();
 
     // Upload whatever is not in VRAM yet.
-    // TODO: consider preallocating dma buffers
+    // TODO: PassManager should own this buffer, not single pass
     pass.DMABuffer = {packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free};
 
     for (VramTexture &vramTexture : pass.GetVramTextures())
@@ -123,6 +122,7 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
         if (!vramTexture.IsResident())
         {
             auto textureDisplayList = vramTexture.GetDMAPacket();
+            LOG_INFO("Packet length: ") << packet2_get_qw_count(textureDisplayList.get());
             packet2_chain_call(pass.DMABuffer.get(), (const void *)(textureDisplayList.get()->base), 0, 0, 0);
             packet2_chain_close_tag(pass.DMABuffer.get());
             ++stats.uploads;
@@ -130,14 +130,18 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
             vramTexture.SetResident();
         }
     }
+    LOG_INFO("Appending END tag");
     // Generate FINISH event on texture upload
     packet2_chain_open_end(pass.DMABuffer.get(), 0, 0);
     packet2_update(pass.DMABuffer.get(), draw_finish(pass.DMABuffer->next));
     packet2_chain_close_tag(pass.DMABuffer.get());
 
+    fencePending = true;
+    LOG_INFO("Sending");
     dma_channel_wait(DMA_CHANNEL_GIF, 0);
     dma_channel_send_packet2(pass.DMABuffer.get(), DMA_CHANNEL_GIF, 1);
-    fencePending = true;
+    LOG_INFO("Sent");
+
 
     return true;
 }

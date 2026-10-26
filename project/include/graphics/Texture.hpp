@@ -20,7 +20,6 @@ class Texture
 {
   public:
     Texture(u32 id, std::shared_ptr<u8> bytes, u32 width, u32 height, u32 nrChannels);
-    ~Texture();
     void TransferTextureToGS();
     inline u32 GetWidth() const
     {

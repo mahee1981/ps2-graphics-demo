@@ -25,7 +25,7 @@ class Path1Renderer3D : public VU1Renderer3DBase
 
   private:
     // must be divisble by 3 so you avoid atrifacts between batches dumass
-    static constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 81;
+    static constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 78;
     static prim_t primitiveTypeConfig;
 
     char trianglesRenderedMessageBuff[70];
@@ -33,13 +33,21 @@ class Path1Renderer3D : public VU1Renderer3DBase
     bool isStartOfNewChain;
     std::shared_ptr<ITextureLoader> textureLoader;
 
-    void RenderChunck(const std::size_t vertexCount, const Mesh &mesh, const Material &material, std::size_t offset);
+    void RenderChunck(const std::size_t vertexCount,
+                      const Mesh &mesh,
+                      const Material &material,
+                      const u64 texBindSettings,
+                      std::size_t offset);
     // Adds vertex count and GIF tag to outgoing VU1 packet
-    inline void AddVertCountGIFTagAndMaterial(packet2_t *vu1Packet, u32 numOfVertices, const Material &material, u32 &vifAddedBytes);
+    inline void AddVertCountGIFTagAndMaterial(packet2_t *vu1Packet,
+                                              u32 numOfVertices,
+                                              const Material &material,
+                                              const u64 texBindSettings,
+                                              u32 &vifAddedBytes);
     inline void AddProgramStartCode(packet2_t *vu1Packet);
     inline void AddProgramContinueCode(packet2_t *vu1Packet);
     inline void SendPacketAndChangeContext(packet2_t *vu1Packet);
-    void RenderMeshes(unsigned long long &trianglesRendered, const Model &model);
+    void RenderMeshes(unsigned long long &trianglesRendered, const Model &model, const u64 modelTextureBindSettings);
 };
 
 } // namespace Renderer
