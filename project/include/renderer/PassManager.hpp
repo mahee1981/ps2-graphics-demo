@@ -11,7 +11,7 @@ namespace Renderer {
 class PassManager
 {
   public:
-    bool GenerateRenderingPasses(const std::vector<std::shared_ptr<Texture>> &textures, const std::vector<Model> &models);
+    bool GenerateRenderingPasses(const std::vector<Model> &models);
     // Statistics for one frame, mirroring the measurements in section 6.
     struct Stats
     {
@@ -75,6 +75,7 @@ class PassManager
 
 
   private:
+    using SmartPacket = std::unique_ptr<packet2_t, decltype(&packet2_free)>;
     VramHeap vramHeap;
     std::vector<SinglePass> passCollection;
     bool UploadTexturesFromPass(std::size_t index);
@@ -90,6 +91,7 @@ class PassManager
     Stats stats;
     u32 currentPassIdx;
     bool fencePending;
+    alignas(64) std::array<SmartPacket, 2> dynamicPacket;
     // Take all the textures currently loaded
     // make passes based on the textures that can fit into one half of remaining VRAM
     // use the picked textures to pick the models and meshes

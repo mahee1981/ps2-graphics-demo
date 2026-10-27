@@ -145,8 +145,7 @@ loop:
     ;////////////////////////////////////////////////////////////
     ;// --- Calculate lighting (ambient + diffuse + specular) ---
     ;////////////////////////////////////////////////////////////
-    move.xyz        FinalCol0,   colorDiff
-    move.w      FinalCol0,   rgba
+    move        FinalCol0,   rgba
     ftoi0       FinalCol0,   FinalCol0
 
     b           storeNkick

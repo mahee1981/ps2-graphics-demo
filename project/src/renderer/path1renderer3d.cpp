@@ -10,8 +10,7 @@ namespace Renderer
 {
 Path1Renderer3D::Path1Renderer3D(int width, int height, std::shared_ptr<ITextureLoader> textureLoader)
     : VU1Renderer3DBase(width, height),
-      passManager(), isStartOfNewChain(true), textureLoader(textureLoader)
-
+      passManager(), isStartOfNewChain(true) 
 {
 }
 
@@ -83,7 +82,7 @@ void Path1Renderer3D::RenderMeshes(unsigned long long &trianglesRendered,
 
             for (std::size_t i = 0; i < numberOfWholeLoopIterations; i++)
             {
-                bool isPacketReadyToFlush = numOfEnqueuedChuncks == 32;
+                bool isPacketReadyToFlush = numOfEnqueuedChuncks == 17;
                 if (isPacketReadyToFlush)
                 {
                     numOfEnqueuedChuncks = 0;
@@ -121,13 +120,16 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
     // kick off path 1
     // kick off path 3
     // repeat
-    passManager.GenerateRenderingPasses(textureLoader->GetTextures(), models);
+    
+
+    passManager.GenerateRenderingPasses(models);
 
     passManager.BeginFrame();
 
     for (u32 passCnt = 0; passCnt < passManager.GetPassCount(); ++passCnt)
     {
         SinglePass currentPass = passManager.GetCurrentPass();
+        // currentPass.DumpPassInfo();
         // TODO: maybe this isn't the best place to wait for the draw_finish
         passManager.WaitFence();
 
@@ -178,7 +180,7 @@ void Path1Renderer3D::AddVertCountGIFTagAndMaterial(packet2_t *vu1Packet,
         packet2_add_u128(vu1Packet, textureConfig.qw);
     }
     packet2_utils_vu_close_unpack(vu1Packet); 
-    vifAddedBytes += 2;
+    vifAddedBytes += 3;
 }
 
 void Path1Renderer3D::AddProgramStartCode(packet2_t *vu1Packet)
@@ -201,6 +203,7 @@ void Path1Renderer3D::SendPacketAndChangeContext(packet2_t *currentVifPacket)
     isStartOfNewChain = true;
     packet2_utils_vu_add_end_tag(currentVifPacket);
     dma_channel_wait(DMA_CHANNEL_VIF1, 0);
+    dma_channel_wait(DMA_CHANNEL_GIF, 0);
     dma_channel_send_packet2(currentVifPacket, DMA_CHANNEL_VIF1, 1);
     // Switch packet, so we can proceed during DMA transfer
     context = !context;

@@ -1,4 +1,3 @@
-#include <algorithm>
 #include "renderer/SinglePass.hpp"
 #include "logging/log.hpp"
 #include "renderer/VramTexture.hpp"
@@ -6,39 +5,59 @@
 namespace Renderer
 {
 
-void SinglePass::AddTextureToPass(std::shared_ptr<Texture> texturePtr)
+void SinglePass::AddTextureAndModel(const std::shared_ptr<Texture> &texturePtr, const Model &model)
 {
-    vramTextures.push_back(texturePtr);
-    sizeWords += texturePtr->GetVramSizeWords();
-}
-// TODO: switch to a map maybe??
-void SinglePass::SetModelsForPass(const std::vector<Model> &models)
-{
-    for (const Model& model : models)
+    int vramTextureIdx = IndexOfVramTextureByTextureId(texturePtr->GetId());
+
+    if (vramTextureIdx == -1)
     {
-        const std::shared_ptr<Texture> &modelTexture = model.GetTextureById(0);
-        if (std::find_if(vramTextures.begin(), vramTextures.end(), [&modelTexture](const VramTexture &vramTexture) -> bool {
-            return vramTexture.GetTextureDataId() == modelTexture->GetId(); }) != vramTextures.end())
-        {
-            this->models.emplace_back(model); 
-        }
+        vramTextures.emplace_back(texturePtr);
+        sizeWords += texturePtr->GetVramSizeWords();
+        textureToModelIndex.push_back(vramTextures.size() - 1);
     }
+    else
+    {
+        textureToModelIndex.push_back(vramTextureIdx);
+    }
+
+    models.emplace_back(model);
 }
 
 u64 SinglePass::GetModelTextureBindSettings(const Model &model) const
 {
-    u32 modelsTextureId = model.GetTextureById(0)->GetId();
-    if (auto result = std::find_if(vramTextures.begin(),
-                                   vramTextures.end(),
-                                   [&modelsTextureId](const VramTexture &vramTexture) -> bool {
-                                       return vramTexture.GetTextureDataId() == modelsTextureId;
-                                   });  result != vramTextures.end())
+    u32 id = model.GetId();
+
+    for (std::size_t i = 0; i < models.size(); i++)
     {
-        return result->GetTextureActiveSettings();
+        if (models[i].get().GetId() == id)
+        {
+            return GetVramTextureForModelIndex(i).GetTextureActiveSettings();
+        }
     }
 
-    // Handle this with grace
-    LOG_INFO("Returing 0");
+    // TODO: handle gracefully
+    LOG_ERROR("You fucked up");
     return 0;
 }
+const VramTexture &SinglePass::GetVramTextureForModelIndex(std::size_t idx) const
+{
+    return vramTextures[textureToModelIndex[idx]];
+}
+
+int SinglePass::IndexOfVramTextureByTextureId(const u32 textureId) const
+{
+    for (std::size_t i = 0; i < vramTextures.size(); ++i)
+    {
+        if (textureId == vramTextures[i].GetTextureDataId())
+            return i;
+    }
+    return -1;
+
+}
+
+void SinglePass::DumpPassInfo() const
+{
+    LOG_INFO("Current pass info: number of textures: ") << vramTextures.size() << ", number of models: " << models.size(); 
+}
+
 }

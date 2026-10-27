@@ -21,15 +21,18 @@ constexpr u32 MAX_FENCE_SPINS = 50000000u;
 
 } // namespace
 
-bool PassManager::GenerateRenderingPasses(const std::vector<std::shared_ptr<Texture>> &textures,
-                                          const std::vector<Model> &models)
+bool PassManager::GenerateRenderingPasses(const std::vector<Model> &models)
 {
+    ClearPlan();
     auto newPasses = std::vector<SinglePass>();
     const u32 halfCapacity = vramHeap.GetHalfCapacity();
     SinglePass currentPass;
 
-    for (const std::shared_ptr<Texture> &texturePtr : textures)
+    for (const Model &model : models)
     {
+        const std::shared_ptr<Texture> texturePtr = model.GetTextureById(0);
+        
+        // TODO: handle models without textures and take this logic out
         if (texturePtr == nullptr)
             return false;
 
@@ -47,31 +50,23 @@ bool PassManager::GenerateRenderingPasses(const std::vector<std::shared_ptr<Text
 
         if (currentPass.GetTotalVramFootprint() + words > halfCapacity)
         {
-            LOG_INFO("Adding texture to pass and creating new one");
-            // currentPass.GetTotalVramFootprint();
-            // TODO: add all models
-            currentPass.SetModelsForPass(models);
             newPasses.push_back(std::move(currentPass));
             currentPass = SinglePass();
         }
-        currentPass.AddTextureToPass(texturePtr);
+        currentPass.AddTextureAndModel(texturePtr, model);
     }
 
     if (currentPass.GetTotalVramFootprint() != 0U)
     {
-        LOG_INFO("LMAO");
-        currentPass.SetModelsForPass(models);
         newPasses.push_back(std::move(currentPass));
     }
 
-    LOG_INFO("planned ") << newPasses.size() << " pass(es)";
     newPasses.swap(passCollection);
     return true;
 }
 
 bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
 {
-    LOG_INFO("UPLOADING TEXTURES FROM PASS: ") << passIndex;
     if (passIndex >= passCollection.size())
         return false;
 
@@ -110,37 +105,31 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
 
         halfLoaded[half] = static_cast<int>(passIndex);
     }
-    this->DebugDump();
 
     // Upload whatever is not in VRAM yet.
-    // TODO: PassManager should own this buffer, not single pass
-    pass.DMABuffer = {packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free};
+    packet2_t* currentDmaBuffer = dynamicPacket[half].get();
+    packet2_reset(currentDmaBuffer, 0);
 
     for (VramTexture &vramTexture : pass.GetVramTextures())
     {
-        // TODO: this if is buggy, even if it's resident, it can be removed
         if (!vramTexture.IsResident())
         {
             auto textureDisplayList = vramTexture.GetDMAPacket();
-            LOG_INFO("Packet length: ") << packet2_get_qw_count(textureDisplayList.get());
-            packet2_chain_call(pass.DMABuffer.get(), (const void *)(textureDisplayList.get()->base), 0, 0, 0);
-            packet2_chain_close_tag(pass.DMABuffer.get());
+            packet2_chain_call(currentDmaBuffer, (const void *)(textureDisplayList.get()->base), 0, 0, 0);
+            packet2_chain_close_tag(currentDmaBuffer);
             ++stats.uploads;
             stats.uploadedWords += vramTexture.GetVramSizeWords();
             vramTexture.SetResident();
         }
     }
-    LOG_INFO("Appending END tag");
     // Generate FINISH event on texture upload
-    packet2_chain_open_end(pass.DMABuffer.get(), 0, 0);
-    packet2_update(pass.DMABuffer.get(), draw_finish(pass.DMABuffer->next));
-    packet2_chain_close_tag(pass.DMABuffer.get());
+    packet2_chain_open_end(currentDmaBuffer, 0, 0);
+    packet2_update(currentDmaBuffer, draw_finish(currentDmaBuffer->next));
+    packet2_chain_close_tag(currentDmaBuffer);
 
     fencePending = true;
-    LOG_INFO("Sending");
     dma_channel_wait(DMA_CHANNEL_GIF, 0);
-    dma_channel_send_packet2(pass.DMABuffer.get(), DMA_CHANNEL_GIF, 1);
-    LOG_INFO("Sent");
+    dma_channel_send_packet2(currentDmaBuffer, DMA_CHANNEL_GIF, 1);
 
 
     return true;
@@ -198,7 +187,9 @@ void PassManager::WaitFence()
 }
 
 PassManager::PassManager(u32 baseWords, u32 sizeWords)
-    : vramHeap(baseWords, sizeWords), stats(), currentPassIdx(0), fencePending(false)
+    : vramHeap(baseWords, sizeWords), stats(), currentPassIdx(0), fencePending(false), 
+      dynamicPacket{SmartPacket{packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free},
+                    SmartPacket{packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free}}
 {
     halfLoaded[0] = -1;
     halfLoaded[1] = -1;
@@ -233,15 +224,6 @@ u32 PassManager::ProbeVramBase()
 
 void PassManager::ClearPlan()
 {
-
-    for (SinglePass &pass : passCollection)
-    {
-        for (VramTexture &vramTexture : pass.GetVramTextures())
-        {
-            vramTexture.OnEvicted();
-        }
-    }
-
     passCollection.clear();
     vramHeap.ResetAll();
     halfLoaded[0] = -1;

@@ -8,7 +8,10 @@
 namespace Renderer
 {
 
-Model::Model(const ps2math::Vec4 &position) : _transformComponent(position)
+// temporary, need a model loading system
+u32 Model::idCnt = 0;
+
+Model::Model(const ps2math::Vec4 &position) : _transformComponent(position), id(idCnt++)
 {
 }
 

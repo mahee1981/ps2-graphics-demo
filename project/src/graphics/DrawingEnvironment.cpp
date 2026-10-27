@@ -1,5 +1,6 @@
 #include "graphics/DrawingEnvironment.hpp"
 #include "BlendingConfig.hpp"
+#include "dma.h"
 #include "logging/log.hpp"
 #include "packet2.h"
 
@@ -59,7 +60,8 @@ void DrawingEnvironment::SwapBuffers()
     packet2_update(flipPacket.get(), draw_framebuffer(flipPacket->next, 0, &sdkFB));
     packet2_update(flipPacket.get(), draw_finish(flipPacket->next));
 
-    dma_wait_fast();
+    // dma_wait_fast();
+    dma_channel_wait(DMA_CHANNEL_GIF, 0);
     dma_channel_send_packet2(flipPacket.get(), DMA_CHANNEL_GIF, 0);
 
     draw_wait_finish();
@@ -190,8 +192,8 @@ void DrawingEnvironment::SetupGSRegisters(unsigned int context) const
 
 void DrawingEnvironment::ClearScreen() const
 {
-    dma_wait_fast();
-    dma_channel_send_packet2(clearScreenPacket.get(), DMA_CHANNEL_GIF, 0);
+    dma_channel_wait(DMA_CHANNEL_GIF, 0);
+    dma_channel_send_packet2(clearScreenPacket.get(), DMA_CHANNEL_GIF, 1);
     draw_wait_finish();
 }
 

@@ -6,7 +6,7 @@ namespace Renderer
     void VramTexture::SetVramAddress(u32 vramAddress)
     {
         this->vramAddress = vramAddress;
-        uploadBuffer = texturePtr->GenerateUploadBuffer(true);
+        uploadBuffer = texturePtr->GenerateUploadBuffer(vramAddress, true);
         resident = false;
     }
     void VramTexture::OnEvicted()

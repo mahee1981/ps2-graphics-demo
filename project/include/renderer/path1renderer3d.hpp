@@ -31,7 +31,6 @@ class Path1Renderer3D : public VU1Renderer3DBase
     char trianglesRenderedMessageBuff[70];
     PassManager passManager;
     bool isStartOfNewChain;
-    std::shared_ptr<ITextureLoader> textureLoader;
 
     void RenderChunck(const std::size_t vertexCount,
                       const Mesh &mesh,

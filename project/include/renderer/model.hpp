@@ -30,12 +30,6 @@ class Model
     void LoadModelPackets(const char *fileName);
     void Update();
 
-    std::vector<ps2math::Vec4> TransformVertices(const ps2math::Mat4 &mvp,
-                                                 float width,
-                                                 float height,
-                                                 float xOff,
-                                                 float yOff);
-
     inline Components::Transform &GetTransformComponent()
     {
         return _transformComponent;
@@ -69,6 +63,11 @@ class Model
         _textureList.push_back(texPtr);
     }
 
+    inline u32 GetId() const 
+    {
+        return id;
+    }
+
   private:
     std::vector<MaterialMesh> meshList;
     std::vector<std::shared_ptr<Texture>> _textureList;
@@ -76,7 +75,9 @@ class Model
     Components::Transform _transformComponent;
     using MaterialIndex = int;
     std::vector<Material> materialLUT;
+    u32 id;
 
+    static u32 idCnt;
 
     using NumberOfVertices = std::size_t;
     std::unordered_map<MaterialIndex, NumberOfVertices> CountVerticesPerMaterial(const std::vector<int> &materialIds);

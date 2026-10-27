@@ -73,7 +73,7 @@ void render()
 
     drawEnv.ClearScreen();
 
-    std::vector<std::string> texturePaths{"test.png", "HIDEFCAT/Cat_diffuse.jpg", "AIRPLANE/AIRPLANE_TEX2.PNG", "AIRPLANE/AIRPLANE_TEX2.PNG"};
+    std::vector<std::string> texturePaths{"test.png", "HIDEFCAT/Cat_diffuse.jpg", "AIRPLANE/AIRPLANE_TEX2.PNG", "AIRPLANE/AIRPLANE_TEX.PNG", "brick_wall_128.png"};
     textureLoader->LoadTexturesToRAM(texturePaths);
     auto textureList = textureLoader->GetTextures();
     
@@ -89,6 +89,9 @@ void render()
     std::advance(textureItr, 1);
     auto airplaneTex2 = *textureItr;
 
+    std::advance(textureItr, 1);
+    auto brickWall = *textureItr;
+
 
     Texture::SetTexSamplingMethodInGS();
     // Goal: Use path3 only for upload
@@ -98,6 +101,7 @@ void render()
     modelList.emplace_back(Model{ps2math::Vec4(-60.0f, -90.0f, +50.0f, 1.0f)});
     modelList.emplace_back(Model{ps2math::Vec4{60.0f, 32.0f, -70.0f, 1.0f}});
     modelList.emplace_back(Model{ps2math::Vec4{60.0f, -32.0f, -70.0f, 1.0f}});
+    modelList.emplace_back(Model{ps2math::Vec4{0.0f, -62.0f, -70.0f, 1.0f}});
 
     modelList[1].LoadModel("F1/F1.OBJ");
     modelList[1].AddTexture(catTex);
@@ -110,19 +114,21 @@ void render()
     // modelList[1].AddTexture(bigCatTex);
     // modelList[1].GetTransformComponent().SetTranslate(-60.0f, -90.0f, 50.0f);
     modelList[2].LoadModel("AIRPLANE/AIRPLANE.OBJ");
-    // modelList[1] = modelList[0];
-    // modelList[1].LoadModel("FLOOR/FLOOR.OBJ");
+    // // modelList[1] = modelList[0];
+    // // modelList[1].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[2].GetTransformComponent().SetScaleFactor(0.01f);
-    modelList[1].GetTransformComponent().SetScaleFactor(10.01f);
-    // modelList[1].GetTransformComponent().RotateXBy(90);
+    // modelList[1].GetTransformComponent().SetScaleFactor(10.01f);
+    // // modelList[1].GetTransformComponent().RotateXBy(90);
     modelList[2].AddTexture(airplaneTex);
-
+    //
     modelList[3].LoadModel("AIRPLANE/AIRPLANE.OBJ");
-    // modelList[1] = modelList[0];
-    // modelList[1].LoadModel("FLOOR/FLOOR.OBJ");
+    // // modelList[1] = modelList[0];
+    // // modelList[1].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[3].GetTransformComponent().SetScaleFactor(0.01f);
-    // modelList[1].GetTransformComponent().RotateXBy(90);
+    // // modelList[1].GetTransformComponent().RotateXBy(90);
     modelList[3].AddTexture(airplaneTex2);
+    modelList[4].LoadModel("FLOOR/FLOOR.OBJ");
+    modelList[4].AddTexture(brickWall);
 
     // modelList[1].AddTexture(catTex);
     PadManager controllerInput{false};
