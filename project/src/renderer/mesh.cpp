@@ -1,8 +1,9 @@
-#include "renderer/mesh.hpp"
 #include <algorithm>
 #include <iterator>
 #include <numeric>
 #include <utility>
+
+#include "renderer/mesh.hpp"
 
 namespace Renderer
 {

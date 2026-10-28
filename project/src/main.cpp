@@ -9,9 +9,10 @@
 #include <memory>
 #include <vector>
 
+#include "VU0Math/mat4.hpp"
 #include "VU0Math/vec4.hpp"
 #include "components/transform.hpp"
-#include "graphics/DrawingEnvironment.hpp"
+#include "gs/config/DrawingEnvironment.hpp"
 #include "graphics/STBITextureLoader.hpp"
 #include "graphics/Texture.hpp"
 #include "graphics/TextureLoader.hpp"
@@ -49,14 +50,20 @@ void render()
     dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
     dma_channel_fast_waits(DMA_CHANNEL_GIF);
 
+    LOG_INFO("Size of std::vector<MaterialMesh> ->  ") << sizeof(std::vector<MaterialMesh>);
+    LOG_INFO("Size of std::vector<std::shared_ptr<graphics::Texture>> ->  ") << sizeof(std::vector<std::shared_ptr<graphics::Texture>>);
+    LOG_INFO("Size of Mat4 ->  ") << sizeof(ps2math::Mat4); // need to align
+    LOG_INFO("Size of Transform ->  ") << sizeof(Components::Transform); // need to align
+    LOG_INFO("Size of std::unordered_map<MaterialIndex, NumberOfVertices> ->") << sizeof(std::unordered_map<int, std::size_t>); // need to align
+
     LOG_INFO("Starting to init GS and draw environment");
 
-    DrawingEnvironment drawEnv(width, height, BufferingConfig::DOUBLE_BUFFER);
+    GS::Config::DrawingEnvironment drawEnv(width, height, GS::Config::BufferingConfig::DOUBLE_BUFFER);
 
-    drawEnv.InitializeEnvironment();
+    drawEnv.Initialize();
 
-    std::shared_ptr<ITextureLoader> textureLoader = std::make_shared<graphics::STBITextureLoader>();
-    std::unique_ptr<IRenderer3D> renderer3d = std::make_unique<Path1Renderer3D>(width, height, textureLoader);
+    std::shared_ptr<graphics::ITextureLoader> textureLoader = std::make_shared<graphics::STBITextureLoader>();
+    std::unique_ptr<IRenderer3D> renderer3d = std::make_unique<Path1Renderer3D>(width, height);
 
     if (auto path1Renderer = dynamic_cast<Path1Renderer3D *>(renderer3d.get()); path1Renderer != nullptr)
     {
@@ -73,12 +80,12 @@ void render()
 
     drawEnv.ClearScreen();
 
-    std::vector<std::string> texturePaths{"test.png", "HIDEFCAT/Cat_diffuse.jpg", "AIRPLANE/AIRPLANE_TEX2.PNG", "AIRPLANE/AIRPLANE_TEX.PNG", "brick_wall_128.png"};
+    std::vector<std::string> texturePaths{"BLANK_TEX.PNG", "HIDEFCAT/Cat_diffuse.jpg", "AIRPLANE/AIRPLANE_TEX2.PNG", "AIRPLANE/AIRPLANE_TEX.PNG", "brick_wall_128.png"};
     textureLoader->LoadTexturesToRAM(texturePaths);
     auto textureList = textureLoader->GetTextures();
     
     auto textureItr = textureList.begin();
-    auto catTex = *textureItr;
+    auto f1CarTex = *textureItr;
     
     std::advance(textureItr, 1);
     auto bigCatTex = *textureItr;
@@ -92,9 +99,7 @@ void render()
     std::advance(textureItr, 1);
     auto brickWall = *textureItr;
 
-
-    Texture::SetTexSamplingMethodInGS();
-    // Goal: Use path3 only for upload
+    graphics::Texture::SetTexSamplingMethodInGS();
 
     std::vector<Model> modelList;
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, 0.0f, -70.0f, 1.0f}});
@@ -103,34 +108,24 @@ void render()
     modelList.emplace_back(Model{ps2math::Vec4{60.0f, -32.0f, -70.0f, 1.0f}});
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, -62.0f, -70.0f, 1.0f}});
 
-    modelList[1].LoadModel("F1/F1.OBJ");
-    modelList[1].AddTexture(catTex);
     modelList[0].LoadModel("HIDEFCAT/CAT.OBJ");
-    // modelList[1] = modelList[0];
-    // modelList[1].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[0].GetTransformComponent().RotateXBy(90);
-    // modelList[1].GetTransformComponent().RotateXBy(90);
     modelList[0].AddTexture(bigCatTex);
-    // modelList[1].AddTexture(bigCatTex);
-    // modelList[1].GetTransformComponent().SetTranslate(-60.0f, -90.0f, 50.0f);
+
+    modelList[1].LoadModel("F1/F1.OBJ");
+    modelList[1].AddTexture(f1CarTex);
+
     modelList[2].LoadModel("AIRPLANE/AIRPLANE.OBJ");
-    // // modelList[1] = modelList[0];
-    // // modelList[1].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[2].GetTransformComponent().SetScaleFactor(0.01f);
-    // modelList[1].GetTransformComponent().SetScaleFactor(10.01f);
-    // // modelList[1].GetTransformComponent().RotateXBy(90);
     modelList[2].AddTexture(airplaneTex);
-    //
+
     modelList[3].LoadModel("AIRPLANE/AIRPLANE.OBJ");
-    // // modelList[1] = modelList[0];
-    // // modelList[1].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[3].GetTransformComponent().SetScaleFactor(0.01f);
-    // // modelList[1].GetTransformComponent().RotateXBy(90);
     modelList[3].AddTexture(airplaneTex2);
+
     modelList[4].LoadModel("FLOOR/FLOOR.OBJ");
     modelList[4].AddTexture(brickWall);
 
-    // modelList[1].AddTexture(catTex);
     PadManager controllerInput{false};
 
     float angle = 0.0f;
@@ -187,10 +182,8 @@ void render()
         for (auto &model : modelList)
         {
             Components::Transform &transformComponentRef = model.GetTransformComponent();
-            // transformComponentRef.SetScaleFactor(0.5f);
             transformComponentRef.SetAngleY(15.0f);
 
-            // transformComponentRef.SetAngleY(angle);
             transformComponentRef.SetTranslate(transformComponentRef.GetTranslate().x,
                                                transformComponentRef.GetTranslate().y,
                                                transformComponentRef.GetTranslate().z + moveHorizontal);

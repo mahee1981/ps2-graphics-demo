@@ -15,12 +15,15 @@
 #include "AlphaTest.hpp"
 #include "TextureConfig.hpp"
 #include "common/Color.hpp"
-#include "graphics/BufferingConfig.hpp"
-#include "graphics/framebuffer.hpp"
-#include "graphics/zbuffer.hpp"
+#include "gs/config/BufferingConfig.hpp"
+
+#include "gs/buffers/Framebuffer.hpp"
+#include "gs/buffers/Zbuffer.hpp"
 #include "packet2_types.h"
 
-using namespace Buffers;
+
+namespace GS::Config
+{
 
 class DrawingEnvironment
 {
@@ -30,7 +33,7 @@ class DrawingEnvironment
     DrawingEnvironment(unsigned int width, unsigned int height, BufferingConfig config);
     void ClearScreen() const;
     void SetClearScreenColor(u8 r, u8 g, u8 b);
-    void InitializeEnvironment();
+    void Initialize();
     void SwapBuffers();
     DrawingEnvironment &operator=(const DrawingEnvironment &other) = delete;
     DrawingEnvironment(const DrawingEnvironment &other) = delete;
@@ -41,8 +44,8 @@ class DrawingEnvironment
     float xOffset;
     float yOffset;
     unsigned int context;
-    std::array<std::unique_ptr<Framebuffer>, 2> framebuffer;
-    std::unique_ptr<ZBuffer> zbuffer;
+    std::array<std::unique_ptr<Buffers::Framebuffer>, 2> framebuffer;
+    std::unique_ptr<Buffers::ZBuffer> zbuffer;
     AlphaTest alphaTest;
     Colors::Color clearScreenColor;
     SmartPacket flipPacket;
@@ -68,4 +71,5 @@ class DrawingEnvironment
     void SetupGSRegisters(unsigned int context) const;
 };
 
+}
 #endif

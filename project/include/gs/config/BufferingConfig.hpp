@@ -1,10 +1,10 @@
 #ifndef GRAPHICS_CONFIG_HPP
 #define GRAPHICS_CONFIG_HPP
 
-namespace Buffers
+namespace GS::Config
 {
 
-enum BufferingConfig
+enum class BufferingConfig
 {
     SINGLE_BUFFER,
     DOUBLE_BUFFER

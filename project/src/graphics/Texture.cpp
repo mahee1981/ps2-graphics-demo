@@ -1,5 +1,5 @@
 #include "graphics/Texture.hpp"
-#include "graphics/GSBufferConfig.hpp"
+#include "gs/buffers/GSBufferConfig.hpp"
 #include "packet2_types.h"
 
 namespace graphics
@@ -7,7 +7,7 @@ namespace graphics
 
 Texture::Texture(u32 id, std::shared_ptr<u8> bytes, u32 width, u32 height, u32 nrChannels)
     : imageData(bytes), width(width), height(height), nrChannels(nrChannels),
-      pixelStorageMethod(Buffers::GSPixelStorageMethod::PSM_24), textureID(id)
+      pixelStorageMethod(GS::Buffers::GSPixelStorageMethod::PSM_24), textureID(id)
 {
 }
 
@@ -49,12 +49,12 @@ u32 Texture::GetVramSizeWords() const
 std::shared_ptr<packet2_t> Texture::GenerateUploadBuffer(u32 vramAddress, bool isPartOfCallChain) const
 {
     u64 destBufBasePtr = (vramAddress >> 6) & 0x3FFF;
+    u64 psmSetting = static_cast<u64>(pixelStorageMethod) & 0x3F;
     u64 destBufWidth = (width >> 6) & 0x3F;
-    u64 psm = pixelStorageMethod & 0x3F;
 
     // BITBLTBUF - setting for transmission between the buffers
     // Transfering from EE to GS does not require a source buffer information
-    u64 gsBitBltBufValue = (destBufBasePtr << 32) | (destBufWidth << 48) | (psm << 56);
+    u64 gsBitBltBufValue = (destBufBasePtr << 32) | (destBufWidth << 48) | (psmSetting << 56);
 
     // TRXPOS - specification of transmission areas in buffers
     //  (i.e. start coordinates of image and transmission direction)
@@ -88,8 +88,8 @@ std::shared_ptr<packet2_t> Texture::GenerateUploadBuffer(u32 vramAddress, bool i
     // then also transfer what's left
     constexpr u64 MAX_TRANSFER_SIZE = 0x7FFF; //
     u64 qwordCount = (width * height) >> 2;   // (width*height*32bits)/128bits = (width*height)/4;
-    int numberOfWholeGifBlockIterations = qwordCount / MAX_TRANSFER_SIZE;
-    int remainingData = qwordCount % MAX_TRANSFER_SIZE;
+    u32 numberOfWholeGifBlockIterations = qwordCount / MAX_TRANSFER_SIZE;
+    u64 remainingData = qwordCount % MAX_TRANSFER_SIZE;
 
     // Transfer stuff
     using SmartPacket = std::shared_ptr<packet2_t>;
@@ -135,7 +135,7 @@ std::shared_ptr<packet2_t> Texture::GenerateUploadBuffer(u32 vramAddress, bool i
         packet2_add_u128(chain_packet.get(), qword.qw);
 
         // Transfer from actual image data via REF tag
-        DMATAG_REF((&qword), GIF_BLOCK_SIZE, (unsigned int)src, 0, 0, 0);
+        DMATAG_REF((&qword), GIF_BLOCK_SIZE, (u64)src, 0, 0, 0);
         packet2_add_u128(chain_packet.get(), qword.qw);
 
         // Now increment the address by the number of qwords in bytes
@@ -156,7 +156,7 @@ std::shared_ptr<packet2_t> Texture::GenerateUploadBuffer(u32 vramAddress, bool i
 
         // Transfer from actual image data via REF tag
         // REF transfers from actual memory address instead of a buffer that we prepare
-        DMATAG_REF((&qword), remainingData, (unsigned int)src, 0, 0, 0);
+        DMATAG_REF((&qword), remainingData, (u64)src, 0, 0, 0);
         packet2_add_u128(chain_packet.get(), qword.qw);
     }
 

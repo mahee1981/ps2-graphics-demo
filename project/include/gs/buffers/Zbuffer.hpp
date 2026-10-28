@@ -1,11 +1,12 @@
 #ifndef ZBUFFER_HP
 #define ZBUFFER_HP
 
-#include "graphics/GSBufferConfig.hpp"
-#include "graphics/GSbuffer.hpp"
 #include <draw_buffers.h>
 
-namespace Buffers
+#include "gs/buffers/GSBufferConfig.hpp"
+#include "gs/buffers/GSbuffer.hpp"
+
+namespace GS::Buffers
 {
 class ZBuffer : public GSbuffer
 {
@@ -23,9 +24,9 @@ class ZBuffer : public GSbuffer
     int AllocateVRAMForBuffer() override;
 
   private:
-    bool enable;
     ZbufferTestMethod method;
     GSZbufferStorageMethodEnum zbufferStorageMethod;
+    bool enable;
 };
 
 } // namespace Buffers

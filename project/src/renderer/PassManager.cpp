@@ -21,6 +21,43 @@ constexpr u32 MAX_FENCE_SPINS = 50000000u;
 
 } // namespace
 
+PassManager::PassManager(u32 baseWords, u32 sizeWords)
+    : dynamicPacket{SmartPacket{packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free},
+                    SmartPacket{packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free}},
+      vramHeap(baseWords, sizeWords),
+      stats(), currentPassIdx(0), fencePending(false)
+{
+    halfLoaded[0] = -1;
+    halfLoaded[1] = -1;
+
+    LOG_INFO("Cache base=") << vramHeap.GetBase() << " words, 2 halves of " << vramHeap.GetHalfCapacity() << " words ("
+                            << (vramHeap.GetHalfCapacity() * 4 / 1024) << " KB) each";
+}
+
+PassManager::PassManager() : PassManager(ProbeVramBase(), GRAPH_VRAM_MAX_WORDS - ProbeVramBase())
+{
+}
+
+PassManager::~PassManager()
+{
+    for (SinglePass &pass : passCollection)
+    {
+        for (VramTexture &vramTexture : pass.GetVramTextures())
+        {
+            vramTexture.OnEvicted();
+        }
+    }
+}
+
+u32 PassManager::ProbeVramBase()
+{
+    const int base = graph_vram_allocate(0, 0, GS_PSM_32, GRAPH_ALIGN_BLOCK);
+    LOG_INFO("GRAPH VRAM ALLOC returned ") << base;
+    if (base < 0)
+        LOG_INFO("Something went wrong during probing");
+    return base > 0 ? static_cast<u32>(base) : 0u;
+}
+
 bool PassManager::GenerateRenderingPasses(const std::vector<Model> &models)
 {
     ClearPlan();
@@ -30,7 +67,7 @@ bool PassManager::GenerateRenderingPasses(const std::vector<Model> &models)
 
     for (const Model &model : models)
     {
-        const std::shared_ptr<Texture> texturePtr = model.GetTextureById(0);
+        const std::shared_ptr<graphics::Texture> texturePtr = model.GetTextureById(0);
         
         // TODO: handle models without textures and take this logic out
         if (texturePtr == nullptr)
@@ -186,41 +223,6 @@ void PassManager::WaitFence()
     fencePending = false;
 }
 
-PassManager::PassManager(u32 baseWords, u32 sizeWords)
-    : vramHeap(baseWords, sizeWords), stats(), currentPassIdx(0), fencePending(false), 
-      dynamicPacket{SmartPacket{packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free},
-                    SmartPacket{packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free}}
-{
-    halfLoaded[0] = -1;
-    halfLoaded[1] = -1;
-
-    LOG_INFO("Cache base=") << vramHeap.GetBase() << " words, 2 halves of " << vramHeap.GetHalfCapacity() << " words ("
-                            << (vramHeap.GetHalfCapacity() * 4 / 1024) << " KB) each";
-}
-
-PassManager::PassManager() : PassManager(ProbeVramBase(), GRAPH_VRAM_MAX_WORDS - ProbeVramBase())
-{
-}
-
-PassManager::~PassManager()
-{
-    for (SinglePass &pass : passCollection)
-    {
-        for (VramTexture &vramTexture : pass.GetVramTextures())
-        {
-            vramTexture.OnEvicted();
-        }
-    }
-}
-
-u32 PassManager::ProbeVramBase()
-{
-    const int base = graph_vram_allocate(0, 0, GS_PSM_32, GRAPH_ALIGN_BLOCK);
-    LOG_INFO("GRAPH VRAM ALLOC returned ") << base;
-    if (base < 0)
-        LOG_INFO("Something went wrong during probing");
-    return base > 0 ? static_cast<u32>(base) : 0u;
-}
 
 void PassManager::ClearPlan()
 {

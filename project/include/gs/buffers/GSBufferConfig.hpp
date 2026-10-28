@@ -1,11 +1,10 @@
-
 #ifndef GS_BUFFER_CONFIG_HPP
 #define GS_BUFFER_CONFIG_HPP
 
-namespace Buffers
+namespace GS::Buffers
 {
 
-enum GSPixelStorageMethod : unsigned int
+enum class GSPixelStorageMethod : unsigned int
 {
     PSM_32 = 0x00,
     /** 24 bits per pixel. */
@@ -36,7 +35,7 @@ enum GSPixelStorageMethod : unsigned int
     PSMZ_16S = 0x3A
 };
 
-enum GSZbufferStorageMethodEnum : unsigned int
+enum class GSZbufferStorageMethodEnum : unsigned int
 {
     /* 32 bit zbuffer */
     ZBUF_32 = 0x00,
@@ -48,7 +47,7 @@ enum GSZbufferStorageMethodEnum : unsigned int
     ZBUF_16S = 0x0A
 };
 
-enum ZbufferTestMethod : unsigned int
+enum class ZbufferTestMethod : unsigned int
 {
     ALLFAIL = 0,
     ALLPASS = 1,

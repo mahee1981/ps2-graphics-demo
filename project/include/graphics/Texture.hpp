@@ -9,9 +9,8 @@
 #include <packet2.h>
 
 #include <memory>
-#include <string>
 
-#include "graphics/GSBufferConfig.hpp"
+#include "gs/buffers/GSBufferConfig.hpp"
 
 namespace graphics
 {
@@ -51,10 +50,9 @@ class Texture
     std::shared_ptr<packet2_t> GenerateUploadBuffer(u32 vramAddres, bool partOfCallChain = false) const;
 
   private:
-    std::string imgPath;
     std::shared_ptr<unsigned char> imageData;
     int width, height, nrChannels;
-    Buffers::GSPixelStorageMethod pixelStorageMethod;
+    GS::Buffers::GSPixelStorageMethod pixelStorageMethod;
     u32 textureID;
 
 

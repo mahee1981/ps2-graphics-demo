@@ -1,6 +1,8 @@
 #ifndef ALPHA_TEST_CONFIG_HPP
 #define ALPHA_TEST_CONFIG_HPP
 
+namespace GS::Config
+{
 enum class AlphaTestMethod : unsigned char
 {
     NEVER = 0,
@@ -19,4 +21,5 @@ enum class AlphaTestOnFail : unsigned char
     ZB_UPDATE_ONLY = 2,
     RGB_UPDATE_ONLY = 3
 };
+}
 #endif

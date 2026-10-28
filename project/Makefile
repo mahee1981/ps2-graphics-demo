@@ -39,8 +39,8 @@ output-dirs:
 	@mkdir -p $(BIN_DIR)/external
 	@mkdir -p $(BIN_DIR)/common
 	@mkdir -p $(BIN_DIR)/light
-	@mkdir -p $(BIN_DIR)/CAT
-	@mkdir -p $(BIN_DIR)/CAT
+	@mkdir -p $(BIN_DIR)/gs/config
+	@mkdir -p $(BIN_DIR)/gs/buffers
 	cp -r $(RESOURCES)/* $(BIN_DIR)/
 
 

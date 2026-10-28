@@ -1,9 +1,9 @@
+#include <algorithm>
+
 #include "renderer/model.hpp"
 #include "logging/log.hpp"
 #include "renderer/mesh.hpp"
 #include "utils.hpp"
-#include <iostream>
-#include <algorithm>
 
 namespace Renderer
 {
@@ -34,13 +34,11 @@ void Model::Update()
 }
 
 // TODO: Move to a system maybe?
-
 void Model::LoadModel(const char *fileName, const char *material_search_path)
 {
     tinyobj::ObjReaderConfig reader_config;
     if (material_search_path != nullptr)
         reader_config.mtl_search_path = material_search_path; // Path to material files
-    reader_config.vertex_color = true;
     reader_config.triangulate = true;
 
     tinyobj::ObjReader reader;
@@ -112,7 +110,7 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
                 }
                 else
                 {
-                    LOG_ERROR("No normal found for vertex, adding default");
+                    LOG_WARNING("No normal found for vertex, adding default");
                     newMesh[materialIdx].Normals[currMatMeshIdx] = ps2math::Vec4{1.0f, 1.0f, 1.0f, 0.0f};
                 }
 
@@ -131,15 +129,14 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
             index_offset += fv;
             materialMeshIdx += fv;
         }
-        // packetedMeshList.emplace_back(PacketedMesh(newMesh.Vertices, newMesh.Normals, newMesh.Texels));
     }
 }
 
 std::unordered_map<Model::MaterialIndex, Model::NumberOfVertices> Model::CountVerticesPerMaterial(const std::vector<int> &materialIds)
 {
     std::unordered_map<Model::MaterialIndex, Model::NumberOfVertices> materialToNumVerticesMap;
-    for (int v : materialIds)
-        materialToNumVerticesMap[v] += 3;
+    for (int materialId : materialIds)
+        materialToNumVerticesMap[materialId] += 3;
 
     return materialToNumVerticesMap;
 }

@@ -45,7 +45,6 @@ class VU1Renderer3DBase : public IRenderer3D
     void SendDynamicModelData(const ps2math::Mat4 &mvp,
                               const ps2math::Mat4 &modelMatrix,
                               const Light::BaseLight &light,
-                              const std::shared_ptr<Texture> &texture,
                               const ps2math::Vec4 &cameraPos);
     void RenderChunck(packet2_t *bufferHeader,
                       const std::size_t vertexCount,

@@ -1,12 +1,11 @@
 #ifndef GSBUFFER_HPP
 #define GSBUFFER_HPP
 
-#include "IDisposable.hpp"
 #include <graph_vram.h>
 
-namespace Buffers
+namespace GS::Buffers
 {
-class GSbuffer : public IDisposable
+class GSbuffer 
 {
   public:
     explicit GSbuffer();
@@ -15,7 +14,6 @@ class GSbuffer : public IDisposable
     const unsigned int GetHeight() const;
     const unsigned int GetAddress() const;
     virtual ~GSbuffer();
-    void Dispose() override;
     virtual int AllocateVRAMForBuffer() = 0;
 
   protected:

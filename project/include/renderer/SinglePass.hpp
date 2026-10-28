@@ -12,6 +12,7 @@ namespace Renderer
 
 class SinglePass
 {
+    using Texture = graphics::Texture;
   private:
     std::vector<VramTexture> vramTextures;
     std::vector<std::size_t> textureToModelIndex; 

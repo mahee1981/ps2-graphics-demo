@@ -1,6 +1,6 @@
-#include "graphics/framebuffer.hpp"
+#include "gs/buffers/Framebuffer.hpp"
 
-namespace Buffers
+namespace GS::Buffers
 {
 
 Framebuffer::Framebuffer() : GSbuffer(), pixelStorageMethod(GSPixelStorageMethod::PSM_32)

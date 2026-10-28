@@ -1,17 +1,18 @@
 #ifndef SINGLE_PASS_COLLECTION
 #define SINGLE_PASS_COLLECTION
 
-#include "graphics/VramHeap.hpp"
 #include <memory>
-#include <renderer/model.hpp>
+#include "renderer/model.hpp"
 #include "renderer/SinglePass.hpp"
+#include "graphics/VramHeap.hpp"
 
 namespace Renderer {
 
 class PassManager
 {
+    using VramHeap = graphics::VramHeap;
   public:
-    bool GenerateRenderingPasses(const std::vector<Model> &models);
+
     // Statistics for one frame, mirroring the measurements in section 6.
     struct Stats
     {
@@ -40,10 +41,10 @@ class PassManager
         return stats;
     }
 
+    bool GenerateRenderingPasses(const std::vector<Model> &models);
     void BeginFrame();
     void PrefetchNextPassTextures();
     void EndPass();
-    void ClearPlan();
     void WaitFence();
     void DebugDump() const;
 
@@ -76,22 +77,24 @@ class PassManager
 
   private:
     using SmartPacket = std::unique_ptr<packet2_t, decltype(&packet2_free)>;
-    VramHeap vramHeap;
-    std::vector<SinglePass> passCollection;
-    bool UploadTexturesFromPass(std::size_t index);
 
     /// Reads internal VRAM bump pointer without consuming anything: a
     /// zero sized request makes graph_vram_size() return 0, so
     /// graph_vram_allocate() hands back the current pointer unchanged.
     /// That pointer is the first word not already taken by the fbuf and Zbuff
     static u32 ProbeVramBase();
-    u32 GetResidentCount() const;
 
+    u32 GetResidentCount() const;
+    bool UploadTexturesFromPass(std::size_t index);
+    void ClearPlan();
+
+    alignas(64) std::array<SmartPacket, 2> dynamicPacket;
+    VramHeap vramHeap;
+    std::vector<SinglePass> passCollection;
     int halfLoaded[VramHeap::HALF_COUNT]; ///< pass laid out in each half, or -1
     Stats stats;
     u32 currentPassIdx;
     bool fencePending;
-    alignas(64) std::array<SmartPacket, 2> dynamicPacket;
     // Take all the textures currently loaded
     // make passes based on the textures that can fit into one half of remaining VRAM
     // use the picked textures to pick the models and meshes

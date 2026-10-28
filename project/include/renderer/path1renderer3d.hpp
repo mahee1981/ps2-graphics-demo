@@ -2,17 +2,15 @@
 #define PATH1_RENDERER_3D
 
 #include "VU0Math/vec4.hpp"
-#include "graphics/TextureLoader.hpp"
 #include "renderer/PassManager.hpp"
 #include "renderer/vu1renderer3dbase.hpp"
-#include <memory>
 
 namespace Renderer
 {
 class Path1Renderer3D : public VU1Renderer3DBase
 {
   public:
-    Path1Renderer3D(int width, int height, std::shared_ptr<ITextureLoader> textureLoader);
+    Path1Renderer3D(int width, int height);
     ~Path1Renderer3D() = default;
     const ps2math::Mat4 &GetPerspectiveMatrix() const override
     {

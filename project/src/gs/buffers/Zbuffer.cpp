@@ -1,11 +1,11 @@
-#include "graphics/zbuffer.hpp"
+#include "gs/buffers/Zbuffer.hpp"
 
-namespace Buffers
+namespace GS::Buffers
 {
 
 ZBuffer::ZBuffer()
-    : GSbuffer(), enable(true), method(ZbufferTestMethod::GREATER_EQUAL),
-      zbufferStorageMethod(GSZbufferStorageMethodEnum::ZBUF_24)
+    : GSbuffer(),  method(ZbufferTestMethod::GREATER_EQUAL),
+      zbufferStorageMethod(GSZbufferStorageMethodEnum::ZBUF_24), enable(true)
 {
 }
 
@@ -15,7 +15,7 @@ ZBuffer::ZBuffer(unsigned int width,
                  bool enable,
                  ZbufferTestMethod method,
                  GSZbufferStorageMethodEnum zbufferStorageMethod)
-    : GSbuffer(width, height, mask), enable(enable), method(method), zbufferStorageMethod(zbufferStorageMethod)
+    : GSbuffer(width, height, mask), method(method), zbufferStorageMethod(zbufferStorageMethod), enable(enable)
 {
 }
 

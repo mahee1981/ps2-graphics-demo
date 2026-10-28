@@ -4,10 +4,10 @@
 #include <draw_buffers.h>
 #include <graph.h>
 
-#include "graphics/GSBufferConfig.hpp"
-#include "graphics/GSbuffer.hpp"
+#include "gs/buffers/GSBufferConfig.hpp"
+#include "gs/buffers/GSbuffer.hpp"
 
-namespace Buffers
+namespace GS::Buffers
 {
 
 class Framebuffer : public GSbuffer

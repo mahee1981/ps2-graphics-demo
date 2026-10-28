@@ -56,7 +56,6 @@ void VU1Renderer3DBase::PrepareScaleAndColorPacket()
 void VU1Renderer3DBase::SendDynamicModelData(const ps2math::Mat4 &mvp,
                                              const ps2math::Mat4 &modelMatrix,
                                              const Light::BaseLight &light,
-                                             const std::shared_ptr<Texture> &texture,
                                              const ps2math::Vec4 &cameraPos)
 {
     packet2_t *currentVifPacket = dynamicPacket[context].get();

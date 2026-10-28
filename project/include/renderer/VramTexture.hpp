@@ -8,13 +8,13 @@ namespace Renderer
 class VramTexture
 {
     std::shared_ptr<const graphics::Texture> texturePtr;
+    std::shared_ptr<packet2_t> uploadBuffer;
     u32 vramAddress;
     bool resident;
-    std::shared_ptr<packet2_t> uploadBuffer;
 
   public:
     VramTexture(const std::shared_ptr<graphics::Texture> texturePtr)
-        : texturePtr(texturePtr), vramAddress(0), resident(false), uploadBuffer(nullptr)
+        : texturePtr(texturePtr), uploadBuffer(nullptr), vramAddress(0), resident(false)
     {
     }
     void SetVramAddress(u32 vramAddress);

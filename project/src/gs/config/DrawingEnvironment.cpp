@@ -1,8 +1,12 @@
-#include "graphics/DrawingEnvironment.hpp"
-#include "BlendingConfig.hpp"
-#include "dma.h"
+#include <dma.h>
+#include <packet2.h>
+
+#include "gs/config/DrawingEnvironment.hpp"
+#include "gs/config/BlendingConfig.hpp"
 #include "logging/log.hpp"
-#include "packet2.h"
+
+namespace GS::Config
+{
 
 DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, BufferingConfig config)
     : width(width), height(height), config(config), xOffset(2048.0f - float(width >> 1)),
@@ -19,8 +23,8 @@ DrawingEnvironment::DrawingEnvironment(unsigned int width, unsigned int height, 
 
 void DrawingEnvironment::ConfigureBuffers()
 {
-    framebuffer[0] = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_24);
-    zbuffer = std::make_unique<ZBuffer>(width,
+    framebuffer[0] = std::make_unique<Buffers::Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_24);
+    zbuffer = std::make_unique<Buffers::ZBuffer>(width,
                                         height,
                                         0,
                                         true,
@@ -29,11 +33,11 @@ void DrawingEnvironment::ConfigureBuffers()
 
     if (config == BufferingConfig::DOUBLE_BUFFER)
     {
-        framebuffer[1] = std::make_unique<Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_24);
+        framebuffer[1] = std::make_unique<Buffers::Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_24);
     }
 }
 
-void DrawingEnvironment::InitializeEnvironment()
+void DrawingEnvironment::Initialize()
 {
     AllocateBuffers();
 
@@ -60,7 +64,6 @@ void DrawingEnvironment::SwapBuffers()
     packet2_update(flipPacket.get(), draw_framebuffer(flipPacket->next, 0, &sdkFB));
     packet2_update(flipPacket.get(), draw_finish(flipPacket->next));
 
-    // dma_wait_fast();
     dma_channel_wait(DMA_CHANNEL_GIF, 0);
     dma_channel_send_packet2(flipPacket.get(), DMA_CHANNEL_GIF, 0);
 
@@ -262,7 +265,7 @@ u64 DrawingEnvironment::GetAlphaAndDepthTestSettings() const
 
 u64 DrawingEnvironment::GetDisabledAlphaAndDepthTestSettings() const
 {
-    return (static_cast<u64>(ZbufferTestMethod::ALLPASS) & 0x03) << 17 | u64(0x01) << 16 |
+    return (static_cast<u64>(Buffers::ZbufferTestMethod::ALLPASS) & 0x03) << 17 | u64(0x01) << 16 |
            alphaTest.GetAlphaTestSettings();
 }
 
@@ -288,4 +291,5 @@ u64 DrawingEnvironment::GetTextureWrappingSettings(TextureWrappingOptions wrapOp
     return ((static_cast<u64>(maxV) & 0x3FF) << 34) | ((static_cast<u64>(minV) & 0x3FF) << 24) |
            ((static_cast<u64>(maxU) & 0x3FF) << 14) | ((static_cast<u64>(minU) & 0x3FF) << 4) |
            ((static_cast<u64>(wrapOptions) & 0x03) << 2) | (static_cast<u64>(wrapOptions) & 0x03);
+}
 }

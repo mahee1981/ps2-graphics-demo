@@ -19,8 +19,8 @@ class STBITextureLoader : public ITextureLoader
     };
     STBITextureLoader();
   private:
-    u64 idKey;
     std::vector<std::shared_ptr<Texture>> textures;
+    u64 idKey;
 };
 
 } // namespace graphics

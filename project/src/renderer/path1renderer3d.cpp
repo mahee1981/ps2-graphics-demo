@@ -1,14 +1,12 @@
-#include <memory>
 #include <packet2_utils.h>
-
+#include <dma.h>
+#include <draw.h>
 
 #include "renderer/path1renderer3d.hpp"
-#include "dma.h"
-#include "draw.h"
 
 namespace Renderer
 {
-Path1Renderer3D::Path1Renderer3D(int width, int height, std::shared_ptr<ITextureLoader> textureLoader)
+Path1Renderer3D::Path1Renderer3D(int width, int height)
     : VU1Renderer3DBase(width, height),
       passManager(), isStartOfNewChain(true) 
 {
@@ -139,7 +137,7 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
             ps2math::Mat4 mvp = model.GetWorldMatrix() * viewProjMat;
             // TODO: move texture out of model and look up per material
             const u64 modelTextureBindData = currentPass.GetModelTextureBindSettings(model);
-            SendDynamicModelData(mvp, modelMatrix, mainLight, model.GetTextureById(0), cameraPos);
+            SendDynamicModelData(mvp, modelMatrix, mainLight, cameraPos);
             RenderMeshes(trianglesRendered, model, modelTextureBindData);
         }
 

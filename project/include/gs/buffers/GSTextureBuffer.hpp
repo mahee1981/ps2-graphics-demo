@@ -1,10 +1,10 @@
 #ifndef GS_TEXTURE_BUFFER
 #define GS_TEXTURE_BUFFER
 
-#include "graphics/GSBufferConfig.hpp"
-#include "graphics/GSbuffer.hpp"
+#include "gs/buffers/GSBufferConfig.hpp"
+#include "gs/buffers/GSbuffer.hpp"
 
-namespace Buffers
+namespace GS::Buffers
 {
 class GSTextureBuffer : public GSbuffer
 {
