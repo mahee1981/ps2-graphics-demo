@@ -12,10 +12,10 @@
 #include "VU0Math/mat4.hpp"
 #include "VU0Math/vec4.hpp"
 #include "components/transform.hpp"
-#include "gs/config/DrawingEnvironment.hpp"
 #include "graphics/STBITextureLoader.hpp"
 #include "graphics/Texture.hpp"
 #include "graphics/TextureLoader.hpp"
+#include "gs/config/DrawingEnvironment.hpp"
 #include "input/padman.hpp"
 #include "light/BaseLight.hpp"
 #include "logging/log.hpp"
@@ -51,10 +51,12 @@ void render()
     dma_channel_fast_waits(DMA_CHANNEL_GIF);
 
     LOG_INFO("Size of std::vector<MaterialMesh> ->  ") << sizeof(std::vector<MaterialMesh>);
-    LOG_INFO("Size of std::vector<std::shared_ptr<graphics::Texture>> ->  ") << sizeof(std::vector<std::shared_ptr<graphics::Texture>>);
-    LOG_INFO("Size of Mat4 ->  ") << sizeof(ps2math::Mat4); // need to align
+    LOG_INFO("Size of std::vector<std::shared_ptr<graphics::Texture>> ->  ")
+        << sizeof(std::vector<std::shared_ptr<graphics::Texture>>);
+    LOG_INFO("Size of Mat4 ->  ") << sizeof(ps2math::Mat4);              // need to align
     LOG_INFO("Size of Transform ->  ") << sizeof(Components::Transform); // need to align
-    LOG_INFO("Size of std::unordered_map<MaterialIndex, NumberOfVertices> ->") << sizeof(std::unordered_map<int, std::size_t>); // need to align
+    LOG_INFO("Size of std::unordered_map<MaterialIndex, NumberOfVertices> ->")
+        << sizeof(std::unordered_map<int, std::size_t>); // need to align
 
     LOG_INFO("Starting to init GS and draw environment");
 
@@ -80,13 +82,17 @@ void render()
 
     drawEnv.ClearScreen();
 
-    std::vector<std::string> texturePaths{"BLANK_TEX.PNG", "HIDEFCAT/Cat_diffuse.jpg", "AIRPLANE/AIRPLANE_TEX2.PNG", "AIRPLANE/AIRPLANE_TEX.PNG", "brick_wall_128.png"};
+    std::vector<std::string> texturePaths{"BLANK_TEX.PNG",
+                                          "CAT/TEX_CAT.PNG",
+                                          "AIRPLANE/AIRPLANE_TEX2.PNG",
+                                          "AIRPLANE/AIRPLANE_TEX.PNG",
+                                          "brick_wall_128.png"};
     textureLoader->LoadTexturesToRAM(texturePaths);
     auto textureList = textureLoader->GetTextures();
-    
+
     auto textureItr = textureList.begin();
     auto f1CarTex = *textureItr;
-    
+
     std::advance(textureItr, 1);
     auto bigCatTex = *textureItr;
 
@@ -108,7 +114,7 @@ void render()
     modelList.emplace_back(Model{ps2math::Vec4{60.0f, -32.0f, -70.0f, 1.0f}});
     modelList.emplace_back(Model{ps2math::Vec4{0.0f, -62.0f, -70.0f, 1.0f}});
 
-    modelList[0].LoadModel("HIDEFCAT/CAT.OBJ");
+    modelList[0].LoadModel("CAT/MESH_CAT.OBJ");
     modelList[0].GetTransformComponent().RotateXBy(90);
     modelList[0].AddTexture(bigCatTex);
 

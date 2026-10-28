@@ -21,6 +21,6 @@ class AlphaTest
     AlphaTestOnFail onFail;
 };
 
-}
+} // namespace GS::Config
 
 #endif

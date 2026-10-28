@@ -19,8 +19,8 @@ namespace graphics
 /// is no fragmentation to manage and no per-texture lifetime to track.
 ///
 /// All addresses and sizes are in 32-bit words, matching ps2sdk's graph_vram
-/// convention (GRAPH_VRAM_MAX_WORDS == 4MB / 4). 
-/// 
+/// convention (GRAPH_VRAM_MAX_WORDS == 4MB / 4).
+///
 /// Every address handed out is a multiple of GRAPH_ALIGN_BLOCK (64 words /
 /// 256 bytes / one GS block), the granularity of the TBP0 field of TEX0. An
 /// unaligned base would be silently truncated by the 'address >> 6' that builds

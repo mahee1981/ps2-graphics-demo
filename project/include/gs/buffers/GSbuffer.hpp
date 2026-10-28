@@ -5,7 +5,7 @@
 
 namespace GS::Buffers
 {
-class GSbuffer 
+class GSbuffer
 {
   public:
     explicit GSbuffer();
@@ -22,5 +22,5 @@ class GSbuffer
     const int mask;
     unsigned int address;
 };
-} // namespace Buffers
+} // namespace GS::Buffers
 #endif

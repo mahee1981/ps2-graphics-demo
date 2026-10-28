@@ -1,8 +1,8 @@
 #include <algorithm>
 
-#include "renderer/model.hpp"
 #include "logging/log.hpp"
 #include "renderer/mesh.hpp"
+#include "renderer/model.hpp"
 #include "utils.hpp"
 
 namespace Renderer
@@ -132,7 +132,8 @@ void Model::LoadModel(const char *fileName, const char *material_search_path)
     }
 }
 
-std::unordered_map<Model::MaterialIndex, Model::NumberOfVertices> Model::CountVerticesPerMaterial(const std::vector<int> &materialIds)
+std::unordered_map<Model::MaterialIndex, Model::NumberOfVertices> Model::CountVerticesPerMaterial(
+    const std::vector<int> &materialIds)
 {
     std::unordered_map<Model::MaterialIndex, Model::NumberOfVertices> materialToNumVerticesMap;
     for (int materialId : materialIds)

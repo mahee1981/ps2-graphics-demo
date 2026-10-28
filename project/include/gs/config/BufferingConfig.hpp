@@ -10,5 +10,5 @@ enum class BufferingConfig
     DOUBLE_BUFFER
 };
 
-} // namespace Buffers
+} // namespace GS::Config
 #endif

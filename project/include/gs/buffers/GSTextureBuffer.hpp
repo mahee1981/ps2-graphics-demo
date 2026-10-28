@@ -18,6 +18,6 @@ class GSTextureBuffer : public GSbuffer
   private:
     const GSPixelStorageMethod pixelStorageMethod;
 };
-} // namespace Buffers
+} // namespace GS::Buffers
 
 #endif

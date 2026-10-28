@@ -21,5 +21,5 @@ enum class AlphaTestOnFail : unsigned char
     ZB_UPDATE_ONLY = 2,
     RGB_UPDATE_ONLY = 3
 };
-}
+} // namespace GS::Config
 #endif

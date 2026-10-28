@@ -30,5 +30,5 @@ class Framebuffer : public GSbuffer
     const GSPixelStorageMethod pixelStorageMethod;
 };
 
-} // namespace Buffers
+} // namespace GS::Buffers
 #endif

@@ -45,7 +45,10 @@ class Texture
     // TODO: fix for other texture types
     u32 GetVramSizeWords() const;
 
-    inline bool HasPixelData() const { return imageData != nullptr; }
+    inline bool HasPixelData() const
+    {
+        return imageData != nullptr;
+    }
 
     std::shared_ptr<packet2_t> GenerateUploadBuffer(u32 vramAddres, bool partOfCallChain = false) const;
 
@@ -54,8 +57,6 @@ class Texture
     int width, height, nrChannels;
     GS::Buffers::GSPixelStorageMethod pixelStorageMethod;
     u32 textureID;
-
-
 };
 } // namespace graphics
 #endif

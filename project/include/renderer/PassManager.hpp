@@ -1,18 +1,19 @@
 #ifndef SINGLE_PASS_COLLECTION
 #define SINGLE_PASS_COLLECTION
 
-#include <memory>
-#include "renderer/model.hpp"
-#include "renderer/SinglePass.hpp"
 #include "graphics/VramHeap.hpp"
+#include "renderer/SinglePass.hpp"
+#include "renderer/model.hpp"
+#include <memory>
 
-namespace Renderer {
+namespace Renderer
+{
 
 class PassManager
 {
     using VramHeap = graphics::VramHeap;
-  public:
 
+  public:
     // Statistics for one frame, mirroring the measurements in section 6.
     struct Stats
     {
@@ -74,7 +75,6 @@ class PassManager
     PassManager(const PassManager &other) = delete;
     PassManager &operator=(const PassManager &other) = delete;
 
-
   private:
     using SmartPacket = std::unique_ptr<packet2_t, decltype(&packet2_free)>;
 
@@ -100,6 +100,6 @@ class PassManager
     // use the picked textures to pick the models and meshes
     // render as usual and sync on done
 };
-}
+} // namespace Renderer
 
 #endif

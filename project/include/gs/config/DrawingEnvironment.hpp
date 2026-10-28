@@ -21,7 +21,6 @@
 #include "gs/buffers/Zbuffer.hpp"
 #include "packet2_types.h"
 
-
 namespace GS::Config
 {
 
@@ -71,5 +70,5 @@ class DrawingEnvironment
     void SetupGSRegisters(unsigned int context) const;
 };
 
-}
+} // namespace GS::Config
 #endif

@@ -30,4 +30,4 @@ const unsigned int GSbuffer::GetAddress() const
 {
     return address;
 }
-} // namespace Buffers
+} // namespace GS::Buffers

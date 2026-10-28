@@ -1,8 +1,8 @@
 #include <dma.h>
 #include <packet2.h>
 
-#include "gs/config/DrawingEnvironment.hpp"
 #include "gs/config/BlendingConfig.hpp"
+#include "gs/config/DrawingEnvironment.hpp"
 #include "logging/log.hpp"
 
 namespace GS::Config
@@ -25,15 +25,16 @@ void DrawingEnvironment::ConfigureBuffers()
 {
     framebuffer[0] = std::make_unique<Buffers::Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_24);
     zbuffer = std::make_unique<Buffers::ZBuffer>(width,
-                                        height,
-                                        0,
-                                        true,
-                                        Buffers::ZbufferTestMethod::GREATER_EQUAL,
-                                        Buffers::GSZbufferStorageMethodEnum::ZBUF_24);
+                                                 height,
+                                                 0,
+                                                 true,
+                                                 Buffers::ZbufferTestMethod::GREATER_EQUAL,
+                                                 Buffers::GSZbufferStorageMethodEnum::ZBUF_24);
 
     if (config == BufferingConfig::DOUBLE_BUFFER)
     {
-        framebuffer[1] = std::make_unique<Buffers::Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_24);
+        framebuffer[1] =
+            std::make_unique<Buffers::Framebuffer>(width, height, 0, Buffers::GSPixelStorageMethod::PSM_24);
     }
 }
 
@@ -292,4 +293,4 @@ u64 DrawingEnvironment::GetTextureWrappingSettings(TextureWrappingOptions wrapOp
            ((static_cast<u64>(maxU) & 0x3FF) << 14) | ((static_cast<u64>(minU) & 0x3FF) << 4) |
            ((static_cast<u64>(wrapOptions) & 0x03) << 2) | (static_cast<u64>(wrapOptions) & 0x03);
 }
-}
+} // namespace GS::Config

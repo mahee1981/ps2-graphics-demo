@@ -172,6 +172,5 @@ std::shared_ptr<packet2_t> Texture::GenerateUploadBuffer(u32 vramAddress, bool i
         packet2_add_u128(chain_packet.get(), qword.qw);
     }
     return chain_packet;
-    
 }
 } // namespace graphics

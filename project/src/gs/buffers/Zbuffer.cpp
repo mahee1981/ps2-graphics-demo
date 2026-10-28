@@ -4,8 +4,8 @@ namespace GS::Buffers
 {
 
 ZBuffer::ZBuffer()
-    : GSbuffer(),  method(ZbufferTestMethod::GREATER_EQUAL),
-      zbufferStorageMethod(GSZbufferStorageMethodEnum::ZBUF_24), enable(true)
+    : GSbuffer(), method(ZbufferTestMethod::GREATER_EQUAL), zbufferStorageMethod(GSZbufferStorageMethodEnum::ZBUF_24),
+      enable(true)
 {
 }
 
@@ -43,4 +43,4 @@ ZbufferTestMethod ZBuffer::GetDepthTestMethod() const
 {
     return method;
 }
-} // namespace Buffers
+} // namespace GS::Buffers

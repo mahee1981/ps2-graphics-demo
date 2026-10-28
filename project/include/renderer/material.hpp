@@ -10,7 +10,8 @@ namespace Renderer
 class Material
 {
     ps2math::Vec4 diffuseColor{0.0f, 0.0f, 0.0f, 1.0f};
-    std::string texturePath; 
+    std::string texturePath;
+
   public:
     Material(ps2math::Vec4 diffuseColor, std::string texturePath);
     Material() = default;

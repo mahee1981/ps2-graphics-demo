@@ -16,5 +16,5 @@ enum class AlphaBlendingAlphaConfig : unsigned char
     ALPHA_DESTINATION = 1,
     ALPHA_FIXED = 2
 };
-}
+} // namespace GS::Config
 #endif

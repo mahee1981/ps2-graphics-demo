@@ -54,7 +54,6 @@ class Model
     {
         // TODO: materail ID might be -1 so need to handle that with default
         return materialLUT[id];
-
     }
 
     inline void AddTexture(std::shared_ptr<Texture> texPtr)
@@ -62,24 +61,24 @@ class Model
         _textureList.push_back(texPtr);
     }
 
-    inline u32 GetId() const 
+    inline u32 GetId() const
     {
         return id;
     }
 
   private:
-    ps2math::Mat4 _worldMatrix; // 64 bytes
+    ps2math::Mat4 _worldMatrix;                // 64 bytes
     Components::Transform _transformComponent; // 32 bytes
     using NumberOfVertices = std::size_t;
     using MaterialIndex = int;
-    std::unordered_map<MaterialIndex, NumberOfVertices> CountVerticesPerMaterial(const std::vector<int> &materialIds); // 28 bytes
-    std::vector<MaterialMesh> meshList; // 12 bytes
+    std::unordered_map<MaterialIndex, NumberOfVertices> CountVerticesPerMaterial(
+        const std::vector<int> &materialIds);           // 28 bytes
+    std::vector<MaterialMesh> meshList;                 // 12 bytes
     std::vector<std::shared_ptr<Texture>> _textureList; // 12 bytes
-    std::vector<Material> materialLUT; // 12 bytes 
+    std::vector<Material> materialLUT;                  // 12 bytes
     u32 id;
 
     static u32 idCnt;
-
 };
 } // namespace Renderer
 #endif

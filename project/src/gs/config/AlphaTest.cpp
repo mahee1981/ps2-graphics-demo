@@ -14,4 +14,4 @@ u64 AlphaTest::GetAlphaTestSettings() const
            (static_cast<u64>(testMethod) & 0x07) << 1 | u64(isEnabled & 0x01);
 }
 
-}
+} // namespace GS::Config

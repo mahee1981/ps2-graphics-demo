@@ -1,14 +1,13 @@
-#include <packet2_utils.h>
 #include <dma.h>
 #include <draw.h>
+#include <packet2_utils.h>
 
 #include "renderer/path1renderer3d.hpp"
 
 namespace Renderer
 {
 Path1Renderer3D::Path1Renderer3D(int width, int height)
-    : VU1Renderer3DBase(width, height),
-      passManager(), isStartOfNewChain(true) 
+    : VU1Renderer3DBase(width, height), passManager(), isStartOfNewChain(true)
 {
 }
 
@@ -118,7 +117,6 @@ void Path1Renderer3D::DoRenderFrame(const std::vector<Model> &models,
     // kick off path 1
     // kick off path 3
     // repeat
-    
 
     passManager.GenerateRenderingPasses(models);
 
@@ -165,19 +163,14 @@ void Path1Renderer3D::AddVertCountGIFTagAndMaterial(packet2_t *vu1Packet,
         packet2_add_float(vu1Packet, 128 * diffuseColor.g);
         packet2_add_float(vu1Packet, 128 * diffuseColor.b);
         packet2_add_u32(vu1Packet, numOfVertices);
-        packet2_utils_gs_add_prim_giftag(vu1Packet,
-                                         &primitiveTypeConfig,
-                                         numOfVertices,
-                                         DRAW_STQ2_REGLIST,
-                                         3,
-                                         0);
+        packet2_utils_gs_add_prim_giftag(vu1Packet, &primitiveTypeConfig, numOfVertices, DRAW_STQ2_REGLIST, 3, 0);
 
         qword_t textureConfig;
         textureConfig.dw[0] = texBindSettings;
         textureConfig.dw[1] = GS_REG_TEX0_1;
         packet2_add_u128(vu1Packet, textureConfig.qw);
     }
-    packet2_utils_vu_close_unpack(vu1Packet); 
+    packet2_utils_vu_close_unpack(vu1Packet);
     vifAddedBytes += 3;
 }
 

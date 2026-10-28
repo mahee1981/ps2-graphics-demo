@@ -1,12 +1,12 @@
-#include <packet2_utils.h>
 #include <debug.h>
+#include <packet2_utils.h>
 
 #include <memory>
 
-#include "renderer/vu1renderer3dbase.hpp"
 #include "VU0Math/vec4.hpp"
 #include "graphics/Texture.hpp"
 #include "logging/log.hpp"
+#include "renderer/vu1renderer3dbase.hpp"
 #include "utils.hpp"
 
 namespace Renderer

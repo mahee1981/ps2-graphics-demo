@@ -2,8 +2,8 @@
 #define SINGLE_PASS_HPP
 
 #include "graphics/Texture.hpp"
-#include "renderer/model.hpp"
 #include "renderer/VramTexture.hpp"
+#include "renderer/model.hpp"
 #include <memory>
 #include <vector>
 
@@ -13,9 +13,10 @@ namespace Renderer
 class SinglePass
 {
     using Texture = graphics::Texture;
+
   private:
     std::vector<VramTexture> vramTextures;
-    std::vector<std::size_t> textureToModelIndex; 
+    std::vector<std::size_t> textureToModelIndex;
     // No models will be added during rendering and none will be destroyed
     // during lifetime of a single pass, so reference_wrappers serves
     // the purpose
@@ -26,7 +27,6 @@ class SinglePass
     int IndexOfVramTextureByTextureId(const u32 textureId) const;
 
   public:
-
     inline u32 GetTotalVramFootprint() const
     {
         return sizeWords;
@@ -47,7 +47,6 @@ class SinglePass
     {
         return models;
     }
-
 
     u64 GetModelTextureBindSettings(const Model &model) const;
 

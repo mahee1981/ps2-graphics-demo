@@ -55,6 +55,6 @@ enum class ZbufferTestMethod : unsigned int
     GREATER = 3
 };
 
-} // namespace Buffers
+} // namespace GS::Buffers
 
 #endif

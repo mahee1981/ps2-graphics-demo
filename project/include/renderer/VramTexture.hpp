@@ -19,7 +19,7 @@ class VramTexture
     }
     void SetVramAddress(u32 vramAddress);
 
-    inline std::shared_ptr<packet2_t> GetDMAPacket() const 
+    inline std::shared_ptr<packet2_t> GetDMAPacket() const
     {
         return uploadBuffer;
     }
@@ -53,6 +53,5 @@ class VramTexture
 
     void OnEvicted();
 };
-}
+} // namespace Renderer
 #endif
-

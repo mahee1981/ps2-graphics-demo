@@ -24,8 +24,7 @@ constexpr u32 MAX_FENCE_SPINS = 50000000u;
 PassManager::PassManager(u32 baseWords, u32 sizeWords)
     : dynamicPacket{SmartPacket{packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free},
                     SmartPacket{packet2_create(30, P2_TYPE_NORMAL, P2_MODE_CHAIN, 0), &packet2_free}},
-      vramHeap(baseWords, sizeWords),
-      stats(), currentPassIdx(0), fencePending(false)
+      vramHeap(baseWords, sizeWords), stats(), currentPassIdx(0), fencePending(false)
 {
     halfLoaded[0] = -1;
     halfLoaded[1] = -1;
@@ -68,7 +67,7 @@ bool PassManager::GenerateRenderingPasses(const std::vector<Model> &models)
     for (const Model &model : models)
     {
         const std::shared_ptr<graphics::Texture> texturePtr = model.GetTextureById(0);
-        
+
         // TODO: handle models without textures and take this logic out
         if (texturePtr == nullptr)
             return false;
@@ -144,7 +143,7 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
     }
 
     // Upload whatever is not in VRAM yet.
-    packet2_t* currentDmaBuffer = dynamicPacket[half].get();
+    packet2_t *currentDmaBuffer = dynamicPacket[half].get();
     packet2_reset(currentDmaBuffer, 0);
 
     for (VramTexture &vramTexture : pass.GetVramTextures())
@@ -167,7 +166,6 @@ bool PassManager::UploadTexturesFromPass(std::size_t passIndex)
     fencePending = true;
     dma_channel_wait(DMA_CHANNEL_GIF, 0);
     dma_channel_send_packet2(currentDmaBuffer, DMA_CHANNEL_GIF, 1);
-
 
     return true;
 }
@@ -222,7 +220,6 @@ void PassManager::WaitFence()
     }
     fencePending = false;
 }
-
 
 void PassManager::ClearPlan()
 {

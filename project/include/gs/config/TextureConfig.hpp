@@ -10,6 +10,6 @@ enum class TextureWrappingOptions : unsigned char
     REGION_CLAMP = 2,
     REGION_REPEAT = 3,
 };
-}
+} // namespace GS::Config
 
 #endif

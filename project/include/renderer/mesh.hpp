@@ -13,16 +13,20 @@ namespace Renderer
 {
 class Mesh
 {
-    public:
+  public:
     std::vector<ps2math::Vec4> Vertices;
     std::vector<ps2math::Vec4> Normals;
     std::vector<ps2math::Vec4> Texels;
     Mesh(std::size_t count = 0) : Vertices(count), Normals(count), Texels(count), initialCount(count)
     {
     }
-    std::size_t GetInitialCount() const { return initialCount; }
-    private:
-      std::size_t initialCount;
+    std::size_t GetInitialCount() const
+    {
+        return initialCount;
+    }
+
+  private:
+    std::size_t initialCount;
 };
 
 class MaterialMesh
@@ -33,8 +37,8 @@ class MaterialMesh
 
   public:
     MaterialMesh(const std::unordered_map<MaterialIndex, NumberOfVertices> &materialToFaceCountMap);
-    Mesh& operator[](int index);
-    const Mesh& operator[](int index) const;
+    Mesh &operator[](int index);
+    const Mesh &operator[](int index) const;
     inline std::size_t GetMaterialCount() const
     {
         return meshPerMaterialMap.size();
@@ -44,17 +48,27 @@ class MaterialMesh
         return numVertices;
     }
 
-    MeshMaterialMap::iterator begin() { return meshPerMaterialMap.begin(); }
-    MeshMaterialMap::const_iterator begin() const { return meshPerMaterialMap.begin(); }
+    MeshMaterialMap::iterator begin()
+    {
+        return meshPerMaterialMap.begin();
+    }
+    MeshMaterialMap::const_iterator begin() const
+    {
+        return meshPerMaterialMap.begin();
+    }
 
-    MeshMaterialMap::iterator end() { return meshPerMaterialMap.end(); }
-    MeshMaterialMap::const_iterator end() const { return meshPerMaterialMap.end(); }
-    
+    MeshMaterialMap::iterator end()
+    {
+        return meshPerMaterialMap.end();
+    }
+    MeshMaterialMap::const_iterator end() const
+    {
+        return meshPerMaterialMap.end();
+    }
+
   private:
     MeshMaterialMap meshPerMaterialMap;
     std::size_t numVertices;
-
-
 };
 } // namespace Renderer
 #endif

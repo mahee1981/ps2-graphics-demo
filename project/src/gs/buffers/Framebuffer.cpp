@@ -48,4 +48,4 @@ u64 Framebuffer::GetBufferSettings() const
             u64((address >> 11) & 0x1FF));
 }
 
-} // namespace Buffers
+} // namespace GS::Buffers

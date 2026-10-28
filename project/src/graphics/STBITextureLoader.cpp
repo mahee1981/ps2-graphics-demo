@@ -3,7 +3,9 @@
 namespace graphics
 {
 
-STBITextureLoader::STBITextureLoader() : idKey(0) {}
+STBITextureLoader::STBITextureLoader() : idKey(0)
+{
+}
 
 std::shared_ptr<unsigned char> STBITextureLoader::GetBytes(const char *image_path,
                                                            int &width,
@@ -18,7 +20,7 @@ void STBITextureLoader::LoadTexturesToRAM(const std::vector<std::string> &textur
 {
     for (auto &&texturePath : texturePaths)
     {
-        int width, height,nrChannels;
+        int width, height, nrChannels;
         std::shared_ptr<u8> bytes = GetBytes(texturePath.c_str(), width, height, nrChannels);
         auto currTexture = std::make_shared<graphics::Texture>(idKey++,
                                                                bytes,

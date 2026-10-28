@@ -52,12 +52,12 @@ int SinglePass::IndexOfVramTextureByTextureId(const u32 textureId) const
             return i;
     }
     return -1;
-
 }
 
 void SinglePass::DumpPassInfo() const
 {
-    LOG_INFO("Current pass info: number of textures: ") << vramTextures.size() << ", number of models: " << models.size(); 
+    LOG_INFO("Current pass info: number of textures: ")
+        << vramTextures.size() << ", number of models: " << models.size();
 }
 
-}
+} // namespace Renderer

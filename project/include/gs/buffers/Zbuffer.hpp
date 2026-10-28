@@ -29,5 +29,5 @@ class ZBuffer : public GSbuffer
     bool enable;
 };
 
-} // namespace Buffers
+} // namespace GS::Buffers
 #endif

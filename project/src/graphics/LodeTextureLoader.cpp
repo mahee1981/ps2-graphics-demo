@@ -5,7 +5,9 @@
 namespace graphics
 {
 
-LODETextureLoader::LODETextureLoader() : idKey(0) {}
+LODETextureLoader::LODETextureLoader() : idKey(0)
+{
+}
 
 std::shared_ptr<unsigned char> LODETextureLoader::GetBytes(const char *image_path,
                                                            int &width,
@@ -24,12 +26,11 @@ std::shared_ptr<unsigned char> LODETextureLoader::GetBytes(const char *image_pat
     return ptr;
 }
 
-
 void LODETextureLoader::LoadTexturesToRAM(const std::vector<std::string> &texturePaths)
 {
     for (auto &&texturePath : texturePaths)
     {
-        int width, height,nrChannels;
+        int width, height, nrChannels;
         std::shared_ptr<u8> bytes = GetBytes(texturePath.c_str(), width, height, nrChannels);
         auto currTexture = std::make_shared<graphics::Texture>(idKey++,
                                                                bytes,

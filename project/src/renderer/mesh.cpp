@@ -19,17 +19,15 @@ MaterialMesh::MaterialMesh(const std::unordered_map<MaterialIndex, NumberOfVerti
         std::accumulate(materialToVertexCountMap.begin(),
                         materialToVertexCountMap.end(),
                         0,
-                        [](int sum, const std::pair<MaterialIndex, NumberOfVertices> &kv) {
-                            return sum + kv.second;
-                        });
+                        [](int sum, const std::pair<MaterialIndex, NumberOfVertices> &kv) { return sum + kv.second; });
 }
 
-Mesh& MaterialMesh::operator[](int index)
+Mesh &MaterialMesh::operator[](int index)
 {
     return meshPerMaterialMap[index];
 }
 
-const Mesh& MaterialMesh::operator[](int index) const
+const Mesh &MaterialMesh::operator[](int index) const
 {
     return meshPerMaterialMap.at(index);
 }
