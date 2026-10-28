@@ -9,8 +9,7 @@
 		"dockerfile": "../Dockerfile"
 	},
 	"postCreateCommand": "cp -r /dependencies/lib /workspaces/ps2-graphics-demo/project",
-	"remoteUser": "adnan",
-	"containerUser": "adnan",
+	// "containerUser": "adnan",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
@@ -29,7 +28,8 @@
 			},
 			"extensions": [
 				"ms-vscode.cpptools-extension-pack",
-				"ms-vscode.makefile-tools"
+				"ms-vscode.makefile-tools",
+				"llvm-vs-code-extensions.vscode-clangd",
 			]
 		}
 	}

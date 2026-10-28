@@ -2,54 +2,49 @@
 #define PATH1_RENDERER_3D
 
 #include "VU0Math/vec4.hpp"
-#include "graphics/Texture.hpp"
-#include "interfaces/IRenderer3D.hpp"
-#include "tools/Deltawatch.hpp"
-#include <array>
-#include <memory>
+#include "renderer/PassManager.hpp"
+#include "renderer/vu1renderer3dbase.hpp"
 
 namespace Renderer
 {
-class Path1Renderer3D : public IRenderer3D
+class Path1Renderer3D : public VU1Renderer3DBase
 {
   public:
     Path1Renderer3D(int width, int height);
-    ~Path1Renderer3D();
-    void SetPerspectiveMatrix(float angleRadians, float aspecRation, float near, float far) override;
+    ~Path1Renderer3D() = default;
     const ps2math::Mat4 &GetPerspectiveMatrix() const override
     {
         return _perspectiveMatrix;
     }
-    void RenderFrame(const std::vector<Model> &models,
-                     const Light::BaseLight &mainLight,
-                     const ps2math::Mat4 &viewProjMatrix,
-                     const ps2math::Vec4 &cameraPos) override;
-    void ToggleDebugPrint() override;
-    void UploadVU1MicroProgram(u32 *VU1Draw3D_CodeStart, u32 *VU1Draw3D_CodeEnd);
-    void SetDoubleBufferSettings();
+    void DoRenderFrame(const std::vector<Model> &models,
+                       const Light::BaseLight &mainLight,
+                       const ps2math::Mat4 &viewProjMatrix,
+                       const ps2math::Vec4 &cameraPos) override;
 
   private:
-    using SmartPacket = std::unique_ptr<packet2_t, decltype(&packet2_free)>;
-    float _screenWidth;
-    float _screenHeight;
-    ps2math::Mat4 _perspectiveMatrix;
-    alignas(64) std::array<SmartPacket, 2> dynamicPacket;
-    SmartPacket staticScaleAndColorPacket;
-    SmartPacket bufferHeader;
-    std::size_t context;
-    Deltawatch lastDisplayListPrepWatch;
+    // must be divisble by 3 so you avoid atrifacts between batches dumass
+    static constexpr u32 MAX_VERTEXDATA_PER_VIF_PACKET = 78;
     static prim_t primitiveTypeConfig;
-    void SendDynamicModelData(const ps2math::Mat4 &mvp,
-                              const ps2math::Mat4 &modelMatrix,
-                              const Light::BaseLight &light,
-                              const std::shared_ptr<Texture> &texture,
-                              const ps2math::Vec4 &cameraPos);
-    void RenderChunck(packet2_t *bufferHeader,
-                      const std::size_t vertexCount,
+
+    char trianglesRenderedMessageBuff[70];
+    PassManager passManager;
+    bool isStartOfNewChain;
+
+    void RenderChunck(const std::size_t vertexCount,
                       const Mesh &mesh,
-                      const std::size_t offset);
-    void PrepareScaleAndColorPacket();
-    bool isDebuggingEnabled;
+                      const Material &material,
+                      const u64 texBindSettings,
+                      std::size_t offset);
+    // Adds vertex count and GIF tag to outgoing VU1 packet
+    inline void AddVertCountGIFTagAndMaterial(packet2_t *vu1Packet,
+                                              u32 numOfVertices,
+                                              const Material &material,
+                                              const u64 texBindSettings,
+                                              u32 &vifAddedBytes);
+    inline void AddProgramStartCode(packet2_t *vu1Packet);
+    inline void AddProgramContinueCode(packet2_t *vu1Packet);
+    inline void SendPacketAndChangeContext(packet2_t *vu1Packet);
+    void RenderMeshes(unsigned long long &trianglesRendered, const Model &model, const u64 modelTextureBindSettings);
 };
 
 } // namespace Renderer

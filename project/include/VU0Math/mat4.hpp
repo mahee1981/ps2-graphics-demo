@@ -34,6 +34,7 @@ class Mat4
     ~Mat4();
 
     Mat4 &operator=(const Mat4 &rhs);
+    Mat4(const Mat4 &rhs);
 
     Mat4 Transpose() const;
 

@@ -1,39 +1,60 @@
 #include "graphics/Texture.hpp"
-#include "graphics/GSBufferConfig.hpp"
+#include "gs/buffers/GSBufferConfig.hpp"
+#include "packet2_types.h"
 
 namespace graphics
 {
 
-Texture::Texture(const char *pathToImg)
-    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr)
+Texture::Texture(u32 id, std::shared_ptr<u8> bytes, u32 width, u32 height, u32 nrChannels)
+    : imageData(bytes), width(width), height(height), nrChannels(nrChannels),
+      pixelStorageMethod(GS::Buffers::GSPixelStorageMethod::PSM_24), textureID(id)
 {
 }
 
-Texture::Texture(std::string pathToImg)
-    : imgPath(pathToImg), imageData(nullptr), width(0), height(0), nrChannels(0), gsTextureBuffer(nullptr)
+// FOR NOW HARDCODED
+void Texture::SetTexSamplingMethodInGS()
 {
+    using Packet2Deleter = void (*)(packet2_t *);
+    std::unique_ptr<packet2_t, Packet2Deleter> normal_packet{packet2_create(5, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0),
+                                                             &packet2_free};
+    lod_t lod;
+
+    lod.calculation = LOD_USE_K;
+    lod.max_level = 0;
+    lod.mag_filter = LOD_MAG_NEAREST;
+    lod.min_filter = LOD_MIN_NEAREST;
+    lod.l = 0;
+    lod.k = 0;
+
+    packet2_update(normal_packet.get(), draw_texture_sampling(normal_packet->next, 0, &lod));
+
+    dma_channel_send_packet2(normal_packet.get(), DMA_CHANNEL_GIF, 0);
+    dma_wait_fast();
 }
 
-Texture::~Texture()
+u64 Texture::GetTexGSSettings(u32 vramAddress) const
 {
+    return ((u64(vramAddress) >> 6) & 0x3fff) | (((u64(width) >> 6) & 0x3f) << 14) |
+           ((u64(pixelStorageMethod) & 0x3f) << 20) | ((u64(draw_log2(width)) & 0xf) << 26) |
+           ((u64(draw_log2(height)) & 0xf) << 30) | ((u64(1) & 0x1) << 34) | // RGB or RGBA
+           ((u64(0) & 0x3) << 35) | 0;
 }
 
-int Texture::AllocateVram()
+// also hardcoded for now
+u32 Texture::GetVramSizeWords() const
 {
-    gsTextureBuffer = std::make_unique<Buffers::GSTextureBuffer>(this->width, this->height, Buffers::PSM_24);
-    gsTextureBuffer->AllocateVRAMForBuffer();
-    return this->gsTextureBuffer->GetVramAddress();
+    return width * height;
 }
 
-void Texture::TransferTextureToGS()
+std::shared_ptr<packet2_t> Texture::GenerateUploadBuffer(u32 vramAddress, bool isPartOfCallChain) const
 {
-    u64 destBufBasePtr = (this->gsTextureBuffer->GetVramAddress() >> 6) & 0x3FFF;
-    u64 destBufWidth = (this->width >> 6) & 0x3F;
-    u64 psm = (Buffers::GSPixelStorageMethod::PSM_24) & 0x3F;
+    u64 destBufBasePtr = (vramAddress >> 6) & 0x3FFF;
+    u64 psmSetting = static_cast<u64>(pixelStorageMethod) & 0x3F;
+    u64 destBufWidth = (width >> 6) & 0x3F;
 
     // BITBLTBUF - setting for transmission between the buffers
     // Transfering from EE to GS does not require a source buffer information
-    u64 gsBitBltBufValue = (destBufBasePtr << 32) | (destBufWidth << 48) | (psm << 56);
+    u64 gsBitBltBufValue = (destBufBasePtr << 32) | (destBufWidth << 48) | (psmSetting << 56);
 
     // TRXPOS - specification of transmission areas in buffers
     //  (i.e. start coordinates of image and transmission direction)
@@ -53,7 +74,7 @@ void Texture::TransferTextureToGS()
                                 (yCoordinateDest) << 48 | (direction << 59);
 
     // TRXREG - width and heigh of texture to be transfered
-    u64 trxRegValue = u64(this->width & 0xFFF) | (u64(this->height & 0xFFF) << 32);
+    u64 trxRegValue = u64(width & 0xFFF) | (u64(height & 0xFFF) << 32);
 
     // TRXDIR - direction of the transmission
     //  00  Host -> Local Transmission
@@ -67,16 +88,16 @@ void Texture::TransferTextureToGS()
     // then also transfer what's left
     constexpr u64 MAX_TRANSFER_SIZE = 0x7FFF; //
     u64 qwordCount = (width * height) >> 2;   // (width*height*32bits)/128bits = (width*height)/4;
-    int numberOfWholeGifBlockIterations = qwordCount / MAX_TRANSFER_SIZE;
-    int remainingData = qwordCount % MAX_TRANSFER_SIZE;
+    u32 numberOfWholeGifBlockIterations = qwordCount / MAX_TRANSFER_SIZE;
+    u64 remainingData = qwordCount % MAX_TRANSFER_SIZE;
 
     // Transfer stuff
-    using SmartPacket = std::unique_ptr<packet2_t, decltype(&packet2_free)>;
-    SmartPacket chain_packet{packet2_create(100, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free};
+    using SmartPacket = std::shared_ptr<packet2_t>;
+    SmartPacket chain_packet{packet2_create(20, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1), &packet2_free};
 
     // Setup the transfer
     qword_t qword;
-    DMATAG_CNT((&qword), 5, 0, 0, 0); // macro magic //will explore DMA Chain Tags later ž
+    DMATAG_CNT((&qword), 5, 0, 0, 0); // macro magic //will explore DMA Chain Tags later
     packet2_add_u128(chain_packet.get(), qword.qw);
 
     qword.dw[0] = u64(GIF_SET_TAG(4, 0, 0, 0, GIF_FLG_PACKED, 1));
@@ -114,7 +135,7 @@ void Texture::TransferTextureToGS()
         packet2_add_u128(chain_packet.get(), qword.qw);
 
         // Transfer from actual image data via REF tag
-        DMATAG_REF((&qword), GIF_BLOCK_SIZE, (unsigned int)src, 0, 0, 0);
+        DMATAG_REF((&qword), GIF_BLOCK_SIZE, (u64)src, 0, 0, 0);
         packet2_add_u128(chain_packet.get(), qword.qw);
 
         // Now increment the address by the number of qwords in bytes
@@ -135,67 +156,21 @@ void Texture::TransferTextureToGS()
 
         // Transfer from actual image data via REF tag
         // REF transfers from actual memory address instead of a buffer that we prepare
-        DMATAG_REF((&qword), remainingData, (unsigned int)src, 0, 0, 0);
+        DMATAG_REF((&qword), remainingData, (u64)src, 0, 0, 0);
         packet2_add_u128(chain_packet.get(), qword.qw);
     }
-    packet2_update(chain_packet.get(), draw_texture_flush(chain_packet->next));
-    dma_channel_send_packet2(chain_packet.get(), DMA_CHANNEL_GIF, 1);
 
-    dma_wait_fast();
-}
-
-void Texture::SetTextureAsActive()
-{
-    using Packet2Deleter = void (*)(packet2_t *);
-    std::unique_ptr<packet2_t, Packet2Deleter> normal_packet{packet2_create(10, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0),
-                                                             &packet2_free};
-
-    qword_t qword;
-
-    qword.dw[0] = u64(GIF_SET_TAG(1, 0, 0, 0, GIF_FLG_PACKED, 1));
-    qword.dw[1] = u64(GIF_REG_AD);
-    packet2_add_u128(normal_packet.get(), qword.qw);
-
-    qword.dw[0] = GetTexGSSettings();
-    qword.dw[1] = GS_REG_TEX0_1;
-    packet2_add_u128(normal_packet.get(), qword.qw);
-
-    dma_wait_fast();
-    dma_channel_send_packet2(normal_packet.get(), DMA_CHANNEL_GIF, 0);
-    dma_wait_fast();
-}
-
-// FOR NOW HARDCODED
-void Texture::SetTexSamplingMethodInGS()
-{
-    using Packet2Deleter = void (*)(packet2_t *);
-    std::unique_ptr<packet2_t, Packet2Deleter> normal_packet{packet2_create(5, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0),
-                                                             &packet2_free};
-    lod_t lod;
-
-    lod.calculation = LOD_USE_K;
-    lod.max_level = 0;
-    lod.mag_filter = LOD_MAG_NEAREST;
-    lod.min_filter = LOD_MIN_NEAREST;
-    lod.l = 0;
-    lod.k = 0;
-
-    packet2_update(normal_packet.get(), draw_texture_sampling(normal_packet->next, 0, &lod));
-
-    dma_channel_send_packet2(normal_packet.get(), DMA_CHANNEL_GIF, 0);
-    dma_wait_fast();
-}
-
-void Texture::LoadTexture(std::shared_ptr<ITextureLoader> textureLoader)
-{
-    imageData = textureLoader->GetBytes(imgPath.c_str(), width, height, nrChannels);
-}
-
-u64 Texture::GetTexGSSettings() const
-{
-    return ((u64(this->gsTextureBuffer->GetVramAddress()) >> 6) & 0x3fff) | (((u64(width) >> 6) & 0x3f) << 14) |
-           ((u64(Buffers::GSPixelStorageMethod::PSM_24) & 0x3f) << 20) | ((u64(draw_log2(width)) & 0xf) << 26) |
-           ((u64(draw_log2(height)) & 0xf) << 30) | ((u64(1) & 0x1) << 34) | // RGB or RGBA
-           ((u64(0) & 0x3) << 35) | 0;
+    if (!isPartOfCallChain)
+        packet2_update(chain_packet.get(), draw_texture_flush(chain_packet->next));
+    else
+    {
+        DMATAG_RET((&qword), 2, 0, 0, 0);
+        packet2_add_u128(chain_packet.get(), qword.qw);
+        PACK_GIFTAG((&qword), GIF_SET_TAG(1, 1, 0, 0, GIF_FLG_PACKED, 1), GIF_REG_AD);
+        packet2_add_u128(chain_packet.get(), qword.qw);
+        PACK_GIFTAG((&qword), 1, GS_REG_TEXFLUSH);
+        packet2_add_u128(chain_packet.get(), qword.qw);
+    }
+    return chain_packet;
 }
 } // namespace graphics

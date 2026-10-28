@@ -19,7 +19,6 @@ class Vec4
     Vec4(const std::array<float, 4> &components);
 
     Vec4(const float *vertex);
-
     union {
         std::array<float, 4> components alignas(sizeof(float) * 4);
         struct

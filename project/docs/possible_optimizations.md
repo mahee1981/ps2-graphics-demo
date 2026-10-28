@@ -21,6 +21,7 @@ Current throughput: **~1.4 million triangles/second**
 The `CalculateLightingSpecular` macro dominates VU1 time — 3 RSQRT stalls (7 cycles each = 21 stall cycles per vertex, 63 per triangle) plus ~70 instructions per vertex.
 
 Options:
+- **Fully utilize all VU1 registers and process more triangles per program call** — this will help with instruction reordering and will reduce stalls. DrawTriStripV2 is POC
 - **Drop specular for non-shiny surfaces** — Use `draw3d.vcl` (ambient+diffuse only, ~30 instr/vertex vs ~70). This alone could yield **2× vertex throughput**.
 - **Reduce specular power** — 5 chained `MUL.x` gives pow(N·H, 32). Going to pow(8) (3 muls) saves instructions and reduces pressure near RSQRT stalls.
 - **Interleave RSQRT waits** — The 3 normalizations are sequential. Restructure to issue RSQRT for vertex N+1's normal while computing specular for vertex N.
